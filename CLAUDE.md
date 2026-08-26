@@ -28,7 +28,7 @@ written in English.
 Read the relevant one when a decision touches that area — don't restate
 its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 `docs/adr/` (one file per decision, numbered, template in
-`docs/adr/template.md`).
+`docs/adr/template.md`, index in `docs/adr/INDEX.md`).
 
 ## Status
 
@@ -51,11 +51,13 @@ No code in the repo yet. Synthetic data only.
 - The core also must not know about the infrastructure it runs on — no
   Cloudflare/D1-specific calls inline. Data access goes through a
   `Store` interface (see ADR-0001).
-- Stack: TypeScript (backend + frontend/website). DB: D1 now, Postgres
-  after migration. Deploy: Cloudflare Workers + D1 until first paying
-  customer or first real employee data, then Kamal + Hetzner.
+- Stack: TypeScript throughout. Backend: Hono, its own app. Frontend:
+  Vue 3 + Tailwind 4, its own app. DB: D1 now, Postgres after migration.
+  Deploy: Cloudflare Workers + D1 until first paying customer or first
+  real employee data, then Kamal + Hetzner.
 - Details in `docs/architecture.md`; rationale in
-  `docs/adr/0001-typescript-on-cloudflare-until-first-customer.md`.
+  `docs/adr/0001-typescript-on-cloudflare-until-first-customer.md` and
+  `docs/adr/0002-hono-vue-tailwind.md`.
 
 ## How to work
 

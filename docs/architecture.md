@@ -35,7 +35,15 @@ The core (matching + routing) never depends on the vendor.
 
 Monorepo managed with Turborepo: backend and frontend/website live in
 this one repository, under the standard `apps/*` / `packages/*`
-workspace convention.
+workspace convention. Backend and frontend are separate apps, not one
+merged app — see ADR-0002.
+
+## Frameworks
+
+- Backend: Hono.
+- Frontend: Vue 3, Tailwind 4.
+
+Rationale and alternatives considered: ADR-0002.
 
 ## Infra-agnostic core
 
