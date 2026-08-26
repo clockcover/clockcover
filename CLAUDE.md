@@ -60,8 +60,9 @@ No code in the repo yet. Synthetic data only.
 ## How to work
 
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-  (`type(scope): subject`). Enforced by `.githooks/commit-msg` — activate
-  once per clone with `git config core.hooksPath .githooks`.
+  (`type(scope): subject`). Enforced by commitlint via a husky
+  `commit-msg` hook — set up automatically by `pnpm install`
+  (`prepare` script).
 - Don't decide scope/architecture silently — check against the relevant
   doc in `docs/`; if something's unclear or conflicting, ask.
 - Order: contracts and logic first (types, matching engine, tests
