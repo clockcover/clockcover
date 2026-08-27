@@ -96,7 +96,8 @@ apps/web          Vue 3 + Tailwind 4 (Vite): the digest page and
                   resolve action behind the signed link (ADR-0004).
                   One route, /d/:token; view logic in src/digest.ts,
                   API client in src/api.ts; VITE_API_URL points at
-                  apps/api.
+                  apps/api (https://api.clockcover.com). Served at
+                  https://digest.clockcover.com.
 apps/site         Marketing website: one static HTML page + CSS served
                   as Worker assets. No framework, no build, no data,
                   no dependency on core — a one-page site does not

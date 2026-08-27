@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "observability": { "enabled": true },
+  "routes": [{ "pattern": "api.clockcover.com", "custom_domain": true }],
   "triggers": {
     // Daily digest + escalations, 08:00 UTC. Employer timezone is an open question.
     "crons": ["0 8 * * *"]
@@ -21,7 +22,7 @@
   ],
   "vars": {
     "EMAIL_FROM": "ClockCover <onboarding@resend.dev>",
-    "WEB_URL": "https://clockcover-web.andrew-molyuk.workers.dev",
+    "WEB_URL": "https://digest.clockcover.com",
     "SLA_HOURS": "48"
   }
 }

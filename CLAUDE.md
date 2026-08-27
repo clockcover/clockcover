@@ -39,11 +39,12 @@ Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
 daily cron for digests and escalations, HTML+text emails via Resend),
 `apps/web` (Vue 3 + Tailwind 4 digest page at `/d/:token`) and
 `apps/site` (static marketing page) exist and are **deployed on
-Cloudflare** (`*.andrew-molyuk.workers.dev`, D1 `clockcover`, secrets
-set) with the synthetic fixtures loaded. No custom domain, no verified
-email domain (digests send from `onboarding@resend.dev`). Next:
-domain-expert answers in `docs/open-questions.md`; a real test inbox
-for the digest. Synthetic data only.
+Cloudflare** — clockcover.com (site), digest.clockcover.com (web),
+api.clockcover.com (api); D1 `clockcover`, secrets set — with the
+synthetic fixtures loaded. No verified email domain yet (digests send
+from `onboarding@resend.dev`). Next: domain-expert answers in
+`docs/open-questions.md`; a real test inbox for the digest; Resend
+domain verification. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.
