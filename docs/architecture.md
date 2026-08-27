@@ -16,22 +16,29 @@ one common schema, which feeds:
 ```mermaid
 flowchart LR
     subgraph adapters["Ingestion adapters (apps/api, vendor-specific)"]
-        att[Attendance export] --> attAd[Attendance adapter]
-        sch[Schedule export] --> schAd[Schedule adapter]
+        att["Attendance export"]
+        sch["Schedule export"]
+        attAd["Attendance adapter"]
+        schAd["Schedule adapter"]
     end
 
     subgraph core["packages/core (vendor- and infra-agnostic)"]
-        attAd -->|AttendanceRecord| match[Matching engine]
-        schAd -->|ScheduledShift| match
-        match -->|gaps per employee_id + date| route[Routing / escalation engine]
-        route <-->|Store port| store[(Store)]
+        match["Matching engine"]
+        route["Routing / escalation engine"]
+        store[("Store port")]
     end
 
-    route -->|digest per manager_id| digest[Digest delivery]
-    route -->|SLA breach| payroll[Payroll accountant]
-    digest --> email[Email]
-    digest --> web[Web view — apps/web]
-    d1[(D1 adapter)] -.implements.-> store
+    att --> attAd
+    sch --> schAd
+    attAd -- "AttendanceRecord" --> match
+    schAd -- "ScheduledShift" --> match
+    match -- "gaps per employee_id and date" --> route
+    route --> store
+    d1[("D1 adapter")] -. "implements" .-> store
+    route -- "digest per manager_id" --> digest["Digest delivery"]
+    route -- "SLA breach" --> payroll["Payroll accountant"]
+    digest --> email["Email"]
+    digest --> web["Web view (apps/web)"]
 ```
 
 Schema, matching algorithm, and routing/escalation logic are in
