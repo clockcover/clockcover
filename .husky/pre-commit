@@ -1,2 +1,3 @@
 git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -r node tooling/guards/git-hook.ts synthetic-only
 git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 -r node tooling/guards/git-hook.ts no-secrets
+git diff --cached --name-only --diff-filter=ACMR -z -- '*.md' | xargs -0 -r pnpm exec markdownlint-cli2

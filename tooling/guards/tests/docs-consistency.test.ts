@@ -9,14 +9,14 @@ const read = (p: string) => readFileSync(root + p, "utf8");
 test("every ADR file is in INDEX.md, every INDEX row has a file, numbers are contiguous", () => {
   const files = readdirSync(root + "docs/adr").filter((f) => /^\d{4}-.*\.md$/.test(f)).sort();
   const index = read("docs/adr/INDEX.md");
-  const rows = [...index.matchAll(/^\| \[(\d{4})\]\((\S+)\) \|/gm)].map((m) => ({ n: m[1], file: m[2] }));
+  const rows = [...index.matchAll(/^\| \[(\d{4})\]\((\S+)\)\s+\|/gm)].map((m) => ({ n: m[1], file: m[2] }));
   assert.deepEqual(rows.map((r) => r.file), files, "INDEX rows must list exactly the ADR files, in order");
   files.forEach((f, i) => assert.equal(f.slice(0, 4), String(i + 1).padStart(4, "0"), `ADR numbering gap at ${f}`));
 });
 
 test("ADR status in INDEX matches the file's frontmatter", () => {
   const index = read("docs/adr/INDEX.md");
-  for (const m of index.matchAll(/^\| \[\d{4}\]\((\S+)\) \| .* \| (\w+) \|$/gm)) {
+  for (const m of index.matchAll(/^\| \[\d{4}\]\((\S+)\)\s+\| .* \| (\w+)\s+\|$/gm)) {
     const fm = read(`docs/adr/${m[1]}`).match(/^status:\s*(\w+)/m)?.[1];
     assert.equal(m[2], fm, `${m[1]}: INDEX says ${m[2]}, frontmatter says ${fm}`);
   }

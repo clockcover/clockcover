@@ -1,13 +1,13 @@
 ---
-title: "ADR-NNN: <Short Decision Title>"
+title: "ADR-NNN: Short Decision Title"
 type: adr
-status: accepted           # accepted | superseded
+status: accepted # accepted | superseded
 updated: YYYY-MM-DD
 tags: [area, area]
-superseded_by:             # path to newer ADR, only set when status is superseded
+superseded_by: # path to newer ADR, only set when status is superseded
 ---
 
-# ADR-NNN: <Short Decision Title>
+# ADR-NNN: Short Decision Title
 
 **Date:** YYYY-MM-DD
 

@@ -65,7 +65,7 @@ Monorepo managed with Turborepo, standard `apps/*` / `packages/*`
 workspace convention. Backend and frontend are separate apps, not one
 merged app — see ADR-0002. Package boundaries — see ADR-0003:
 
-```
+```text
 packages/core     domain types, matching engine, routing/escalation,
                   the Store port, synthetic fixtures.
                   No runtime/framework imports (enforced by ESLint).

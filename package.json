@@ -10,6 +10,7 @@
     "prepare": "husky",
     "test:guards": "node --test tooling/guards/tests/*.test.ts .claude/hooks/tests/*.test.ts",
     "typecheck": "tsc -p tsconfig.json",
+    "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "guards:scan": "git ls-files -z | xargs -0 node tooling/guards/git-hook.ts synthetic-only && git ls-files -z | xargs -0 node tooling/guards/git-hook.ts no-secrets"
   },
   "engines": {
@@ -20,6 +21,7 @@
     "@commitlint/config-conventional": "^21.2.2",
     "@types/node": "^26.2.0",
     "husky": "^9.1.7",
+    "markdownlint-cli2": "^0.23.2",
     "turbo": "2.10.11",
     "typescript": "^7.0.2"
   }

@@ -10,7 +10,7 @@ each employee individually.
 
 The root problem isn't missing data — attendance systems already know
 who didn't clock in. It's misrouted responsibility: a manager can't act
-on gaps they never see, and even one who *can* see them still needs a
+on gaps they never see, and even one who _can_ see them still needs a
 nudge to act on time. The job isn't to build gap detection from scratch
 — it's to route the existing signal to the right manager automatically,
 and escalate to payroll only if that manager doesn't act within an SLA.

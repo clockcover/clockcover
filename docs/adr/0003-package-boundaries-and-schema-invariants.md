@@ -39,7 +39,7 @@ acted within SLA) is computed from.
 
 Two apps and one shared package:
 
-```
+```text
 packages/core     domain types, matching, routing/escalation, the Store
                   port, synthetic fixtures. No runtime/framework imports.
 apps/api          Hono. Routes, the cron entry point, and every adapter:
@@ -149,6 +149,6 @@ not a package" choice. Also when the domain expert answers whether
 3. **Compute the SLA metric from `gaps` timestamps alone, no events
    table** — rejected: `gaps` holds current state, not history; a
    re-notified or reopened gap loses the timeline the metric needs.
-4. **Route by the employee's *current* manager at digest time** —
+4. **Route by the employee's _current_ manager at digest time** —
    rejected: makes the SLA timer move with org changes and leaves
    `escalations` unable to say who was actually late.

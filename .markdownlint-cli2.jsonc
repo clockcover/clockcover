@@ -1,0 +1,10 @@
+{
+  // Markdown lint for docs/, CLAUDE.md, README. Run: pnpm lint:md
+  "config": {
+    "default": true,
+    "MD013": { "line_length": 140, "code_blocks": false, "tables": false },
+    "MD025": { "front_matter_title": "" },
+    "MD060": false
+  },
+  "ignores": ["node_modules/**", "LICENSE.md"]
+}

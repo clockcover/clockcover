@@ -10,7 +10,7 @@ Every table carries `employer_id`. One employer per deployment for the
 MVP; the column exists so multi-tenancy is a config change later, not a
 data migration.
 
-```
+```text
 employers
   id, name
 
@@ -72,7 +72,7 @@ No I/O; the caller persists the result through `Store`.
 
 Pseudocode for the main loop (per period — day/week):
 
-```
+```text
 for each employee:
     scheduled = scheduled_shifts.where(employee_id, date_range)
     actual    = attendance_records.where(employee_id, date_range)
@@ -136,17 +136,17 @@ answer is computable.
 runs green against synthetic fixtures (`packages/core/fixtures`). Add a
 row before changing behaviour, not after.
 
-| # | Given | Expect |
-|---|---|---|
-| 1 | Shift scheduled, no attendance record | one gap `no_record_at_all`, `manager_id` = employee's manager at detection |
-| 2 | Shift scheduled, record with `clock_in` only | one gap `no_clockout` |
-| 3 | Shift scheduled, record with `clock_out` only | one gap `no_clockin` |
-| 4 | Shift scheduled, full record | no gap |
-| 5 | Record on a day with no shift | one `unscheduled_attendance`, zero gaps |
-| 6 | Same period detected twice | identical result, zero duplicate gaps |
-| 7 | Gap detected, corrected import supplies the record, re-run | gap resolved with `resolution = record_arrived`, `gap_resolved` event |
-| 8 | Employee reassigned to another manager after detection | gap keeps original `manager_id`; digest goes to the original manager |
-| 9 | Two managers, mixed gaps | each digest contains only that manager's gaps |
-| 10 | `runDailyDigest` run twice on one day | one `digests` row per manager, one `digest_sent` event, second run sends nothing |
-| 11 | Gap notified, SLA elapsed, unresolved | one escalation, one `escalated` event; third run adds nothing |
-| 12 | Gap notified, resolved before SLA | no escalation |
+| #   | Given                                                      | Expect                                                                           |
+| --- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | Shift scheduled, no attendance record                      | one gap `no_record_at_all`, `manager_id` = employee's manager at detection       |
+| 2   | Shift scheduled, record with `clock_in` only               | one gap `no_clockout`                                                            |
+| 3   | Shift scheduled, record with `clock_out` only              | one gap `no_clockin`                                                             |
+| 4   | Shift scheduled, full record                               | no gap                                                                           |
+| 5   | Record on a day with no shift                              | one `unscheduled_attendance`, zero gaps                                          |
+| 6   | Same period detected twice                                 | identical result, zero duplicate gaps                                            |
+| 7   | Gap detected, corrected import supplies the record, re-run | gap resolved with `resolution = record_arrived`, `gap_resolved` event            |
+| 8   | Employee reassigned to another manager after detection     | gap keeps original `manager_id`; digest goes to the original manager             |
+| 9   | Two managers, mixed gaps                                   | each digest contains only that manager's gaps                                    |
+| 10  | `runDailyDigest` run twice on one day                      | one `digests` row per manager, one `digest_sent` event, second run sends nothing |
+| 11  | Gap notified, SLA elapsed, unresolved                      | one escalation, one `escalated` event; third run adds nothing                    |
+| 12  | Gap notified, resolved before SLA                          | no escalation                                                                    |
