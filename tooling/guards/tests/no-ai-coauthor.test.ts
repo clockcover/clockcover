@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { check } from "./no-ai-coauthor.ts";
+import { check } from "../no-ai-coauthor.ts";
 
 test("flags Claude trailer", () => {
   assert.match(check("feat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>")[0], /not allowed/);

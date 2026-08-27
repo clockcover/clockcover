@@ -7,8 +7,8 @@ them.
 ## Guards
 
 Rules that are worth automating live in `tooling/guards/` as pure
-TypeScript functions with tests next to them, and are wired into two
-places so they fire whether a change comes from a person or from Claude
+TypeScript functions (tests in `tooling/guards/tests/`), and are wired
+into two places so they fire whether a change comes from a person or from Claude
 Code:
 
 | Guard | Rule | Claude Code hook | git hook (husky) |
@@ -33,12 +33,18 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`).
 - Anything a Claude Code hook blocks is also blocked by a git hook or
   CI. Hooks shorten the feedback loop; they are not the only defence.
 - Timeout ≤ 10 s. Slow checks are not hooks.
-- New guard = `tooling/guards/<guard>.ts` + `<guard>.test.ts` +
+- New guard = `tooling/guards/<guard>.ts` + `tests/<guard>.test.ts` +
   `.claude/hooks/<guard>.ts` registered in `.claude/settings.json` +
   entry in `GUARDS` in `git-hook.ts` wired into `.husky/` + row in the
   table above.
 - `.claude/settings.json` is committed (team rules). Personal overrides
   go in `.claude/settings.local.json` (gitignored).
+
+## Tests
+
+Tests live in a `tests/` folder next to the code they cover, never mixed
+into the source folder (`tooling/guards/tests/`, and the same layout in
+`packages/*` and `apps/*` once they exist).
 
 ## Commits
 

@@ -8,7 +8,7 @@
     "test": "turbo run test",
     "lint": "turbo run lint",
     "prepare": "husky",
-    "test:guards": "node --test tooling/guards/*.test.ts"
+    "test:guards": "node --test tooling/guards/tests/*.test.ts"
   },
   "engines": {
     "node": ">=23.6"
