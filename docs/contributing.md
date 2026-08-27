@@ -88,8 +88,8 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   mailer. `pnpm db:generate` (drizzle-kit) regenerates migrations from
   `src/adapters/store-d1/schema.ts`; wrangler applies them.
   `wrangler deploy --dry-run` checks the Worker bundles.
-- `apps/web/tests/` — the page's view logic (`src/digest.ts`, `src/api.ts`)
-  with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
+- `apps/web/tests/` — view logic (`src/digest.ts`, `src/api.ts`,
+  `src/console-api.ts`) with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
   which CI runs; there is no vue-tsc because it does not support
   TypeScript 7 yet.
 - `apps/site` has no tests or build: it is two static files.
@@ -105,13 +105,15 @@ does not persist in this WSL setup.
 - `apps/api`: `pnpm db:migrate:remote`, then `pnpm deploy`. Secrets come
   from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
   (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `EMAIL_FROM`
-  and `SLA_HOURS` are plain vars in `wrangler.jsonc`.
+  and `SLA_HOURS` (default for new employers; each employer's own value
+  lives in `employers.sla_hours`) are plain vars in `wrangler.jsonc`.
 - `apps/web`: `VITE_API_URL=<api origin> pnpm build && pnpm exec wrangler deploy`
   (static assets, SPA fallback so `/d/<token>` resolves).
 - `apps/site`: `pnpm deploy`.
 - Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
-  employers (id, name, payroll_email, timezone)` — `timezone` is an IANA
-  name and defines "today" for that employer's digests; rosters and exports go through `scripts/upload.ts`
+  employers (id, name, payroll_email, operator_email, timezone)`. From
+  there the operator signs in at `/console` and does everything else in
+  the browser (ADR-0005); `scripts/upload.ts` remains for automation
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
 Current deployment (Workers custom domains on the `clockcover.com`

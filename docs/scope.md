@@ -30,6 +30,10 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - A public **marketing website** (`apps/site`): what the product does,
   for whom, and a way to get in touch. Static; no accounts, no product
   data.
+- An **operator console** (`apps/web/console`, ADR-0005) for the person
+  who runs ClockCover at an employer: sign in by emailed link, upload
+  the roster and the exports, edit employer settings (timezone, SLA,
+  emails), read the "manager acted within SLA" metric.
 
 ## Non-goals
 
@@ -42,5 +46,6 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   employer gives explicit consent — see `privacy.md`.
 - No employment-contract generator/parser.
 - No payroll calculation itself — only gap detection and routing.
-- No UI for the payroll accountant at all. They receive escalation
-  emails; there is no page, list, or dashboard for them.
+- No gap list for the payroll accountant. Individual gaps reach them
+  only as escalation emails; the operator console shows settings,
+  imports and aggregate numbers, never a queue of gaps to chase.

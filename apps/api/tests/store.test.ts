@@ -21,7 +21,7 @@ const later = (h: number) => new Date(T0.getTime() + h * HOURS);
 
 async function setup() {
   const db = await testDb();
-  await db.insert(s.employers).values({ id: EMPLOYER, name: "Example Logistics", payrollEmail: "payroll@example.com" });
+  await db.insert(s.employers).values({ id: EMPLOYER, name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: "operator@example.com" });
   const employees = await saveRoster(db, EMPLOYER, parseRoster(fixture("roster.csv")).rows);
   const store = new SqlStore(db);
   const sent: DigestMessage[] = [];

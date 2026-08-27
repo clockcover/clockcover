@@ -9,7 +9,7 @@ const claims = { employerId: "emp-1", managerId: "mgr-north", exp: NOW.getTime()
 test("round-trips valid claims", async () => {
   const token = await signLink(claims, SECRET);
   assert.match(token, /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/, "url-safe, no padding");
-  assert.deepEqual(await verifyLink(token, SECRET, NOW), claims);
+  assert.deepEqual(await verifyLink(token, SECRET, NOW), { kind: "manager", ...claims });
 });
 
 test("rejects expiry, tampering, wrong secret and garbage", async () => {

@@ -14,6 +14,7 @@ import { parseCsv, parseRoster } from "./adapters/csv.ts";
 import { renderDigest, renderEscalation } from "./adapters/email.ts";
 import type { SendEmail } from "./adapters/email.ts";
 import { LINK_TTL_MS, signLink, verifyLink } from "./link.ts";
+import { consoleRoutes } from "./console.ts";
 
 export interface Deps {
   db: Db;
@@ -25,6 +26,7 @@ export interface Deps {
   linkSecret: string;
   /** Origin of apps/web, e.g. https://digest.example.com — used to build links and allow CORS. */
   webUrl: string;
+  /** Default SLA for employers that have not set their own (employers.sla_hours). */
   slaHours: number;
   now?: () => Date;
 }
@@ -71,6 +73,10 @@ export function createApp(deps: Deps) {
     });
   });
 
+  // ---- Operator console (ADR-0005). Bearer token; called from apps/web.
+  app.use("/console/*", cors({ origin: deps.webUrl, allowMethods: ["GET", "POST", "PATCH"], allowHeaders: ["content-type", "authorization"] }));
+  app.route("/console", consoleRoutes(deps));
+
   // ---- Manager endpoints: signed link in the path (ADR-0004). Called from apps/web.
   app.use("/d/*", cors({ origin: deps.webUrl, allowMethods: ["GET", "POST"], allowHeaders: ["content-type"] }));
 
@@ -91,7 +97,7 @@ export function createApp(deps: Deps) {
       manager: { fullName: manager.fullName },
       employer: { name: employer.name },
       digestDate: isoDate(t, employer.timezone),
-      slaHours: deps.slaHours,
+      slaHours: employer.slaHours,
       linkExpires: new Date(claims.exp).toISOString(),
       gaps: views.map((v) => ({
         id: v.gap.id, employeeName: v.employeeName, gapDate: v.gap.gapDate, gapType: v.gap.gapType,
@@ -138,13 +144,13 @@ export async function runScheduled(deps: Deps): Promise<{ digests: number; escal
       await deps.sendEmail(renderDigest({
         manager: m.manager, employerName: employer.name,
         gaps: await gapViews(deps.db, employer.id, m.gaps),
-        digestDate: isoDate(t, employer.timezone), slaHours: deps.slaHours,
+        digestDate: isoDate(t, employer.timezone), slaHours: employer.slaHours,
         link: `${deps.webUrl.replace(/\/$/, "")}/d/${token}`, linkExpires: new Date(exp),
       }));
     };
     digests += (await runDailyDigest(deps.store, employer.id, t, send)).length;
 
-    const escalated = await runEscalations(deps.store, employer.id, t, deps.slaHours * HOUR);
+    const escalated = await runEscalations(deps.store, employer.id, t, employer.slaHours * HOUR);
     if (escalated.length) {
       const rows = await deps.db.select().from(s.gaps);
       const gaps: Gap[] = escalated.map((e) => rows.find((x) => x.id === e.gapId)).filter((x) => x !== undefined)
@@ -154,7 +160,7 @@ export async function runScheduled(deps: Deps): Promise<{ digests: number; escal
         const view = views.find((v) => v.gap.id === e.gapId);
         if (!view) continue;
         const manager = await deps.store.getManager(view.gap.managerId);
-        await deps.sendEmail(renderEscalation({ escalation: e, view, manager, employerName: employer.name, slaHours: deps.slaHours }));
+        await deps.sendEmail(renderEscalation({ escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours }));
       }
     }
     escalations += escalated.length;
