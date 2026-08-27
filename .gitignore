@@ -5,3 +5,8 @@ dist/
 .env.*
 .DS_Store
 .claude/settings.local.json
+# Real employee exports, if ever received — never tracked (docs/privacy.md)
+data/real/
+# Wrangler local secrets and state (read-denied in .claude/settings.json)
+.dev.vars
+.wrangler/

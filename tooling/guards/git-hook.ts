@@ -5,13 +5,11 @@ import { readFileSync } from "node:fs";
 import * as noAiCoauthor from "./no-ai-coauthor.ts";
 import * as syntheticOnly from "./synthetic-only.ts";
 import * as noSecrets from "./no-secrets.ts";
-import * as harnessIntegrity from "./harness-integrity.ts";
 
 const GUARDS: Record<string, { check(text: string): string[]; appliesTo?(path: string): boolean }> = {
   "no-ai-coauthor": noAiCoauthor,
   "synthetic-only": syntheticOnly,
   "no-secrets": noSecrets,
-  "harness-integrity": harnessIntegrity,
 };
 
 const [name = "", ...files] = process.argv.slice(2);

@@ -29,3 +29,29 @@ test("CLAUDE.md Status block carries a date no older than 90 days", () => {
   const ageDays = (Date.now() - new Date(date).getTime()) / 86_400_000;
   assert.ok(ageDays < 90, `Status was last confirmed ${Math.round(ageDays)} days ago — re-check and update the date`);
 });
+
+test("the set of guards is the same in git-hook.ts, settings.json hooks, CLAUDE.md and contributing.md", () => {
+  const fromGitHook = [...read("tooling/guards/git-hook.ts").matchAll(/^\s+"([a-z-]+)": \w+,$/gm)].map((m) => m[1]);
+  const fromHooks = readdirSync(root + ".claude/hooks").filter((f) => f.endsWith(".ts") && f !== "lib.ts").map((f) => f.slice(0, -3));
+  const settings = read(".claude/settings.json");
+  const fromSettings = [...new Set([...settings.matchAll(/node \.claude\/hooks\/([a-z-]+)\.ts/g)].map((m) => m[1]))];
+  const claude = read("CLAUDE.md").match(/- Guards \(([^)]*)\)/)?.[1] ?? "";
+  const fromClaude = [...claude.matchAll(/`([a-z-]+)`/g)].map((m) => m[1]);
+  const fromContributing = [...read("docs/contributing.md").matchAll(/^\| `([a-z-]+)`\s+\|/gm)].map((m) => m[1]);
+
+  const all = [...new Set([...fromGitHook, ...fromHooks, ...fromSettings, ...fromClaude, ...fromContributing])].sort();
+  // No file-based git-hook mode by design: destructive-git (pre-push.ts covers it) and
+  // harness-integrity (a git hook cannot stop --no-verify; CI + branch protection do) — see contributing.md.
+  assert.deepEqual([...fromGitHook, "destructive-git", "harness-integrity"].sort(), all, "GUARDS in git-hook.ts");
+  assert.deepEqual([...fromHooks].sort(), all, ".claude/hooks/*.ts");
+  assert.deepEqual([...fromSettings].sort(), all, ".claude/settings.json hooks");
+  assert.deepEqual([...fromClaude].sort(), all, "CLAUDE.md § How to work guard list");
+  assert.deepEqual([...fromContributing].sort(), all, "docs/contributing.md guard table");
+});
+
+test(".gitignore excludes data/real/ and the wrangler secret paths docs/privacy.md names", () => {
+  const gi = read(".gitignore");
+  assert.match(gi, /^data\/real\/$/m);
+  assert.match(gi, /^\.dev\.vars$/m);
+  assert.match(gi, /^\.wrangler\/$/m);
+});
