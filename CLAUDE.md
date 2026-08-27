@@ -32,14 +32,14 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-Last confirmed: 2026-08-27. Docs, ADR-0001..0003, the repo harness
+Last confirmed: 2026-08-27. Docs, ADR-0001..0004, the repo harness
 (guards, hooks, CI — see `docs/contributing.md`), `packages/core` (all
 12 acceptance scenarios green), and `apps/api` (Hono; D1 `Store` via
 Drizzle, CSV roster/import endpoints, daily cron for digests and
 escalations, Resend email; tested against real SQLite) exist. Not
-deployed yet — no D1 database or secrets created. Next: ADR-0004
-(digest access), then the manager's resolve endpoint and `apps/web`;
-`apps/site` any time. Synthetic data only.
+deployed yet — no D1 database or secrets created. ADR-0004 (digest
+access by signed link) is accepted; next: the `/d/<token>` endpoints
+and `apps/web`; `apps/site` any time. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

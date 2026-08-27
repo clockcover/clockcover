@@ -1,10 +1,11 @@
 ---
 title: "ADR-NNN: Short Decision Title"
 type: adr
-status: accepted # accepted | superseded
+status: accepted # proposed | accepted | superseded
 updated: YYYY-MM-DD
 tags: [area, area]
 superseded_by: # path to newer ADR, only set when status is superseded
+# `proposed` = drafted for sign-off; nothing is built on it until it is `accepted`.
 ---
 
 # ADR-NNN: Short Decision Title

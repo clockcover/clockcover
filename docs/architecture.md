@@ -58,10 +58,14 @@ The core (matching + routing) never depends on the vendor.
   (`employee_id,employee_name,manager_id,manager_name,manager_email`),
   upserted by external id. Re-uploading it is how a reassignment is
   recorded; gaps already detected keep their manager snapshot.
-- **Endpoints** (`apps/api`), all behind one operator API key until
-  ADR-0004: `POST /employers/:id/roster`, `POST /employers/:id/imports`
-  (runs detection for the dates in the file), `GET /health`. The cron
+- **Endpoints** (`apps/api`): operator endpoints behind one API key —
+  `POST /employers/:id/roster`, `POST /employers/:id/imports` (runs
+  detection for the dates in the file) — and `GET /health`. The cron
   trigger (08:00 UTC) runs digests then escalations for every employer.
+- **Manager access** (ADR-0004): the digest email carries a signed,
+  expiring link scoped to that manager (`/d/<token>`); the same token
+  authorises `POST /d/<token>/gaps/:gapId/resolve`. No accounts or
+  sessions. `apps/web` has one route, `/d/:token`.
 - **When a new employer is known** — write a specific adapter for
   whatever they actually provide (Excel/PDF/API/etc.), without touching
   the rest of the code; add its format to `imports.source` then.
@@ -83,7 +87,8 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
                   tests run it on libsql with a fake mailer.
-apps/web          Vue 3 + Tailwind 4: digest page, resolve action.
+apps/web          Vue 3 + Tailwind 4: digest page and resolve action
+                  behind the signed link (ADR-0004).
 apps/site         Marketing website. Static, no product data, no
                   dependency on core. Stack: to be decided when it is
                   started (Vue + Tailwind to match apps/web, or a
