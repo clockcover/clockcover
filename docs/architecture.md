@@ -73,6 +73,10 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   (src/adapters/{store-d1, csv, email}). Wires adapters
                   into core by hand.
 apps/web          Vue 3 + Tailwind 4: digest page, resolve action.
+apps/site         Marketing website. Static, no product data, no
+                  dependency on core. Stack: to be decided when it is
+                  started (Vue + Tailwind to match apps/web, or a
+                  static-site generator).
 ```
 
 Adapters are not separate packages until a second implementation of
