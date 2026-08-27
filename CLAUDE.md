@@ -66,15 +66,16 @@ No code in the repo yet. Synthetic data only.
 - Never add `Co-Authored-By` (or any similar trailer) naming an AI
   agent to a commit. Commits are authored by humans only; the
   `no-ai-coauthor` guard rejects such trailers.
-- Guards (`no-ai-coauthor`, `synthetic-only`, `destructive-git`), git
-  hooks, and the rules
+- Guards (`no-ai-coauthor`, `synthetic-only`, `destructive-git`,
+  `no-secrets`), git hooks, CI, and the rules
   for adding new guards: `docs/contributing.md`.
 - Don't decide scope/architecture silently — check against the relevant
   doc in `docs/`; if something's unclear or conflicting, ask.
 - Order: contracts and logic first (types, matching engine, tests
   against synthetic scenarios), tooling/infra second — not the other
   way around.
-- Verify before calling a step done: `pnpm test:guards` today;
+- Verify before calling a step done: `pnpm typecheck && pnpm test:guards`
+  today;
   `pnpm typecheck && pnpm test` once `packages/core` exists (update this
   line then). For matching/routing changes, the acceptance scenarios in
   `docs/core-design.md` must all pass.

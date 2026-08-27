@@ -58,3 +58,12 @@ test("destructive-git asks before reset --hard", () => {
 test("destructive-git stays silent on ordinary git", () => {
   assert.equal(run("destructive-git", { tool_name: "Bash", tool_input: { command: "git push && git log -1" } }).decision, null);
 });
+
+test("no-secrets denies a credential written to a config file", () => {
+  const { decision } = run("no-secrets", { tool_name: "Write", tool_input: { file_path: "apps/api/wrangler.toml", content: "AKIAABCDEFGHIJKLMNOP" } });
+  assert.equal(decision.permissionDecision, "deny");
+  assert.match(decision.permissionDecisionReason, /AWS access key/);
+});
+test("no-secrets stays silent on env references", () => {
+  assert.equal(run("no-secrets", { tool_name: "Write", tool_input: { file_path: "apps/api/src/env.ts", content: "const key = process.env.API_KEY;" } }).decision, null);
+});

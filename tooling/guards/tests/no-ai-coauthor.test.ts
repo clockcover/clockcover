@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { check } from "../no-ai-coauthor.ts";
 
 test("flags Claude trailer", () => {
-  assert.match(check("feat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>")[0], /not allowed/);
+  assert.match(check("feat: x\n\nCo-Authored-By: Claude <noreply@anthropic.com>")[0] ?? "", /not allowed/);
 });
 test("flags trailer embedded in a shell command", () => {
   const cmd = `git commit -m "$(printf 'fix: y\\n\\nCo-authored-by: GitHub Copilot <c@github.com>')"`;

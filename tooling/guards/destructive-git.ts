@@ -55,7 +55,7 @@ export function checkPushRefs(
   const out: string[] = [];
   for (const line of lines) {
     const [, localSha, remoteRef, remoteSha] = line.trim().split(/\s+/);
-    if (!remoteRef) continue;
+    if (!localSha || !remoteRef || !remoteSha) continue;
     const branch = remoteRef.replace(/^refs\/heads\//, "");
     if (!protectedBranches.includes(branch)) continue;
     if (ZERO.test(localSha)) out.push(`deleting ${branch} on the remote`);

@@ -50,8 +50,17 @@ test("synthetic-only with no matching files exits 0", () => {
   assert.equal(run("synthetic-only").code, 0);
 });
 
+test("no-secrets flags a key in a config file and skips test files", () => {
+  const toml = file("wrangler.toml", 'api_key = "abcd1234efgh5678ijkl9012mnop"\n');
+  const spec = file("x.test.ts", 'const k = "ghp_" + "a".repeat(36);\n');
+  const { code, stderr } = run("no-secrets", toml, spec);
+  assert.equal(code, 1);
+  assert.match(stderr, /wrangler\.toml: assigned secret/);
+  assert.doesNotMatch(stderr, /x\.test\.ts/);
+});
+
 test("unknown guard exits 1 and lists known guards", () => {
   const { code, stderr } = run("bogus", "x");
   assert.equal(code, 1);
-  assert.match(stderr, /unknown guard "bogus".*no-ai-coauthor, synthetic-only/);
+  assert.match(stderr, /unknown guard "bogus".*no-ai-coauthor, synthetic-only, no-secrets/);
 });

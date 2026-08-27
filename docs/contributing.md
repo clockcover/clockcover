@@ -15,7 +15,13 @@ Code:
 |---|---|---|---|
 | `no-ai-coauthor` | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent | `PreToolUse` on `Bash` → denies the `git commit` | `commit-msg` |
 | `destructive-git` | Force-push without `--force-with-lease` is denied; commands that discard work or rewrite history (`reset --hard`, `checkout --`, `restore`, `clean -f`, `branch -D`, `stash drop/clear`, `rebase`, `commit --amend`, `--force-with-lease`) make Claude **ask** first | `PreToolUse` on `Bash` → deny / ask | `pre-push`: refuses non-fast-forward pushes and deletions on `main` |
+| `no-secrets` | No credentials in tracked files: private-key blocks, AWS/GitHub/OpenAI-Anthropic/Slack token formats, JWTs, and `api_key = "<long opaque value>"`-style assignments. Env references and placeholders pass. Lockfiles, tests and binaries are skipped | `PreToolUse` on `Write\|Edit` → denies the write | `pre-commit` on staged files |
 | `synthetic-only` | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`) | `PreToolUse` on `Write\|Edit` → denies the write | `pre-commit` on staged files |
+
+`pnpm typecheck` typechecks the guards and hooks (`tsconfig.json` at the
+root covers `tooling/` and `.claude/hooks/`; packages get their own).
+`pnpm guards:scan` runs `synthetic-only` and `no-secrets` over every
+tracked file — CI runs it on each push and PR.
 
 Run all guard tests with `pnpm test:guards` (Node's built-in runner;
 Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
@@ -57,6 +63,14 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
 Tests live in a `tests/` folder next to the code they cover, never mixed
 into the source folder (`tooling/guards/tests/`, and the same layout in
 `packages/*` and `apps/*` once they exist).
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push to `main` and every PR:
+`pnpm typecheck`, `pnpm test:guards`, `pnpm guards:scan`, and commitlint
+over the pushed/PR commit range. It is the backstop for a clone where
+hooks were never installed. Branch protection on `main` (require CI,
+no force-push, no deletion) is configured in GitHub, not in the repo.
 
 ## Commits
 

@@ -33,7 +33,7 @@ test("ignores non-git commands that mention the words", () => {
   assert.equal(level("echo git push --force"), null);
 });
 test("check returns level-prefixed findings", () => {
-  assert.match(check("git push -f")[0], /^\[deny\] force-push/);
+  assert.match(check("git push -f")[0] ?? "", /^\[deny\] force-push/);
 });
 
 const L = "refs/heads/main 1111 refs/heads/main 2222";

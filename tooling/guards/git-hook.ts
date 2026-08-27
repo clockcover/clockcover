@@ -4,13 +4,15 @@
 import { readFileSync } from "node:fs";
 import * as noAiCoauthor from "./no-ai-coauthor.ts";
 import * as syntheticOnly from "./synthetic-only.ts";
+import * as noSecrets from "./no-secrets.ts";
 
 const GUARDS: Record<string, { check(text: string): string[]; appliesTo?(path: string): boolean }> = {
   "no-ai-coauthor": noAiCoauthor,
   "synthetic-only": syntheticOnly,
+  "no-secrets": noSecrets,
 };
 
-const [name, ...files] = process.argv.slice(2);
+const [name = "", ...files] = process.argv.slice(2);
 const guard = GUARDS[name];
 if (!guard) {
   console.error(`git-hook: unknown guard "${name}" (known: ${Object.keys(GUARDS).join(", ")})`);

@@ -23,6 +23,11 @@
             "type": "command",
             "command": "node .claude/hooks/synthetic-only.ts",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/no-secrets.ts",
+            "timeout": 10
           }
         ]
       }
