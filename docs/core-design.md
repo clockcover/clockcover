@@ -157,7 +157,8 @@ import), the gap is resolved with `resolution = record_arrived`.
 
 ## Resolution
 
-A gap is resolved either by the manager (action from the digest →
+A gap is resolved either by the manager (the "Mark resolved" action on
+the digest page, `POST /d/<token>/gaps/:gapId/resolve` →
 `resolveByManager(store, gapId, now, note)`, `resolution =
 manager_action`) or by a later import supplying the missing record
 (`runDetection` re-run, `resolution = record_arrived`). Both set `resolved_at`

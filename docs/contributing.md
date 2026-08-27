@@ -88,6 +88,11 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   mailer. `pnpm db:generate` (drizzle-kit) regenerates migrations from
   `src/adapters/store-d1/schema.ts`; wrangler applies them.
   `wrangler deploy --dry-run` checks the Worker bundles.
+- `apps/web/tests/` — the page's view logic (`src/digest.ts`, `src/api.ts`)
+  with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
+  which CI runs; there is no vue-tsc because it does not support
+  TypeScript 7 yet.
+- `apps/site` has no tests or build: it is two static files.
 
 ## Tests
 
@@ -112,9 +117,9 @@ and the same layout in `apps/*` once they exist).
 ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
-`pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm guards:scan`,
-commitlint over the pushed/PR commit range, and (on PRs) commitlint
-over the PR title. It is the backstop for a clone where
+`pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm build`,
+`pnpm guards:scan`, commitlint over the pushed/PR commit range, and (on
+PRs) commitlint over the PR title. It is the backstop for a clone where
 hooks were never installed. `main` is protected by a GitHub ruleset
 (linear history, no force-push, no deletion, signed commits, CodeQL code
 scanning) — configured in GitHub, not in the repo. Because CodeQL must

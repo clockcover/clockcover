@@ -26,7 +26,10 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
   `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.netrc` — and on `data/real/`,
   the (gitignored) place real employee exports go if we ever get them.
   `.dev.vars`, `.wrangler/` and `data/real/` are also gitignored;
-  `apps/api/.dev.vars.example` holds placeholders only.
+  `apps/api/.dev.vars.example` holds placeholders only. Worker secrets
+  are `API_KEY`, `LINK_SECRET` (signs manager links, ADR-0004) and
+  `RESEND_API_KEY`; rotating `LINK_SECRET` invalidates every digest
+  link at once.
 - The `no-secrets` guard on `Bash` denies commands that would read those
   paths (`cat .env`, `source .env`, `less ~/.aws/credentials`, …) or dump
   the environment (`env`, `printenv`, `echo $API_TOKEN`).
