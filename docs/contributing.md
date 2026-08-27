@@ -16,8 +16,15 @@ Code:
 | `no-ai-coauthor` | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent | `PreToolUse` on `Bash` → denies the `git commit` | `commit-msg` |
 | `synthetic-only` | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`) | `PreToolUse` on `Write\|Edit` → denies the write | `pre-commit` on staged files |
 
-Run the guard tests with `pnpm test:guards` (Node's built-in runner;
-Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`).
+Run all guard tests with `pnpm test:guards` (Node's built-in runner;
+Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
+
+- `tooling/guards/tests/<guard>.test.ts` — unit tests for `check` /
+  `appliesTo`.
+- `tooling/guards/tests/git-hook.test.ts` — runs `git-hook.ts` as a
+  process; asserts exit code and stderr.
+- `.claude/hooks/tests/hooks.test.ts` — runs each Claude hook with a
+  stdin payload; asserts the allow/deny decision.
 
 ### Rules for guards
 
@@ -35,8 +42,8 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`).
 - Timeout ≤ 10 s. Slow checks are not hooks.
 - New guard = `tooling/guards/<guard>.ts` + `tests/<guard>.test.ts` +
   `.claude/hooks/<guard>.ts` registered in `.claude/settings.json` +
-  entry in `GUARDS` in `git-hook.ts` wired into `.husky/` + row in the
-  table above.
+  entry in `GUARDS` in `git-hook.ts` wired into `.husky/` + cases in
+  both entry-point test files + row in the table above.
 - `.claude/settings.json` is committed (team rules). Personal overrides
   go in `.claude/settings.local.json` (gitignored).
 
