@@ -21,6 +21,7 @@
   ],
   "vars": {
     "EMAIL_FROM": "ClockCover <digest@example.com>",
+    "WEB_URL": "http://localhost:5173",
     "SLA_HOURS": "48"
   }
 }

@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+/* Design tokens from the "Manager Digest Page" artboard. */
+@theme {
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Fragment Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  --color-page: oklch(0.972 0.004 260);
+  --color-ink: oklch(0.25 0.01 260);
+  --color-ink-soft: oklch(0.35 0.02 260);
+  --color-body: #4c4e59;
+  --color-muted: #6d6f7c;
+  --color-faint: #8b8d99;
+  --color-fainter: #9a9ca7;
+  --color-line: #e4e5ea;
+  --color-line-soft: #f0f0f3;
+  --color-field: #d8d9e0;
+  --color-accent: oklch(0.5 0.1 260);
+  --color-accent-deep: oklch(0.44 0.1 260);
+  --color-badge: #ededf0;
+  --color-badge-ink: #5d5f6b;
+  --color-strong: oklch(0.93 0.03 260);
+  --color-strong-ink: oklch(0.45 0.11 260);
+  --color-ok: oklch(0.5 0.11 160);
+  --color-warn: oklch(0.55 0.12 60);
+  --color-danger: oklch(0.5 0.14 25);
+}
+
+body {
+  margin: 0;
+  background: var(--color-page);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}

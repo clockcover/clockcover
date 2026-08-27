@@ -9,8 +9,10 @@ import * as schema from "./adapters/store-d1/schema.ts";
 interface Env {
   DB: D1Database;
   API_KEY: string;
+  LINK_SECRET: string;
   RESEND_API_KEY: string;
   EMAIL_FROM: string;
+  WEB_URL: string;
   SLA_HOURS: string;
 }
 
@@ -21,6 +23,8 @@ function deps(env: Env): Deps {
     store: new SqlStore(db),
     sendEmail: resendSender({ apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM }),
     apiKey: env.API_KEY,
+    linkSecret: env.LINK_SECRET,
+    webUrl: env.WEB_URL,
     slaHours: Number(env.SLA_HOURS) || 48,
   };
 }

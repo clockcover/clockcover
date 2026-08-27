@@ -1,0 +1,7 @@
+// Static marketing site served as Worker assets — no code, no data, no bindings.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clockcover-site",
+  "compatibility_date": "2026-08-01",
+  "assets": { "directory": "./public", "not_found_handling": "404-page" }
+}

@@ -63,9 +63,14 @@ The core (matching + routing) never depends on the vendor.
   detection for the dates in the file) — and `GET /health`. The cron
   trigger (08:00 UTC) runs digests then escalations for every employer.
 - **Manager access** (ADR-0004): the digest email carries a signed,
-  expiring link scoped to that manager (`/d/<token>`); the same token
-  authorises `POST /d/<token>/gaps/:gapId/resolve`. No accounts or
-  sessions. `apps/web` has one route, `/d/:token`.
+  expiring link scoped to that manager (`<WEB_URL>/d/<token>`).
+  `GET /d/:token` returns that manager's open gaps with employee names,
+  shift and clock times, notification time and escalation state, plus
+  their team's unscheduled attendance for the last 14 days;
+  `POST /d/:token/gaps/:gapId/resolve` (optional `note`) runs
+  `resolveByManager`. Tokens are HMAC-SHA-256 over
+  `{employerId, managerId, exp}` with `LINK_SECRET`, valid 14 days.
+  CORS on `/d/*` is open to `WEB_URL` only. No accounts or sessions.
 - **When a new employer is known** — write a specific adapter for
   whatever they actually provide (Excel/PDF/API/etc.), without touching
   the rest of the code; add its format to `imports.source` then.
@@ -87,13 +92,22 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
                   tests run it on libsql with a fake mailer.
-apps/web          Vue 3 + Tailwind 4: digest page and resolve action
-                  behind the signed link (ADR-0004).
-apps/site         Marketing website. Static, no product data, no
-                  dependency on core. Stack: to be decided when it is
-                  started (Vue + Tailwind to match apps/web, or a
-                  static-site generator).
+apps/web          Vue 3 + Tailwind 4 (Vite): the digest page and
+                  resolve action behind the signed link (ADR-0004).
+                  One route, /d/:token; view logic in src/digest.ts,
+                  API client in src/api.ts; VITE_API_URL points at
+                  apps/api.
+apps/site         Marketing website: one static HTML page + CSS served
+                  as Worker assets. No framework, no build, no data,
+                  no dependency on core — a one-page site does not
+                  justify one.
 ```
+
+The visual design of the emails, the digest page and the site is the
+"ClockCover notification system" project in Claude Design; the code
+mirrors its artboards (fonts Schibsted Grotesk / Fragment Mono, the
+oklch palette in `apps/web/src/style.css` and `apps/site/public/styles.css`,
+hex equivalents in the email templates).
 
 Adapters are not separate packages until a second implementation of
 one actually exists (e.g. a Postgres `Store` at migration time).

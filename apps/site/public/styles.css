@@ -1,0 +1,78 @@
+/* "Marketing Site" artboard, as plain CSS. */
+:root {
+  --page: oklch(0.972 0.004 260);
+  --ink: oklch(0.25 0.01 260);
+  --body: #4c4e59;
+  --muted: #6d6f7c;
+  --faint: #8b8d99;
+  --fainter: #9a9ca7;
+  --line: #e4e5ea;
+  --accent: oklch(0.5 0.1 260);
+  --accent-deep: oklch(0.4 0.1 260);
+  --dark: oklch(0.3 0.04 260);
+  --dark-eyebrow: oklch(0.75 0.06 260);
+  --dark-body: oklch(0.85 0.02 260);
+  --sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --mono: "Fragment Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font-family: var(--sans); }
+a { color: var(--accent); }
+a:hover { color: var(--accent-deep); }
+.mono { font-family: var(--mono); }
+
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; display: flex; flex-direction: column; }
+
+.top { display: flex; justify-content: space-between; align-items: center; padding: 28px 0; }
+.brand { font-family: var(--mono); font-size: 14px; letter-spacing: 0.08em; color: var(--accent); }
+.top-link { font-size: 14.5px; font-weight: 500; text-decoration: none; }
+
+.hero { display: flex; flex-direction: column; gap: 22px; padding: 72px 0 88px; max-width: 640px; }
+.hero h1 { margin: 0; font-size: 46px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; text-wrap: pretty; }
+.hero p { margin: 0; font-size: 18px; line-height: 1.55; color: var(--body); text-wrap: pretty; }
+.hero-cta { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.note { font-size: 12.5px; color: var(--faint); }
+
+.button {
+  display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+  font-size: 15.5px; font-weight: 600; padding: 13px 26px; border-radius: 8px;
+}
+.button:hover { background: var(--accent-deep); color: #fff; }
+
+.card { background: #fff; border: 1px solid var(--line); border-radius: 10px; }
+
+.steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding-bottom: 88px; }
+.step { padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+.step-n { font-size: 12px; color: var(--accent); }
+.step-title { font-size: 16.5px; font-weight: 600; }
+.step-body { font-size: 14px; line-height: 1.5; color: var(--muted); text-wrap: pretty; }
+
+.audiences { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding-bottom: 88px; }
+.audience { padding: 36px; display: flex; flex-direction: column; gap: 12px; }
+.eyebrow { font-size: 11.5px; letter-spacing: 0.07em; color: var(--faint); }
+.audience-title { font-size: 20px; font-weight: 600; line-height: 1.3; text-wrap: pretty; }
+.audience-body { font-size: 14.5px; line-height: 1.55; color: var(--muted); text-wrap: pretty; }
+.audience-dark { background: var(--dark); border-color: var(--dark); color: #fff; }
+.audience-dark .eyebrow { color: var(--dark-eyebrow); }
+.audience-dark .audience-body { color: var(--dark-body); }
+
+.closing {
+  display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center;
+  padding: 56px 32px; margin-bottom: 72px;
+}
+.closing-title { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; max-width: 480px; text-wrap: pretty; }
+.closing-body { font-size: 15px; color: var(--muted); max-width: 480px; line-height: 1.55; text-wrap: pretty; }
+
+.foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 40px; font-size: 11.5px; color: var(--fainter); }
+
+@media (max-width: 760px) {
+  .hero { padding: 48px 0 64px; }
+  .hero h1 { font-size: 34px; }
+  .steps { grid-template-columns: 1fr 1fr; padding-bottom: 64px; }
+  .audiences { grid-template-columns: 1fr; padding-bottom: 64px; }
+  .audience { padding: 28px; }
+}
+@media (max-width: 480px) {
+  .steps { grid-template-columns: 1fr; }
+}
