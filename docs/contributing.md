@@ -16,6 +16,7 @@ Code:
 | `no-ai-coauthor` | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent | `PreToolUse` on `Bash` → denies the `git commit` | `commit-msg` |
 | `destructive-git` | Force-push without `--force-with-lease` is denied; commands that discard work or rewrite history (`reset --hard`, `checkout --`, `restore`, `clean -f`, `branch -D`, `stash drop/clear`, `rebase`, `commit --amend`, `--force-with-lease`) make Claude **ask** first | `PreToolUse` on `Bash` → deny / ask | `pre-push`: refuses non-fast-forward pushes and deletions on `main` |
 | `no-secrets` | No credentials in tracked files: private-key blocks, AWS/GitHub/OpenAI-Anthropic/Slack token formats, JWTs, and `api_key = "<long opaque value>"`-style assignments. Env references and placeholders pass. Lockfiles, tests and binaries are skipped | `PreToolUse` on `Write\|Edit` → denies the write; on `Bash` → denies reading protected files / dumping env (`docs/privacy.md`) | `pre-commit` on staged files |
+| `harness-integrity` | The harness is not weakened by the agent: editing `.claude/`, `.husky/`, `tooling/guards/`, `.github/workflows/`, `CLAUDE.md`, `.commitlintrc.json`, `pnpm-workspace.yaml`, `tsconfig.json` **asks** for a human; `--no-verify`, `HUSKY=0`, `core.hooksPath`, removing husky are denied | `PreToolUse` on `Write\|Edit` → ask; on `Bash` → deny | — (a person may bypass hooks deliberately; say so in the commit) |
 | `synthetic-only` | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`) | `PreToolUse` on `Write\|Edit` → denies the write | `pre-commit` on staged files |
 
 `pnpm typecheck` typechecks the guards and hooks (`tsconfig.json` at the
@@ -34,6 +35,8 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   call is injected.)
 - `.claude/hooks/tests/hooks.test.ts` — runs each Claude hook with a
   stdin payload; asserts the allow/deny decision.
+- `tooling/guards/tests/docs-consistency.test.ts` — ADR files ↔
+  `INDEX.md` rows and statuses; `CLAUDE.md` Status date < 90 days.
 
 ### Rules for guards
 
@@ -63,6 +66,18 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
 Tests live in a `tests/` folder next to the code they cover, never mixed
 into the source folder (`tooling/guards/tests/`, and the same layout in
 `packages/*` and `apps/*` once they exist).
+
+## Supply chain
+
+- `pnpm-workspace.yaml` sets `minimumReleaseAge: 4320` (3 days): a
+  freshly published package version is not installed until it has been
+  public long enough for a compromised release to be noticed.
+- pnpm ≥ 10 does not run dependency lifecycle scripts unless listed in
+  `onlyBuiltDependencies` — keep that list empty unless a package
+  genuinely needs it.
+- GitHub Actions are pinned to a commit SHA (with the version as a
+  comment), never to a movable tag.
+- CI runs `pnpm audit --prod --audit-level high`.
 
 ## CI
 

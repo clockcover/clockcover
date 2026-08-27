@@ -1,4 +1,5 @@
 // Shared plumbing for PreToolUse hooks: read the stdin JSON, emit an allow/deny decision.
+import { isAbsolute, relative } from "node:path";
 export interface HookInput {
   tool_name: string;
   tool_input: { file_path?: string; content?: string; new_string?: string; command?: string };
@@ -25,4 +26,10 @@ export function ask(reason: string): never { return decide("ask", reason); }
 /** Text a Write/Edit is about to put on disk. */
 export function writtenText(input: HookInput): string {
   return input.tool_input.content ?? input.tool_input.new_string ?? "";
+}
+
+/** Repo-relative path of the file a Write/Edit targets (hooks run with cwd = project root). */
+export function targetPath(input: HookInput): string {
+  const p = input.tool_input.file_path ?? "";
+  return isAbsolute(p) ? relative(process.cwd(), p) : p;
 }

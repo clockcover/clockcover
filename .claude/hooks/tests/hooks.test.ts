@@ -76,3 +76,13 @@ test("no-secrets denies shell commands that read protected files or dump env", (
   }
   assert.equal(run("no-secrets", { tool_name: "Bash", tool_input: { command: "cat .env.example" } }).decision, null);
 });
+
+test("harness-integrity asks before editing harness files and denies hook bypasses", () => {
+  const abs = `${process.cwd()}/.claude/settings.json`; // Claude sends absolute paths
+  const edit = run("harness-integrity", { tool_name: "Edit", tool_input: { file_path: abs, old_string: "a", new_string: "b" } });
+  assert.equal(edit.decision.permissionDecision, "ask");
+  const bypass = run("harness-integrity", { tool_name: "Bash", tool_input: { command: "git commit --no-verify -m x" } });
+  assert.equal(bypass.decision.permissionDecision, "deny");
+  assert.equal(run("harness-integrity", { tool_name: "Edit", tool_input: { file_path: "docs/scope.md", old_string: "a", new_string: "b" } }).decision, null);
+  assert.equal(run("harness-integrity", { tool_name: "Bash", tool_input: { command: "git commit -m x" } }).decision, null);
+});

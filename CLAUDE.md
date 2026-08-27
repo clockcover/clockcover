@@ -32,7 +32,12 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-No code in the repo yet. Synthetic data only.
+Last confirmed: 2026-08-27. Docs, ADR-0001..0003, and the repo harness
+(guards, hooks, CI — see `docs/contributing.md`) exist. No product code
+yet: `packages/core` is the next step. Synthetic data only.
+
+Update this block — and its date — in the same commit as any milestone.
+A test fails when the date is older than 90 days.
 
 ## Guardrails — hard boundaries
 

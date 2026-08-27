@@ -62,5 +62,5 @@ test("no-secrets flags a key in a config file and skips test files", () => {
 test("unknown guard exits 1 and lists known guards", () => {
   const { code, stderr } = run("bogus", "x");
   assert.equal(code, 1);
-  assert.match(stderr, /unknown guard "bogus".*no-ai-coauthor, synthetic-only, no-secrets/);
+  assert.match(stderr, /unknown guard "bogus".*no-ai-coauthor, synthetic-only, no-secrets, harness-integrity/);
 });
