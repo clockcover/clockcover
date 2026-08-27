@@ -87,12 +87,18 @@ Normalizes attendance or schedule data from any source into one common internal 
 it reaches the Matching Engine.
 
 **Adapter**:
-Vendor-specific code that imports Attendance Records or Scheduled Shifts from one employer's
-Attendance System into the common schema. Written per employer, only as the need for one shows
-up.
+Code that imports Attendance Records or Scheduled Shifts from an export into the common schema —
+one generic CSV adapter today, vendor-specific ones per employer later, each written only as the
+need for it shows up.
 _Defined in_: `docs/architecture.md`
 _Avoid_: putting vendor-specific logic anywhere outside an adapter — the Matching Engine and
 Routing never know which vendor the data came from.
+
+**Import**:
+One run of an Adapter over one export file, recorded as an `imports` row. The raw file is deleted
+after parsing (`docs/privacy.md`); Scheduled Shifts and Attendance Records keep only the
+`import_id`, so a corrected Import stays traceable.
+_Defined in_: `docs/core-design.md` (`imports` table)
 
 **Attendance System**:
 Whatever system an employer uses to track employee clock-ins/outs. The product is deliberately
