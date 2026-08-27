@@ -31,7 +31,7 @@ async function setup() {
 }
 
 test("login: same 202 for known and unknown addresses; only the known one gets a link", async () => {
-  const { login, emails } = await setup();
+  const { login, emails, tokenFromEmail } = await setup();
   assert.equal((await login("nobody@example.com")).status, 202);
   assert.equal(emails.length, 0);
   assert.equal((await login("  Operator@Example.com ")).status, 202);
