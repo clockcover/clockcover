@@ -124,8 +124,9 @@ depends on the answer.
 **Revisit when:** a second `Store` implementation, a second
 notification channel, or a second employer on one deployment is
 actually being built — each reopens the corresponding "not a port /
-not a package" choice. Also when the domain expert answers whether
-`record_arrived` counts as the manager acting.
+not a package" choice. (The domain expert answered on 2026-08-28:
+`record_arrived` does not count as the manager acting — see
+`open-questions.md`.)
 
 ## Consequences
 

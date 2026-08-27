@@ -1,28 +1,38 @@
 # Open Questions
 
-Clarify with the domain expert.
+Questions for the domain expert, with the answers once given. Answered
+items stay here as the record of *why* the product behaves as it does;
+the behaviour itself is specified in `core-design.md`.
 
-- What form does the shift schedule usually take at the new place — also
-  a closed system, or something more flexible?
-- Exact SLA escalation threshold — how long is it actually acceptable
-  to wait for a manager's reaction before escalating (docs assume 48 h),
-  and is that counted in business or calendar days?
-- Which timezone defines "today" for the daily digest and for
-  `digest_date`? The code uses UTC until an employer timezone is
-  configured; for an employer east of UTC an 8:00 job would otherwise
-  file the digest under the previous day.
-- Can an employee have more than one shift on a day (split shifts), or
-  more than one clock-in/out pair? The schema currently holds one of
-  each per employee per day.
-- Where does the employee → manager roster come from — an HR export,
-  the attendance system, or maintained by hand? Today it is a CSV the
-  operator uploads.
-- Do we need different logic for different employee types (shift/hourly
-  vs. fixed schedule)?
-- What notification format will managers actually read — is email
-  enough, or should we target whatever messenger they already open daily
-  (WhatsApp/Slack/Teams — depends on the company)?
-- If a missing clock entry appears in a later import (`record_arrived`)
-  without the manager doing anything, does that count as the manager
-  having acted within the SLA, or should only explicit manager actions
-  count? Affects the product's core metric — see ADR-0003.
+## Answered 2026-08-28
+
+- **Timezone for "today".** The employer's local timezone, stored per
+  employer (`employers.timezone`, IANA name). `digest_date` and the SLA
+  clock are computed in it. The cron still fires at 08:00 UTC; for
+  employers between UTC−4 and UTC+10 that is the same calendar day. A
+  per-employer send hour is a later refinement.
+- **SLA.** 48 hours, calendar time. No business-day or holiday logic.
+- **`record_arrived` vs. the SLA metric.** Does *not* count as the
+  manager acting. A record that arrives by itself closes the gap, but
+  the metric "manager acted within SLA" counts only
+  `resolution = manager_action`. The data model already separates the
+  two (ADR-0003).
+- **Split shifts / multiple clock pairs per day.** Not supported in the
+  MVP: one shift and one attendance record per employee per day. An
+  export with two rows for the same employee and day is rejected with a
+  line-numbered error, never merged or silently overwritten.
+- **Schedule source.** An export file (CSV today, Excel next) from the
+  attendance or rostering system, uploaded by the operator.
+- **Roster source.** An HR/payroll export uploaded as CSV; re-uploading
+  records reassignments, detected gaps keep their manager snapshot.
+- **Employee types.** No per-type logic. Everyone in the roster is
+  expected to clock; staff who should not be tracked are left out of the
+  roster.
+- **Channel.** Email only for now. WhatsApp remains a non-goal at launch
+  (`scope.md`); a second channel is the ADR-0003 trigger for extracting a
+  notification interface.
+
+## Still open
+
+- Send hour per employer (today: 08:00 UTC for everyone).
+- Excel adapter: which export layout the first real employer produces.

@@ -27,8 +27,8 @@ test("parseCsv reports line-numbered errors and rejects half a shift", () => {
     "E-001,2026-3-2,08:00,16:00,,",
     ",2026-03-02,08:00,16:00,,",
     "E-001,2026-03-02,08:00,,,",
-    "E-001,2026-03-02,,,,",
-    "E-001,2026-03-02,,,8am,",
+    "E-001,2026-03-03,,,,",
+    "E-001,2026-03-04,,,8am,",
   ].join("\n"));
   assert.deepEqual(errors, [
     "line 2: date must be YYYY-MM-DD",
@@ -54,4 +54,14 @@ test("parseRoster reads employees with their managers", () => {
   });
   assert.deepEqual(parseRoster("employee_id,employee_name,manager_id,manager_name,manager_email\nE-1,A,M-1,B,not-an-email").errors,
     ["line 2: manager_email is not an email"]);
+});
+
+test("parseCsv rejects a second row for the same employee and day", () => {
+  const { errors, shifts } = parseCsv([
+    "employee_id,date,planned_start,planned_end,clock_in,clock_out",
+    "E-001,2026-03-02,08:00,12:00,,",
+    "E-001,2026-03-02,13:00,17:00,,",
+  ].join("\n"));
+  assert.deepEqual(errors, ["line 3: second row for E-001 on 2026-03-02 (first on line 2); one shift and one record per day"]);
+  assert.equal(shifts.length, 1);
 });

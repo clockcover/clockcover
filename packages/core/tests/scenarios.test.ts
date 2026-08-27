@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { detectGaps, runDetection } from "../src/detect.ts";
-import { runDailyDigest, resolveByManager } from "../src/digest.ts";
+import { isoDate, runDailyDigest, resolveByManager } from "../src/digest.ts";
 import { runEscalations } from "../src/escalate.ts";
 import type { DigestMessage } from "../src/digest.ts";
 import { MemoryStore } from "../src/testing/memory-store.ts";
@@ -140,4 +140,15 @@ test("not notified yet → never escalates, however old", async () => {
   await detect(store, { shifts: [shift(ada)], records: [], employees: [ada] });
   const escalations = await runEscalations(store, employer.id, new Date(T0.getTime() + 10 * SLA), SLA);
   assert.equal(escalations.length, 0);
+});
+
+test("digest date follows the employer's timezone (decided 2026-08-28)", async () => {
+  const late = at("2026-03-02T23:30:00Z"); // already 3 March in Berlin
+  assert.equal(isoDate(late), "2026-03-02");
+  assert.equal(isoDate(late, "Europe/Berlin"), "2026-03-03");
+  assert.equal(isoDate(late, "America/Los_Angeles"), "2026-03-02");
+  const store = new MemoryStore([{ ...employer, timezone: "Europe/Berlin" }], Object.values(managers));
+  await runDetection(store, employer.id, period, { shifts: [shift(ada)], records: [], employees: [ada] }, late);
+  const [digest] = await runDailyDigest(store, employer.id, late, async () => {});
+  assert.equal(digest?.digestDate, "2026-03-03");
 });

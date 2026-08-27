@@ -11,6 +11,7 @@ export const employers = sqliteTable("employers", {
   id: id(),
   name: text("name").notNull(),
   payrollEmail: text("payroll_email").notNull(),
+  timezone: text("timezone").notNull().default("UTC"),
 });
 
 export const managers = sqliteTable(

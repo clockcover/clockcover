@@ -2,7 +2,7 @@
 // Every person here is invented; emails use the reserved example.com domain (docs/privacy.md).
 import type { AttendanceRecord, Employee, Employer, Import, Manager, ScheduledShift } from "../src/types.ts";
 
-export const employer: Employer = { id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com" };
+export const employer: Employer = { id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", timezone: "UTC" };
 
 export const theImport: Import = { id: "imp-1", employerId: employer.id, source: "csv", importedAt: new Date("2026-03-01T06:00:00Z"), rowCount: 0 };
 

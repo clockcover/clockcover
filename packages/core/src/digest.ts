@@ -10,8 +10,13 @@ export interface DigestMessage {
 /** Delivery is an adapter concern (ADR-0003); the core only calls it. */
 export type SendDigest = (message: DigestMessage) => Promise<void>;
 
-/** Calendar date of an instant, UTC. */
-export const isoDate = (d: Date): IsoDate => d.toISOString().slice(0, 10);
+/** Calendar date (YYYY-MM-DD) of an instant in a timezone; UTC when none is given. */
+export function isoDate(d: Date, timeZone = "UTC"): IsoDate {
+  if (timeZone === "UTC") return d.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(d);
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "";
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
 
 /**
  * Once a day per employer. Groups open gaps by the snapshotted manager, sends each
@@ -19,7 +24,8 @@ export const isoDate = (d: Date): IsoDate => d.toISOString().slice(0, 10);
  * check `digests`, then send, then record — at-least-once, at most one duplicate.
  */
 export async function runDailyDigest(store: Store, employerId: Id, now: Date, send: SendDigest): Promise<Digest[]> {
-  const digestDate = isoDate(now);
+  const employer = await store.getEmployer(employerId);
+  const digestDate = isoDate(now, employer.timezone);
   const byManager = new Map<Id, Gap[]>();
   for (const gap of await store.listOpenGaps(employerId)) {
     byManager.set(gap.managerId, [...(byManager.get(gap.managerId) ?? []), gap]);
