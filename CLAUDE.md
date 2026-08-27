@@ -32,7 +32,7 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-Last confirmed: 2026-08-28. Docs, ADR-0001..0004, the repo harness
+Last confirmed: 2026-08-28. Docs, ADR-0001..0005, the repo harness
 (guards, hooks, CI — see `docs/contributing.md`), `packages/core` (all
 12 acceptance scenarios green), `apps/api` (Hono; D1 `Store` via
 Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
@@ -46,8 +46,9 @@ digests send from `digest@clockcover.com` — the first real digest and
 its signed link have been received end to end. The domain expert's
 answers (2026-08-28) are in `docs/open-questions.md` and applied:
 employer timezone, 48 h calendar SLA, `record_arrived` does not count,
-no split shifts. Next: an operator CLI or page for configuration.
-Synthetic data only.
+no split shifts. The **operator console** (ADR-0005: magic-link
+sign-in, imports, settings, overview) exists at `/console`. Next: the
+first real employer's export layout. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

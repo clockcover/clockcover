@@ -20,8 +20,19 @@ _Defined in_: `docs/core-design.md` (`managers` table)
 
 **Payroll Accountant**:
 The person responsible for payroll across the whole company. Receives only Escalations (by
-email — there is no UI for this role), not the full stream of Gaps — the key difference from the
-manual process this replaces. Addressed via `employers.payroll_email`; there is no separate table.
+email — there is no gap list for this role), not the full stream of Gaps — the key difference from
+the manual process this replaces. Addressed via `employers.payroll_email`; there is no separate
+table. Usually also the Operator.
+
+**Operator**:
+The person who runs ClockCover for an Employer — uploads the roster and exports, sets timezone and
+SLA, reads the metric. In practice the Payroll Accountant, but a distinct role: the Operator
+configures, the Payroll Accountant receives Escalations. One Operator per Employer
+(`employers.operator_email`), signed in through the **Console** by emailed link (ADR-0005).
+
+**Console**:
+The Operator's area of `apps/web` (`/console`): Sign in, Imports, Settings, Overview. Not a list
+of Gaps.
 
 **Employer**:
 The company that owns the employee data. Real (non-synthetic) data may only be used once the

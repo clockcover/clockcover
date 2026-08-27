@@ -12,6 +12,10 @@ export interface Employer {
   payrollEmail: string;
   /** IANA timezone (e.g. "Europe/Berlin"). Defines "today" for digests and the SLA. */
   timezone: string;
+  /** Who may sign in to the operator console (ADR-0005); null until set. */
+  operatorEmail: string | null;
+  /** SLA in hours before an unresolved gap escalates. */
+  slaHours: number;
 }
 
 export interface Manager {

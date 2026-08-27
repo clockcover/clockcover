@@ -19,7 +19,7 @@ const H = 3_600_000;
 
 async function setup() {
   const db = await testDb();
-  await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com" });
+  await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: "operator@example.com" });
   const emails: Email[] = [];
   let now = T0;
   const deps: Deps = {

@@ -13,7 +13,9 @@ data migration.
 ```text
 employers
   id, name, payroll_email,         -- where escalations go; one accountant per employer
-  timezone                         -- IANA name; defines "today" for digests and the SLA
+  operator_email,                  -- who may sign in to the console (ADR-0005)
+  timezone,                        -- IANA name; defines "today" for digests and the SLA
+  sla_hours                        -- 48 by default; the console edits it
 
 employees
   id, employer_id, external_id, full_name, manager_id (FK → managers), active
@@ -71,7 +73,9 @@ when it was detected.
 **`events` is the source of the product metric.** "Manager acted within
 SLA" is computed as `gap_resolved(resolution=manager_action).occurred_at
 − digest_sent.occurred_at` per gap. `gaps` holds current state; `events`
-holds the timeline.
+holds the timeline. The console's Overview shows it for the last 30 days
+as *acted within SLA / gaps that were in a digest*, with `record_arrived`
+resolutions counted as not acted (`open-questions.md`).
 
 **One shift and one record per employee per day.** The matching engine
 compares by date, so the schema holds one row of each per
@@ -146,7 +150,7 @@ import), the gap is resolved with `resolution = record_arrived`.
   feed), then writes the `digests` row, sets `manager_notified_at` on
   the included gaps (first notification only), and appends
   `digest_sent` events.
-- SLA timer (48 hours, calendar time; configurable per deployment):
+- SLA timer (`employers.sla_hours`, 48 by default, calendar time):
   `computeEscalations(openGaps, now, sla)` returns
   gaps where `manager_notified_at + sla < now` and `resolved_at` is
   null. `runEscalations(store, employerId, now, sla)` turns each into an
