@@ -41,10 +41,11 @@ daily cron for digests and escalations, HTML+text emails via Resend),
 `apps/site` (static marketing page) exist and are **deployed on
 Cloudflare** — clockcover.com (site), digest.clockcover.com (web),
 api.clockcover.com (api); D1 `clockcover`, secrets set — with the
-synthetic fixtures loaded. No verified email domain yet (digests send
-from `onboarding@resend.dev`). Next: domain-expert answers in
-`docs/open-questions.md`; a real test inbox for the digest; Resend
-domain verification. Synthetic data only.
+synthetic fixtures loaded; `clockcover.com` is verified in Resend and
+digests send from `digest@clockcover.com` — the first real digest and
+its signed link have been received end to end. Next: domain-expert
+answers in `docs/open-questions.md`; an operator CLI or page for
+configuration. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.
