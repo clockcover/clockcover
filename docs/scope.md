@@ -27,6 +27,9 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - Work **independently of the specific vendor** attendance system —
   because the pain is role-based, not vendor-based (confirmed by the
   domain expert: "it doesn't matter which system we use").
+- A public **marketing website** (`apps/site`): what the product does,
+  for whom, and a way to get in touch. Static; no accounts, no product
+  data.
 
 ## Non-goals
 
@@ -39,3 +42,5 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   employer gives explicit consent — see `privacy.md`.
 - No employment-contract generator/parser.
 - No payroll calculation itself — only gap detection and routing.
+- No UI for the payroll accountant at all. They receive escalation
+  emails; there is no page, list, or dashboard for them.

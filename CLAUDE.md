@@ -49,7 +49,8 @@ A test fails when the date is older than 90 days.
 - Never handle biometric templates directly — only derived presence
   events (showed up / didn't).
 - Out of MVP scope: deep integration with a specific attendance-system
-  vendor, WhatsApp delivery, actual payroll calculation.
+  vendor, WhatsApp delivery, actual payroll calculation, any UI for the
+  payroll accountant (escalations are email only).
 
 ## Architectural invariants
 
