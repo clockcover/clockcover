@@ -6,5 +6,5 @@
     "MD025": { "front_matter_title": "" },
     "MD060": false
   },
-  "ignores": ["node_modules/**", "LICENSE.md"]
+  "ignores": ["**/node_modules/**", "LICENSE.md"]
 }
