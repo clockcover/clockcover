@@ -1,7 +1,7 @@
 ---
 title: "ADR-0004: Managers reach their digest through a signed, expiring link — no accounts"
 type: adr
-status: proposed
+status: accepted
 updated: 2026-08-27
 tags: [security, frontend, backend]
 superseded_by:
