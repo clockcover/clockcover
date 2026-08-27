@@ -113,15 +113,18 @@ and the same layout in `apps/*` once they exist).
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
 `pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm guards:scan`,
-and commitlint over the pushed/PR commit range. It is the backstop for a clone where
+commitlint over the pushed/PR commit range, and (on PRs) commitlint
+over the PR title. It is the backstop for a clone where
 hooks were never installed. `main` is protected by a GitHub ruleset
 (linear history, no force-push, no deletion, signed commits, CodeQL code
 scanning) — configured in GitHub, not in the repo. Because CodeQL must
 scan a commit before it lands, nothing is pushed to `main` directly:
 push a branch, open a PR, let CI and CodeQL pass, **squash-merge**. The
 squash commit is signed by GitHub and titled with the PR title, so the
-PR title must itself be a Conventional Commit (`type(scope): subject`)
-— commitlint checks it on `main`. Rebase-merge is enabled but cannot be
+PR title must itself be a Conventional Commit (`type(scope): subject`,
+subject starting lower-case — `ADR-0004 …` fails `subject-case`). CI
+lints the PR title on every PR run, because commitlint on `main` can
+only complain after the commit has landed. Rebase-merge is enabled but cannot be
 used: GitHub re-creates the commits unsigned and the ruleset rejects
 them.
 
