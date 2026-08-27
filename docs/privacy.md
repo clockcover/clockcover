@@ -31,7 +31,11 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
 - The same guard on `Write`/`Edit` denies writing credential-shaped
   values into tracked files; `pre-commit` and CI repeat that check.
 
-These are pattern checks, not a sandbox. If a secret is in a file that
+These are pattern checks, not a sandbox. Claude Code's sandbox
+(`sandbox.credentials` — OS-level masking of env vars and denial of
+files, plus network egress control) is the non-heuristic layer; it is
+off today. **Turn it on before the first real secret lands in `.env`**
+— i.e. before the first `wrangler deploy` — not later. If a secret is in a file that
 is otherwise legitimately read (a config with a pasted key), nothing
 here stops it — so config files reference `${VARS}` and never hold
 values. For real employee data the same logic applies: keep it out of
