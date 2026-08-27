@@ -18,11 +18,14 @@ test("checkCommand flags hook bypasses", () => {
   for (const c of [
     "git commit --no-verify -m x", "git commit -n -m x", "git push --no-verify", "HUSKY=0 git commit -m x",
     "git -c core.hooksPath=/dev/null push", "git config core.hooksPath .foo", "rm -rf .husky", "chmod -x .husky/pre-commit",
-    "git add . && git commit -m x --no-verify",
+    "git add . && git commit -m x --no-verify", "git config --local core.hooksPath .foo", "git config --unset core.hooksPath",
+    "GIT_CONFIG_PARAMETERS=\"'core.hooksPath=/dev/null'\" git push",
   ]) assert.equal(checkCommand(c).length, 1, c);
 });
 test("checkCommand allows ordinary git and unrelated -n", () => {
-  for (const c of ["git commit -m x", "git push", "git config user.name", "grep -n foo", "git log -n 5", "head -n 3 f", "git diff --name-only"]) {
+  for (const c of ["git commit -m x", "git push", "git config user.name", "grep -n foo", "git log -n 5", "head -n 3 f", "git diff --name-only",
+    "git config core.hooksPath", "git config --get core.hooksPath", "git config --get-all core.hooksPath", "git config --list",
+  ]) {
     assert.deepEqual(checkCommand(c), [], c);
   }
 });

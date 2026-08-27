@@ -18,8 +18,10 @@ const BYPASS: Array<{ re: RegExp; reason: string }> = [
   { re: /\bgit\b.*\s--no-verify\b/, reason: "--no-verify skips the git hooks" },
   { re: /\bgit\b(?=.*\b(?:commit|push)\b).*\s-n\b/, reason: "-n (--no-verify) skips the git hooks" },
   { re: /\bHUSKY=0\b/, reason: "HUSKY=0 disables the git hooks" },
-  { re: /\bcore\.hooksPath\b/, reason: "changing core.hooksPath detaches the git hooks" },
-  { re: /\bgit\s+config\b.*\bhooks?\b/i, reason: "editing hook configuration" },
+  // Setting (not reading) hook config: `key=value`, `git config [flags] key value`, or --unset/--edit.
+  { re: /\bcore\.hooksPath=/i, reason: "changing core.hooksPath detaches the git hooks" },
+  { re: /\bgit\s+config\b(?:\s+-[-\w]+)*\s+\S*hooks?\S*\s+\S/i, reason: "editing hook configuration" },
+  { re: /\bgit\s+config\b.*\s--(?:unset|unset-all|edit|remove-section)\b/i, reason: "editing hook configuration" },
   { re: /\bhusky\s+(?:uninstall|--no-install)\b|\brm\b.*\.husky/, reason: "removing husky" },
   { re: /\bchmod\b.*\.(?:husky|claude)\//, reason: "changing hook permissions" },
 ];
