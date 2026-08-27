@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
 
+# The workflow only reads the checkout; nothing here writes to the repo.
+permissions:
+  contents: read
+
 jobs:
   guards:
     name: typecheck · markdownlint · tests · build · repo scan · commitlint

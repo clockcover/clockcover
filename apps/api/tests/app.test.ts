@@ -79,7 +79,7 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   const link = digest.text.match(/Review and resolve: (\S+)/)?.[1];
   assert.ok(link?.startsWith(`${WEB}/d/`), "link points at apps/web");
   assert.match(digest.html, /Review and resolve<\/a>/);
-  assert.match(digest.html, new RegExp(`href="${WEB}/d/`));
+  assert.ok(digest.html.includes(`href="${WEB}/d/`), "html CTA links to apps/web");
   assert.match(digest.text, /expires 16 Mar 2026/);
 
   advance(new Date(T0.getTime() + 3 * H));
