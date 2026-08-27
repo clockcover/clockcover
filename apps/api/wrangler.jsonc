@@ -1,0 +1,26 @@
+// Cloudflare Workers config (ADR-0001). Secrets (API_KEY, RESEND_API_KEY) are set
+// with `wrangler secret put`, never here; locally they live in .dev.vars (gitignored).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clockcover-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+  "triggers": {
+    // Daily digest + escalations, 08:00 UTC. Employer timezone is an open question.
+    "crons": ["0 8 * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "clockcover",
+      // Placeholder until `wrangler d1 create clockcover` is run; wrangler dev --local does not need a real id.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "EMAIL_FROM": "ClockCover <digest@example.com>",
+    "SLA_HOURS": "48"
+  }
+}

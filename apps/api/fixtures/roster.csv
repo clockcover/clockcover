@@ -1,0 +1,4 @@
+employee_id,employee_name,manager_id,manager_name,manager_email
+E-001,Ada Sample,M-100,Manager North,north@example.com
+E-002,Ben Sample,M-100,Manager North,north@example.com
+E-003,Cyd Sample,M-200,Manager South,south@example.com

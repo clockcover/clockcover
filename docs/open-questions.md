@@ -11,6 +11,12 @@ Clarify with the domain expert.
   `digest_date`? The code uses UTC until an employer timezone is
   configured; for an employer east of UTC an 8:00 job would otherwise
   file the digest under the previous day.
+- Can an employee have more than one shift on a day (split shifts), or
+  more than one clock-in/out pair? The schema currently holds one of
+  each per employee per day.
+- Where does the employee → manager roster come from — an HR export,
+  the attendance system, or maintained by hand? Today it is a CSV the
+  operator uploads.
 - Do we need different logic for different employee types (shift/hourly
   vs. fixed schedule)?
 - What notification format will managers actually read — is email

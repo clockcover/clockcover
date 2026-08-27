@@ -25,7 +25,8 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
   key files (`*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`), `.wrangler/`,
   `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.netrc` — and on `data/real/`,
   the (gitignored) place real employee exports go if we ever get them.
-  `.dev.vars`, `.wrangler/` and `data/real/` are also gitignored.
+  `.dev.vars`, `.wrangler/` and `data/real/` are also gitignored;
+  `apps/api/.dev.vars.example` holds placeholders only.
 - The `no-secrets` guard on `Bash` denies commands that would read those
   paths (`cat .env`, `source .env`, `less ~/.aws/credentials`, …) or dump
   the environment (`env`, `printenv`, `echo $API_TOKEN`).

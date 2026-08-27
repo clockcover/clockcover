@@ -29,10 +29,12 @@ imports
 scheduled_shifts
   id, employer_id, employee_id, shift_date, planned_start, planned_end,
   import_id (FK → imports)
+  UNIQUE (employer_id, employee_id, shift_date)   -- one shift per day, see below
 
 attendance_records
   id, employer_id, employee_id, record_date, clock_in, clock_out,
   import_id (FK → imports)
+  UNIQUE (employer_id, employee_id, record_date)
 
 gaps
   id, employer_id, employee_id, gap_date, gap_type (no_clockin|no_clockout|no_record_at_all),
@@ -69,6 +71,18 @@ when it was detected.
 SLA" is computed as `gap_resolved(resolution=manager_action).occurred_at
 − digest_sent.occurred_at` per gap. `gaps` holds current state; `events`
 holds the timeline.
+
+**One shift and one record per employee per day.** The matching engine
+compares by date, so the schema holds one row of each per
+`(employee, date)`; a re-import of the same day replaces the earlier
+values (`import_id` moves to the new run). Split shifts or double
+clock-ins are an open question (`open-questions.md`); supporting them
+means keying by shift, not by day.
+
+**Roster.** `employees` and `managers` are upserted by
+`(employer_id, external_id)` from a roster CSV (`architecture.md`
+§ Ingestion). `employees.active` is set true on every upsert; there is
+no deactivation path yet.
 
 **No `status` column on `attendance_records`.** Whether a record is
 complete is derived from `clock_in`/`clock_out` being null; a shift with
