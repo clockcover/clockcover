@@ -67,3 +67,12 @@ test("no-secrets denies a credential written to a config file", () => {
 test("no-secrets stays silent on env references", () => {
   assert.equal(run("no-secrets", { tool_name: "Write", tool_input: { file_path: "apps/api/src/env.ts", content: "const key = process.env.API_KEY;" } }).decision, null);
 });
+
+test("no-secrets denies shell commands that read protected files or dump env", () => {
+  for (const command of ["cat .env", "printenv"]) {
+    const { decision } = run("no-secrets", { tool_name: "Bash", tool_input: { command } });
+    assert.equal(decision.permissionDecision, "deny", command);
+    assert.match(decision.permissionDecisionReason, /privacy\.md/);
+  }
+  assert.equal(run("no-secrets", { tool_name: "Bash", tool_input: { command: "cat .env.example" } }).decision, null);
+});

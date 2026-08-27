@@ -1,4 +1,23 @@
 {
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./**/.env)",
+      "Read(./**/.env.*)",
+      "Read(./**/*.pem)",
+      "Read(./**/*.key)",
+      "Read(./**/id_rsa*)",
+      "Read(./**/id_ed25519*)",
+      "Read(./**/.wrangler/**)",
+      "Read(./**/.dev.vars)",
+      "Read(~/.ssh/**)",
+      "Read(~/.aws/**)",
+      "Read(~/.config/gh/**)",
+      "Read(~/.netrc)",
+      "Read(./data/real/**)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
@@ -12,6 +31,11 @@
           {
             "type": "command",
             "command": "node .claude/hooks/destructive-git.ts",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "node .claude/hooks/no-secrets.ts",
             "timeout": 10
           }
         ]

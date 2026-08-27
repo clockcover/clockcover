@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { check, appliesTo } from "../no-secrets.ts";
+import { check, appliesTo, checkCommand } from "../no-secrets.ts";
 
 // Fake material: shapes match, values are made up.
 test("flags well-known token formats", () => {
@@ -38,4 +38,24 @@ test("appliesTo skips lockfiles, tests and binaries", () => {
   for (const p of ["apps/api/wrangler.toml", ".env.example", "packages/core/src/store.ts", "docs/architecture.md"]) {
     assert.ok(appliesTo(p), p);
   }
+});
+
+test("checkCommand flags reading protected files", () => {
+  for (const c of [
+    "cat .env", "cat apps/api/.env.local", "less ~/.aws/credentials", "head -n 5 .dev.vars",
+    "grep TOKEN .env.production", "cat ~/.ssh/id_ed25519", "source .env", "cp .env /tmp/x",
+    "sed -n 1p data/real/employees.csv", "ls && cat .env",
+  ]) assert.equal(checkCommand(c).length, 1, c);
+});
+test("checkCommand flags environment dumps", () => {
+  for (const c of ["env", "env | grep TOKEN", "printenv", "export -p", "set | grep API", "echo $CLOUDFLARE_API_TOKEN", "echo ${DB_PASSWORD}"]) {
+    assert.equal(checkCommand(c).length, 1, c);
+  }
+});
+test("checkCommand allows ordinary commands", () => {
+  for (const c of [
+    "cat package.json", "cat .env.example", "grep -r Store packages/core", "ls -la", "git status",
+    "echo $HOME", "echo $PATH", "printenv HOME", "cat .env.template", "set -e", "cat docs/privacy.md",
+    "node --env-file=.env x.ts",
+  ]) assert.deepEqual(checkCommand(c), [], c);
 });

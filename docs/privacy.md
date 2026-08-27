@@ -14,3 +14,25 @@
   parsing, keep only normalized records.
 - TTL and encryption at rest for anything touching real employees, once
   we get there.
+
+## What Claude Code must not read
+
+Anything an AI coding agent reads becomes part of its prompt and leaves
+the machine. So the rule is not "don't commit secrets" but "don't let
+them into the conversation at all". Enforced in `.claude/settings.json`:
+
+- `permissions.deny` blocks the `Read` tool on `.env*`, `.dev.vars`,
+  key files (`*.pem`, `*.key`, `id_rsa*`, `id_ed25519*`), `.wrangler/`,
+  `~/.ssh`, `~/.aws`, `~/.config/gh`, `~/.netrc` — and on `data/real/`,
+  the (gitignored) place real employee exports go if we ever get them.
+- The `no-secrets` guard on `Bash` denies commands that would read those
+  paths (`cat .env`, `source .env`, `less ~/.aws/credentials`, …) or dump
+  the environment (`env`, `printenv`, `echo $API_TOKEN`).
+- The same guard on `Write`/`Edit` denies writing credential-shaped
+  values into tracked files; `pre-commit` and CI repeat that check.
+
+These are pattern checks, not a sandbox. If a secret is in a file that
+is otherwise legitimately read (a config with a pasted key), nothing
+here stops it — so config files reference `${VARS}` and never hold
+values. For real employee data the same logic applies: keep it out of
+the working tree except under `data/real/`, and it cannot be read.
