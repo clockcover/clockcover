@@ -2,7 +2,7 @@
 title: "ADR-0001: TypeScript on Cloudflare (Workers + D1) until first customer, then self-host"
 type: adr
 status: accepted
-updated: 2026-08-26
+updated: 2026-08-27
 tags: [backend, deploy, database]
 superseded_by:
 ---
@@ -45,11 +45,11 @@ structured from the start so only two thin layers change:
    Workers-specific imports (no `env.DB`, no Durable Objects, no D1 client
    calls inline) — the same principle already applied to attendance
    vendors in the ingestion adapter.
-2. **Data access sits behind a `Store` interface** (e.g. `GetGaps`,
-   `SaveGap`, ...). D1 gets one implementation now; Postgres gets a second
+2. **Data access sits behind a `Store` interface** (e.g. `getGaps`,
+   `saveGap`, ...). D1 gets one implementation now; Postgres gets a second
    implementation later. Callers never change.
 3. **Schema and queries go through an ORM that targets both SQLite and
-   Postgres from one schema definition** (e.g. Drizzle), so the dialect
+   Postgres from one schema definition** — Drizzle — so the dialect
    swap doesn't mean hand-rewriting queries.
 4. **The daily digest job is a plain function** (`runDailyDigest()`) with
    no knowledge of what invoked it. A Cloudflare Cron Trigger calls it

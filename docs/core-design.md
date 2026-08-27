@@ -12,22 +12,27 @@ data migration.
 
 ```text
 employers
-  id, name
+  id, name, payroll_email          -- where escalations go; one accountant per employer
 
 employees
-  id, employer_id, external_id, full_name, manager_id (FK → managers), company_branch, active
+  id, employer_id, external_id, full_name, manager_id (FK → managers), active
 
 managers
   id, employer_id, external_id, full_name, email,
   whatsapp_number (nullable, until WhatsApp delivery is built)
 
+imports
+  id, employer_id, source (csv|excel|pdf), imported_at, row_count
+                                   -- one row per import run; the raw file itself is deleted
+                                   -- after parsing (privacy.md). `source` grows with adapters.
+
 scheduled_shifts
   id, employer_id, employee_id, shift_date, planned_start, planned_end,
-  source (pdf|excel|manual)
+  import_id (FK → imports)
 
 attendance_records
   id, employer_id, employee_id, record_date, clock_in, clock_out,
-  status (complete|partial|missing), raw_source_ref
+  import_id (FK → imports)
 
 gaps
   id, employer_id, employee_id, gap_date, gap_type (no_clockin|no_clockout|no_record_at_all),
@@ -45,7 +50,7 @@ digests
   UNIQUE (employer_id, manager_id, digest_date)
 
 escalations
-  id, employer_id, gap_id, escalated_at, escalated_to (payroll accountant),
+  id, employer_id, gap_id, escalated_at, escalated_to (employers.payroll_email at escalation time),
   reason (sla_breach)
 
 events  -- append-only
@@ -64,6 +69,12 @@ when it was detected.
 SLA" is computed as `gap_resolved(resolution=manager_action).occurred_at
 − digest_sent.occurred_at` per gap. `gaps` holds current state; `events`
 holds the timeline.
+
+**No `status` column on `attendance_records`.** Whether a record is
+complete is derived from `clock_in`/`clock_out` being null; a shift with
+no record at all has no row. Raw export files are deleted after parsing
+(`privacy.md`); `import_id` points at the `imports` row, so a corrected
+import (scenario 7) is traceable without keeping the file.
 
 ## Matching Engine — Gap Detection Logic
 
@@ -93,6 +104,9 @@ for each employee:
 emit_gap sets manager_id = employee.manager_id (snapshot)
 ```
 
+Each newly created gap appends a `gap_detected` event; a re-run that
+finds the same gap already open appends nothing.
+
 **Idempotency.** The store upserts gaps on
 `(employer_id, employee_id, gap_date, gap_type)`. Running detection
 twice for the same period is a no-op the second time. If a re-run finds
@@ -117,7 +131,7 @@ import), the gap is resolved with `resolution = record_arrived`.
   null. Each produces an `escalation` to the payroll accountant and an
   `escalated` event. A gap escalates once.
 - The payroll accountant only sees **escalations**, not the full stream —
-  this is the key difference from the current process, where she sees
+  this is the key difference from the current process, where they see
   everything at once.
 
 ## Resolution
@@ -138,7 +152,7 @@ row before changing behaviour, not after.
 
 | #   | Given                                                      | Expect                                                                           |
 | --- | ---------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 1   | Shift scheduled, no attendance record                      | one gap `no_record_at_all`, `manager_id` = employee's manager at detection       |
+| 1   | Shift scheduled, no attendance record                      | one gap `no_record_at_all`, one `gap_detected` event, `manager_id` = employee's manager at detection |
 | 2   | Shift scheduled, record with `clock_in` only               | one gap `no_clockout`                                                            |
 | 3   | Shift scheduled, record with `clock_out` only              | one gap `no_clockin`                                                             |
 | 4   | Shift scheduled, full record                               | no gap                                                                           |

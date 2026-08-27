@@ -2,9 +2,9 @@
 
 ## High-level flow
 
-An attendance export adapter and a schedule export adapter (both
-vendor-specific per employer) feed into ingestion. Both normalize into
-one common schema, which feeds:
+Attendance and schedule exports enter through an ingestion adapter —
+one generic CSV adapter today, vendor-specific ones per employer later.
+It normalizes both into one common schema, which feeds:
 
 1. **Ingestion layer** — normalizes any source into one internal schema.
 2. **Matching engine** — compares clock entries vs. schedule, per
@@ -15,11 +15,10 @@ one common schema, which feeds:
 
 ```mermaid
 flowchart LR
-    subgraph adapters["Ingestion adapters (apps/api, vendor-specific)"]
+    subgraph adapters["Ingestion adapters (apps/api)"]
         att["Attendance export"]
         sch["Schedule export"]
-        attAd["Attendance adapter"]
-        schAd["Schedule adapter"]
+        csv["CSV adapter (parseCsv)"]
     end
 
     subgraph core["packages/core (vendor- and infra-agnostic)"]
@@ -28,10 +27,10 @@ flowchart LR
         store[("Store port")]
     end
 
-    att --> attAd
-    sch --> schAd
-    attAd -- "AttendanceRecord" --> match
-    schAd -- "ScheduledShift" --> match
+    att --> csv
+    sch --> csv
+    csv -- "AttendanceRecord[]" --> match
+    csv -- "ScheduledShift[]" --> match
     match -- "gaps per employee_id and date" --> route
     route --> store
     d1[("D1 adapter")] -. "implements" .-> store
@@ -49,15 +48,15 @@ Schema, matching algorithm, and routing/escalation logic are in
 The only thing that changes per employer is the **adapter** at the input.
 The core (matching + routing) never depends on the vendor.
 
-- **Adapter interface:** `importAttendance(source): AttendanceRecord[]`,
-  `importSchedule(source): ScheduledShift[]`.
-- **First implementation:** a generic CSV/Excel importer, used for both
-  attendance and schedule data (most systems export at least one of
-  these).
+- **First implementation:** a plain function `parseCsv(text)` returning
+  `{ shifts: ScheduledShift[], records: AttendanceRecord[] }`, used for
+  both attendance and schedule exports (most systems export CSV). No
+  adapter interface yet — it is extracted when the second adapter is
+  written (ADR-0003).
 - **When a new employer is known** — write a specific adapter for
-  whatever they actually provide (CSV/API/PDF/etc.), without touching
-  the rest of the code. Adapters get added as the need for them shows
-  up, not ahead of time.
+  whatever they actually provide (Excel/PDF/API/etc.), without touching
+  the rest of the code; add its format to `imports.source` then.
+  Adapters get added as the need for them shows up, not ahead of time.
 
 ## Repo layout
 
@@ -94,4 +93,7 @@ calls inline. Data access goes through a `Store` interface (one
 implementation per backend); see ADR-0001 for the full rationale and
 what changes on migration. `Store` is the core's only port — time is
 passed in as a `now` argument, and notification/CSV parsing are plain
-functions in `apps/api` (ADR-0003).
+functions in `apps/api` (ADR-0003). The D1 `Store` implementation uses
+Drizzle, so the same schema definition targets SQLite now and Postgres
+after migration (ADR-0001); `drizzle-orm` is banned from `packages/core`
+(ADR-0003).

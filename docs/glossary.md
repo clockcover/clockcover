@@ -20,7 +20,8 @@ _Defined in_: `docs/core-design.md` (`managers` table)
 
 **Payroll Accountant**:
 The person responsible for payroll across the whole company. Receives only Escalations, not the
-full stream of Gaps — the key difference from the manual process this replaces.
+full stream of Gaps — the key difference from the manual process this replaces. Addressed via
+`employers.payroll_email`; there is no separate table.
 
 **Employer**:
 The company that owns the employee data. Real (non-synthetic) data may only be used once the

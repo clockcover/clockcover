@@ -26,7 +26,7 @@ both into one app). The frontend framework (Vue 3) and CSS approach
 (Tailwind 4) were decided separately from that question.
 
 The app's actual surface area right now is small: a per-manager digest
-page behind a token link, a handful of action endpoints (e.g. mark a gap
+page (behind a token link or a login — decided in ADR-0004), a handful of action endpoints (e.g. mark a gap
 resolved), and a daily cron job. That size matters for how much
 framework is worth taking on.
 
