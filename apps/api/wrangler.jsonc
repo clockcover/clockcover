@@ -14,14 +14,14 @@
     {
       "binding": "DB",
       "database_name": "clockcover",
-      // Placeholder until `wrangler d1 create clockcover` is run; wrangler dev --local does not need a real id.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // Created with `wrangler d1 create clockcover`.
+      "database_id": "ca1b818a-21e2-4896-b8c5-2e923887a1f9",
       "migrations_dir": "migrations"
     }
   ],
   "vars": {
-    "EMAIL_FROM": "ClockCover <digest@example.com>",
-    "WEB_URL": "http://localhost:5173",
+    "EMAIL_FROM": "ClockCover <onboarding@resend.dev>",
+    "WEB_URL": "https://clockcover-web.andrew-molyuk.workers.dev",
     "SLA_HOURS": "48"
   }
 }

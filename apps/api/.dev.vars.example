@@ -3,3 +3,5 @@
 API_KEY=change-me
 LINK_SECRET=change-me-too
 RESEND_API_KEY=re_xxxxxxxxx
+# For scripts/upload.ts — the deployed API origin (or http://localhost:8787 under wrangler dev)
+API_URL=http://localhost:8787

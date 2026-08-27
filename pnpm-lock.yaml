@@ -91,6 +91,9 @@ importers:
       vite:
         specifier: ^8.2.2
         version: 8.2.2(@types/node@26.2.0)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.12)
+      wrangler:
+        specifier: ^4.125.0
+        version: 4.125.0(@cloudflare/workers-types@5.20260823.1)
 
   packages/core:
     devDependencies:

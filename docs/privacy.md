@@ -29,7 +29,9 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
   `apps/api/.dev.vars.example` holds placeholders only. Worker secrets
   are `API_KEY`, `LINK_SECRET` (signs manager links, ADR-0004) and
   `RESEND_API_KEY`; rotating `LINK_SECRET` invalidates every digest
-  link at once.
+  link at once. They are uploaded with `wrangler secret bulk .dev.vars`,
+  so values move from the local file to Cloudflare without passing
+  through a terminal or a transcript.
 - The `no-secrets` guard on `Bash` denies commands that would read those
   paths (`cat .env`, `source .env`, `less ~/.aws/credentials`, …) or dump
   the environment (`env`, `printenv`, `echo $API_TOKEN`).

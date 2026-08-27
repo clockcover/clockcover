@@ -94,6 +94,29 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   TypeScript 7 yet.
 - `apps/site` has no tests or build: it is two static files.
 
+## Deploy
+
+Cloudflare, per ADR-0001. Wrangler authenticates with
+`CLOUDFLARE_API_TOKEN` (+ `CLOUDFLARE_ACCOUNT_ID`) from
+`.claude/settings.local.json` or the shell — a User API token with
+*Edit Cloudflare Workers* and *Account · D1 · Edit*; `wrangler login`
+does not persist in this WSL setup.
+
+- `apps/api`: `pnpm db:migrate:remote`, then `pnpm deploy`. Secrets come
+  from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
+  (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `EMAIL_FROM`
+  and `SLA_HOURS` are plain vars in `wrangler.jsonc`.
+- `apps/web`: `VITE_API_URL=<api origin> pnpm build && pnpm exec wrangler deploy`
+  (static assets, SPA fallback so `/d/<token>` resolves).
+- `apps/site`: `pnpm deploy`.
+- Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
+  employers`; rosters and exports go through `scripts/upload.ts`
+  (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
+
+Current deployment: `clockcover-api`, `clockcover-web`, `clockcover-site`
+on `*.andrew-molyuk.workers.dev`, D1 `clockcover` (WEUR). Synthetic
+fixtures only.
+
 ## Tests
 
 Tests live in a `tests/` folder next to the code they cover, never mixed
