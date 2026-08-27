@@ -1,1 +1,6 @@
+# Reject AI-agent co-author trailers — commits are authored by humans only.
+if grep -iE '^(Co-authored-by|Signed-off-by):.*(claude|anthropic|copilot|openai|chatgpt|gpt|gemini|cursor|codex|devin|aider|noreply@anthropic\.com)' "$1" >/dev/null; then
+  echo "commit-msg: AI-agent co-author trailers are not allowed in this repo." >&2
+  exit 1
+fi
 pnpm exec commitlint --edit "$1"

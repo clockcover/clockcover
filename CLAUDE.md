@@ -65,6 +65,9 @@ No code in the repo yet. Synthetic data only.
   (`type(scope): subject`). Enforced by commitlint via a husky
   `commit-msg` hook — set up automatically by `pnpm install`
   (`prepare` script).
+- Never add `Co-Authored-By` (or any similar trailer) naming an AI
+  agent to a commit. Commits are authored by humans only; the
+  `commit-msg` hook rejects such trailers.
 - Don't decide scope/architecture silently — check against the relevant
   doc in `docs/`; if something's unclear or conflicting, ask.
 - Order: contracts and logic first (types, matching engine, tests
