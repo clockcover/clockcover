@@ -67,7 +67,8 @@ merged app — see ADR-0002. Package boundaries — see ADR-0003:
 ```text
 packages/core     domain types, matching engine, routing/escalation,
                   the Store port, synthetic fixtures.
-                  No runtime/framework imports (enforced by ESLint).
+                  No runtime/framework imports (enforced by
+                  tests/boundary.test.ts).
 apps/api          Hono: routes, cron entry point, and all adapters
                   (src/adapters/{store-d1, csv, email}). Wires adapters
                   into core by hand.
@@ -93,7 +94,8 @@ calls inline. Data access goes through a `Store` interface (one
 implementation per backend); see ADR-0001 for the full rationale and
 what changes on migration. `Store` is the core's only port — time is
 passed in as a `now` argument, and notification/CSV parsing are plain
-functions in `apps/api` (ADR-0003). The D1 `Store` implementation uses
+functions in `apps/api` (ADR-0003); digest delivery is passed in as a
+`send` function. The D1 `Store` implementation uses
 Drizzle, so the same schema definition targets SQLite now and Postgres
 after migration (ADR-0001); `drizzle-orm` is banned from `packages/core`
 (ADR-0003).

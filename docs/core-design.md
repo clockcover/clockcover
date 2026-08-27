@@ -78,8 +78,10 @@ import (scenario 7) is traceable without keeping the file.
 
 ## Matching Engine — Gap Detection Logic
 
-Pure function: `detectGaps(shifts, records, employees) → { gaps, unscheduled }`.
-No I/O; the caller persists the result through `Store`.
+Pure function: `detectGaps({ shifts, records, employees }, now) → { gaps, unscheduled }`.
+No I/O. `runDetection(store, employerId, period, input, now)` wraps it:
+upserts through `Store`, appends events, and resolves gaps whose record
+has arrived (below).
 
 Pseudocode for the main loop (per period — day/week):
 
@@ -115,10 +117,14 @@ import), the gap is resolved with `resolution = record_arrived`.
 
 ## Routing & Escalation
 
-- Once a day (e.g. at 8:00), `runDailyDigest(store, now)` collects all
-  open `gaps` grouped by `gaps.manager_id` (the snapshot).
+- Once a day (e.g. at 8:00), `runDailyDigest(store, employerId, now, send)`
+  collects all open `gaps` grouped by `gaps.manager_id` (the snapshot).
+  `send` is the delivery adapter (email today), passed in — the core
+  never imports it (ADR-0003).
 - Before sending, it checks `digests` for
-  `(manager_id, digest_date = today)`. Already present → skip. This
+  `(manager_id, digest_date = today)` — "today" is the UTC calendar date
+  of `now` until an employer timezone is configured (see
+  `open-questions.md`). Already present → skip. This
   makes the job safe to re-run; a crash between "email sent" and
   "digest row written" costs at most one duplicate email.
 - Sends each manager **only their own list** (not one company-wide
@@ -128,8 +134,9 @@ import), the gap is resolved with `resolution = record_arrived`.
 - SLA timer (e.g. 48 hours, configurable; business vs. calendar days is
   an open question): `computeEscalations(openGaps, now, sla)` returns
   gaps where `manager_notified_at + sla < now` and `resolved_at` is
-  null. Each produces an `escalation` to the payroll accountant and an
-  `escalated` event. A gap escalates once.
+  null. `runEscalations(store, employerId, now, sla)` turns each into an
+  `escalation` addressed to `employers.payroll_email` plus an `escalated`
+  event. A gap escalates once.
 - The payroll accountant only sees **escalations**, not the full stream —
   this is the key difference from the current process, where they see
   everything at once.
@@ -137,8 +144,9 @@ import), the gap is resolved with `resolution = record_arrived`.
 ## Resolution
 
 A gap is resolved either by the manager (action from the digest →
-`resolution = manager_action`) or by a later import supplying the
-missing record (`resolution = record_arrived`). Both set `resolved_at`
+`resolveByManager(store, gapId, now, note)`, `resolution =
+manager_action`) or by a later import supplying the missing record
+(`runDetection` re-run, `resolution = record_arrived`). Both set `resolved_at`
 and append a `gap_resolved` event. Whether `record_arrived` counts as
 the manager having acted for SLA purposes is a domain-expert question
 (see `open-questions.md`); the data model keeps the two apart so either
@@ -147,7 +155,8 @@ answer is computable.
 ## Acceptance scenarios
 
 "Done" for the matching engine and routing means every scenario below
-runs green against synthetic fixtures (`packages/core/fixtures`). Add a
+runs green against synthetic fixtures (`packages/core/fixtures`); the
+tests are `packages/core/tests/scenarios.test.ts`, same numbering. Add a
 row before changing behaviour, not after.
 
 | #  | Given                                                      | Expect                                                                                               |

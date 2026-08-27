@@ -19,8 +19,9 @@ Code:
 | `harness-integrity` | The harness is not weakened by the agent: editing `.claude/`, `.husky/`, `tooling/guards/`, `.github/workflows/`, `CLAUDE.md`, `.commitlintrc.json`, `pnpm-workspace.yaml`, `tsconfig.json` **asks** for a human; `--no-verify`/`-n` on commit or push, `HUSKY=0`, setting or unsetting `core.hooksPath` (reading it is fine), removing husky, `chmod` on `.husky/`/`.claude/` are denied | `PreToolUse` on `Write\|Edit` → ask; on `Bash` → deny                                                                          | — (a person may bypass hooks deliberately; say so in the commit)    |
 | `synthetic-only`    | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`)                                                                | `PreToolUse` on `Write\|Edit` → denies the write                                                                               | `pre-commit` on staged files                                        |
 
-`pnpm typecheck` typechecks the guards and hooks (`tsconfig.json` at the
-root covers `tooling/` and `.claude/hooks/`; packages get their own).
+`pnpm typecheck` typechecks the root tooling (`tsconfig.json` covers
+`tooling/` and `.claude/hooks/`) and then every package — see
+§ Packages.
 `pnpm guards:scan` runs `synthetic-only` and `no-secrets` over every
 tracked file — CI runs it on each push and PR.
 
@@ -68,24 +69,25 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
 - `.claude/settings.json` is committed (team rules). Personal overrides
   go in `.claude/settings.local.json` (gitignored).
 
-## When `packages/core` lands
+## Packages
 
-Promises made in the docs that only become real with the first package.
-Do all of them in the same change, or the docs lie:
+`pnpm typecheck` runs the root `tsc` (tooling) then `turbo run typecheck`
+in every package; `pnpm test` runs `turbo run test` then the guard tests.
 
-- ESLint `no-restricted-imports` on `packages/core` banning `cloudflare:*`,
-  `hono`, `drizzle-orm`, `apps/**` (ADR-0003); wire `pnpm lint`.
-- `packages/core/fixtures` with the synthetic scenarios from
-  `core-design.md` § Acceptance scenarios, and `packages/core/tests/`.
-- `CLAUDE.md` § How to work: verify line becomes
-  `pnpm typecheck && pnpm test`; update § Status.
-- `docs-consistency.test.ts`: assert the ESLint rule exists once it does.
+- `packages/core/tests/boundary.test.ts` — the infra-agnostic core
+  (ADR-0003): fails if anything under `src/` imports `cloudflare:*`,
+  `hono`, `drizzle-orm`, `node:*` or `apps/`. `docs-consistency.test.ts`
+  asserts this file exists and names those patterns.
+- `packages/core/tests/scenarios.test.ts` — the acceptance scenarios from
+  `core-design.md`, same numbering, against `packages/core/fixtures`
+  (synthetic people, `example.com` addresses — `synthetic-only` applies
+  to `fixtures/`).
 
 ## Tests
 
 Tests live in a `tests/` folder next to the code they cover, never mixed
-into the source folder (`tooling/guards/tests/`, and the same layout in
-`packages/*` and `apps/*` once they exist).
+into the source folder (`tooling/guards/tests/`, `packages/core/tests/`,
+and the same layout in `apps/*` once they exist).
 
 ## Supply chain
 
@@ -102,7 +104,7 @@ into the source folder (`tooling/guards/tests/`, and the same layout in
 ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
-`pnpm typecheck`, `pnpm lint:md`, `pnpm test:guards`, `pnpm guards:scan`,
+`pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm guards:scan`,
 and commitlint over the pushed/PR commit range. It is the backstop for a clone where
 hooks were never installed. Branch protection on `main` (require CI,
 no force-push, no deletion) is configured in GitHub, not in the repo.

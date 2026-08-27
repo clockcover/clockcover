@@ -49,6 +49,11 @@ test("the set of guards is the same in git-hook.ts, settings.json hooks, CLAUDE.
   assert.deepEqual([...fromContributing].sort(), all, "docs/contributing.md guard table");
 });
 
+test("packages/core has the boundary test the docs say enforces the infra-agnostic core", () => {
+  const t = read("packages/core/tests/boundary.test.ts");
+  for (const banned of ["cloudflare:", "hono", "drizzle-orm", "apps"]) assert.match(t, new RegExp(banned), `boundary test must ban ${banned}`);
+});
+
 test(".gitignore excludes data/real/ and the wrangler secret paths docs/privacy.md names", () => {
   const gi = read(".gitignore");
   assert.match(gi, /^data\/real\/$/m);

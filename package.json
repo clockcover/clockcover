@@ -5,11 +5,11 @@
   "packageManager": "pnpm@11.11.0",
   "scripts": {
     "build": "turbo run build",
-    "test": "turbo run test",
+    "test": "turbo run test && pnpm test:guards",
     "lint": "turbo run lint",
     "prepare": "husky",
     "test:guards": "node --test tooling/guards/tests/*.test.ts .claude/hooks/tests/*.test.ts",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && turbo run typecheck",
     "lint:md": "markdownlint-cli2 \"**/*.md\"",
     "guards:scan": "git ls-files -z | xargs -0 node tooling/guards/git-hook.ts synthetic-only && git ls-files -z | xargs -0 node tooling/guards/git-hook.ts no-secrets"
   },

@@ -7,6 +7,10 @@ Clarify with the domain expert.
 - Exact SLA escalation threshold — how long is it actually acceptable
   to wait for a manager's reaction before escalating (docs assume 48 h),
   and is that counted in business or calendar days?
+- Which timezone defines "today" for the daily digest and for
+  `digest_date`? The code uses UTC until an employer timezone is
+  configured; for an employer east of UTC an 8:00 job would otherwise
+  file the digest under the previous day.
 - Do we need different logic for different employee types (shift/hourly
   vs. fixed schedule)?
 - What notification format will managers actually read — is email

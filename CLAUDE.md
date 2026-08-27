@@ -32,9 +32,12 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-Last confirmed: 2026-08-27. Docs, ADR-0001..0003, and the repo harness
-(guards, hooks, CI — see `docs/contributing.md`) exist. No product code
-yet: `packages/core` is the next step. Synthetic data only.
+Last confirmed: 2026-08-27. Docs, ADR-0001..0003, the repo harness
+(guards, hooks, CI — see `docs/contributing.md`), and `packages/core`
+(types, `Store` port, matching, digest, escalation; all 12 acceptance
+scenarios green against synthetic fixtures) exist. No `apps/*` yet:
+`apps/api` is next; ADR-0004 (digest access) comes before the digest
+page in `apps/web`. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.
@@ -79,11 +82,10 @@ A test fails when the date is older than 90 days.
 - Order: contracts and logic first (types, matching engine, tests
   against synthetic scenarios), tooling/infra second — not the other
   way around.
-- Verify before calling a step done: `pnpm typecheck && pnpm test:guards`
-  today;
-  `pnpm typecheck && pnpm test` once `packages/core` exists (update this
-  line then). For matching/routing changes, the acceptance scenarios in
-  `docs/core-design.md` must all pass.
+- Verify before calling a step done: `pnpm typecheck && pnpm test`
+  (package tests, then the guard tests). For matching/routing changes,
+  the acceptance scenarios in `docs/core-design.md` must all pass —
+  they are `packages/core/tests/scenarios.test.ts`, same numbering.
 
 ## Ambiguity
 

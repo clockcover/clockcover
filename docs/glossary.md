@@ -55,6 +55,10 @@ _Defined in_: `docs/core-design.md` (`unscheduled_attendance` table)
 The component that compares Scheduled Shifts against Attendance Records per employee and date,
 producing Gaps.
 _Defined in_: `docs/core-design.md`
+_In code_: `detectGaps` (pure) and `runDetection` (persists the result) in `packages/core`.
+
+**Period**:
+The date range one detection run or Digest covers — a day or a week, per the configured cadence.
 
 **Routing**:
 Grouping a day's Gaps by Manager and sending each Manager only their own team's list — never a

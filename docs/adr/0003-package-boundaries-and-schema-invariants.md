@@ -48,12 +48,17 @@ apps/api          Hono. Routes, the cron entry point, and every adapter:
 apps/web          Vue 3 + Tailwind 4. Digest page, resolve action.
 ```
 
-The "core is infra-agnostic" boundary is enforced by an ESLint
-`no-restricted-imports` rule on `packages/core` (banning `cloudflare:*`,
-`hono`, `drizzle-orm`, and anything under `apps/`), not by splitting
-adapters into their own packages. `store-d1` becomes its own package
-only when the second `Store` implementation (Postgres, per ADR-0001) is
-actually written.
+The "core is infra-agnostic" boundary is enforced by an import check
+on `packages/core/src` (banning `cloudflare:*`, `hono`, `drizzle-orm`,
+`node:*`, and anything under `apps/`), not by splitting adapters into
+their own packages. Planned as an ESLint `no-restricted-imports` rule;
+implemented as `packages/core/tests/boundary.test.ts` because
+typescript-eslint does not run against TypeScript 7 (2026-08). Same
+guarantee, runs in `pnpm test` and CI; swap back to ESLint when it
+supports TS 7 if a second lint rule ever justifies the dependency.
+
+`store-d1` becomes its own package only when the second `Store`
+implementation (Postgres, per ADR-0001) is actually written.
 
 ### Ports
 
@@ -63,11 +68,11 @@ implementation already scheduled (ADR-0001).
 Not ports, deliberately:
 
 - Time is passed in as a `now: Date` argument to the functions that
-  need it (`computeEscalations`, `runDailyDigest`). Deterministic tests
-  without an interface.
-- Notification is a plain function in `apps/api/src/adapters/email`.
-  An interface is extracted when a second channel (WhatsApp) is built,
-  not before.
+  need it (`detectGaps`, `computeEscalations`, `runDailyDigest`).
+  Deterministic tests without an interface.
+- Notification is a plain function in `apps/api/src/adapters/email`,
+  passed to `runDailyDigest` as its `send` argument. An interface is
+  extracted when a second channel (WhatsApp) is built, not before.
 - CSV ingestion is a plain function `parseCsv(text)` returning shifts
   and records. `architecture.md` already says adapters are added as
   needed; the first one does not justify an interface.
@@ -124,8 +129,8 @@ not a package" choice. Also when the domain expert answers whether
 
 ## Consequences
 
-- Fewer moving parts: one shared package, one lint rule, one interface.
-  Adapters live next to the code that wires them.
+- Fewer moving parts: one shared package, one boundary check, one
+  interface. Adapters live next to the code that wires them.
 - The core's boundary is enforced by tooling that runs on every commit,
   not by package topology. Weaker in theory, identical in practice.
 - Adding the six schema invariants now costs a few columns and two
