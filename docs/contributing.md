@@ -106,13 +106,22 @@ and the same layout in `apps/*` once they exist).
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
 `pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm guards:scan`,
 and commitlint over the pushed/PR commit range. It is the backstop for a clone where
-hooks were never installed. Branch protection on `main` (require CI,
-no force-push, no deletion) is configured in GitHub, not in the repo.
+hooks were never installed. `main` is protected by a GitHub ruleset
+(linear history, no force-push, no deletion, signed commits, CodeQL code
+scanning) — configured in GitHub, not in the repo. Because CodeQL must
+scan a commit before it lands, nothing is pushed to `main` directly:
+push a branch, open a PR, let CI and CodeQL pass, rebase-merge (the only
+merge method enabled).
 
 ## Commits
 
 Conventional Commits (`type(scope): subject`), enforced by commitlint in
 the `commit-msg` hook. Human authors only — see `no-ai-coauthor` above.
+
+History on `main` stays linear: no merge commits. Rebase onto `main`
+before pushing (`git pull --rebase`, or set `pull.rebase = true`); merge
+PRs by rebase or squash, never with a merge commit. A merge commit on
+`main` is fixed by rebasing before anyone pulls it, not by another merge.
 
 Git hooks are managed by husky and installed automatically by
 `pnpm install` (the `prepare` script). `.husky/commit-msg` runs
