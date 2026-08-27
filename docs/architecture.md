@@ -13,6 +13,27 @@ one common schema, which feeds:
    timers.
 4. **Digest delivery** — email/web view at launch, WhatsApp later.
 
+```mermaid
+flowchart LR
+    subgraph adapters["Ingestion adapters (apps/api, vendor-specific)"]
+        att[Attendance export] --> attAd[Attendance adapter]
+        sch[Schedule export] --> schAd[Schedule adapter]
+    end
+
+    subgraph core["packages/core (vendor- and infra-agnostic)"]
+        attAd -->|AttendanceRecord| match[Matching engine]
+        schAd -->|ScheduledShift| match
+        match -->|gaps per employee_id + date| route[Routing / escalation engine]
+        route <-->|Store port| store[(Store)]
+    end
+
+    route -->|digest per manager_id| digest[Digest delivery]
+    route -->|SLA breach| payroll[Payroll accountant]
+    digest --> email[Email]
+    digest --> web[Web view — apps/web]
+    d1[(D1 adapter)] -.implements.-> store
+```
+
 Schema, matching algorithm, and routing/escalation logic are in
 `core-design.md`.
 
