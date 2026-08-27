@@ -33,10 +33,22 @@ The core (matching + routing) never depends on the vendor.
 
 ## Repo layout
 
-Monorepo managed with Turborepo: backend and frontend/website live in
-this one repository, under the standard `apps/*` / `packages/*`
+Monorepo managed with Turborepo, standard `apps/*` / `packages/*`
 workspace convention. Backend and frontend are separate apps, not one
-merged app — see ADR-0002.
+merged app — see ADR-0002. Package boundaries — see ADR-0003:
+
+```
+packages/core     domain types, matching engine, routing/escalation,
+                  the Store port, synthetic fixtures.
+                  No runtime/framework imports (enforced by ESLint).
+apps/api          Hono: routes, cron entry point, and all adapters
+                  (src/adapters/{store-d1, csv, email}). Wires adapters
+                  into core by hand.
+apps/web          Vue 3 + Tailwind 4: digest page, resolve action.
+```
+
+Adapters are not separate packages until a second implementation of
+one actually exists (e.g. a Postgres `Store` at migration time).
 
 ## Frameworks
 
@@ -52,4 +64,6 @@ infrastructure: the matching engine, routing/escalation logic, and the
 daily digest job are plain functions with no Cloudflare/D1-specific
 calls inline. Data access goes through a `Store` interface (one
 implementation per backend); see ADR-0001 for the full rationale and
-what changes on migration.
+what changes on migration. `Store` is the core's only port — time is
+passed in as a `now` argument, and notification/CSV parsing are plain
+functions in `apps/api` (ADR-0003).

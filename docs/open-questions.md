@@ -11,3 +11,7 @@ Clarify with the domain expert.
 - What notification format will managers actually read — is email
   enough, or should we target whatever messenger they already open daily
   (WhatsApp/Slack/Teams — depends on the company)?
+- If a missing clock entry appears in a later import (`record_arrived`)
+  without the manager doing anything, does that count as the manager
+  having acted within the SLA, or should only explicit manager actions
+  count? Affects the product's core metric — see ADR-0003.

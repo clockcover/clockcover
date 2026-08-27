@@ -44,10 +44,9 @@ _Defined in_: `docs/core-design.md` (`gaps` table, Matching Engine section)
 _Avoid_: "discrepancy," "anomaly" — always "gap," qualified by type when it matters.
 
 **Unscheduled Attendance**:
-An Attendance Record with no matching Scheduled Shift — logged as a sanity-check signal, but
+An Attendance Record with no matching Scheduled Shift — stored as a sanity-check signal, but
 explicitly **not** a Gap.
-_Status_: named here for the first time; the Matching Engine pseudocode describes it but hadn't
-given it a term. Confirm this is the name to keep once it shows up in code or UI.
+_Defined in_: `docs/core-design.md` (`unscheduled_attendance` table)
 
 ## Core Process
 
@@ -70,6 +69,16 @@ The time window (e.g. 48 hours) a Manager has to act on a Gap before it triggers
 Notifying the Payroll Accountant that a Manager did not act on a Gap within the SLA.
 _Defined in_: `docs/core-design.md` (`escalations` table, Routing & Escalation section)
 
+**Resolution**:
+How a Gap was closed — `manager_action` (the Manager acted from the Digest) or
+`record_arrived` (a later import supplied the missing Attendance Record).
+_Defined in_: `docs/core-design.md` (`gaps.resolution`, Resolution section)
+
+**Event Log**:
+Append-only record of `gap_detected`, `digest_sent`, `gap_resolved`, `escalated`. The source
+for the SLA metric ("Manager acted within SLA").
+_Defined in_: `docs/core-design.md` (`events` table)
+
 ## Ingestion
 
 **Ingestion Layer**:
@@ -89,11 +98,6 @@ Whatever system an employer uses to track employee clock-ins/outs. The product i
 vendor-agnostic.
 _Avoid_: naming a specific vendor/product in docs or code outside of an Adapter's own
 implementation notes.
-
-## Unresolved
-
-- **Unscheduled Attendance** — see entry above. It's a coined term, not yet validated against
-  real usage in code or UI copy.
 
 This glossary was bootstrapped from the current project docs (`docs/scope.md`,
 `docs/architecture.md`, `docs/core-design.md`, `docs/privacy.md`) on 2026-08-27 — a first pass,
