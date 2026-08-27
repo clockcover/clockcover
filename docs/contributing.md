@@ -110,8 +110,12 @@ hooks were never installed. `main` is protected by a GitHub ruleset
 (linear history, no force-push, no deletion, signed commits, CodeQL code
 scanning) — configured in GitHub, not in the repo. Because CodeQL must
 scan a commit before it lands, nothing is pushed to `main` directly:
-push a branch, open a PR, let CI and CodeQL pass, rebase-merge (the only
-merge method enabled).
+push a branch, open a PR, let CI and CodeQL pass, **squash-merge**. The
+squash commit is signed by GitHub and titled with the PR title, so the
+PR title must itself be a Conventional Commit (`type(scope): subject`)
+— commitlint checks it on `main`. Rebase-merge is enabled but cannot be
+used: GitHub re-creates the commits unsigned and the ruleset rejects
+them.
 
 ## Commits
 
@@ -120,8 +124,8 @@ the `commit-msg` hook. Human authors only — see `no-ai-coauthor` above.
 
 History on `main` stays linear: no merge commits. Rebase onto `main`
 before pushing (`git pull --rebase`, or set `pull.rebase = true`); merge
-PRs by rebase or squash, never with a merge commit. A merge commit on
-`main` is fixed by rebasing before anyone pulls it, not by another merge.
+PRs by squash (see § CI), never with a merge commit. One PR = one
+logical change, since it lands as one commit.
 
 Git hooks are managed by husky and installed automatically by
 `pnpm install` (the `prepare` script). `.husky/commit-msg` runs
