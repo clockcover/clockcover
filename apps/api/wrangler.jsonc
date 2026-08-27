@@ -21,7 +21,7 @@
     }
   ],
   "vars": {
-    "EMAIL_FROM": "ClockCover <onboarding@resend.dev>",
+    "EMAIL_FROM": "ClockCover <digest@clockcover.com>",
     "WEB_URL": "https://digest.clockcover.com",
     "SLA_HOURS": "48"
   }
