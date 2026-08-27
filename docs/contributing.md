@@ -110,7 +110,8 @@ does not persist in this WSL setup.
   (static assets, SPA fallback so `/d/<token>` resolves).
 - `apps/site`: `pnpm deploy`.
 - Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
-  employers`; rosters and exports go through `scripts/upload.ts`
+  employers (id, name, payroll_email, timezone)` — `timezone` is an IANA
+  name and defines "today" for that employer's digests; rosters and exports go through `scripts/upload.ts`
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
 Current deployment (Workers custom domains on the `clockcover.com`

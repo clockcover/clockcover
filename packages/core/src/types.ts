@@ -10,6 +10,8 @@ export interface Employer {
   name: string;
   /** Where escalations go; one payroll accountant per employer. */
   payrollEmail: string;
+  /** IANA timezone (e.g. "Europe/Berlin"). Defines "today" for digests and the SLA. */
+  timezone: string;
 }
 
 export interface Manager {

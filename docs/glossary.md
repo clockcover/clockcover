@@ -68,7 +68,8 @@ company-wide feed.
 The per-Manager summary of their team's Gaps for the period (daily/weekly cadence).
 
 **SLA**:
-The time window (e.g. 48 hours) a Manager has to act on a Gap before it triggers an Escalation.
+The time window a Manager has to act on a Gap before it triggers an Escalation: 48 hours, calendar
+time, counted from the first Digest that carried the Gap.
 
 **Escalation**:
 Notifying the Payroll Accountant that a Manager did not act on a Gap within the SLA.

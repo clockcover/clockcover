@@ -90,7 +90,7 @@ export function createApp(deps: Deps) {
     return c.json({
       manager: { fullName: manager.fullName },
       employer: { name: employer.name },
-      digestDate: isoDate(t),
+      digestDate: isoDate(t, employer.timezone),
       slaHours: deps.slaHours,
       linkExpires: new Date(claims.exp).toISOString(),
       gaps: views.map((v) => ({
@@ -138,7 +138,7 @@ export async function runScheduled(deps: Deps): Promise<{ digests: number; escal
       await deps.sendEmail(renderDigest({
         manager: m.manager, employerName: employer.name,
         gaps: await gapViews(deps.db, employer.id, m.gaps),
-        digestDate: isoDate(t), slaHours: deps.slaHours,
+        digestDate: isoDate(t, employer.timezone), slaHours: deps.slaHours,
         link: `${deps.webUrl.replace(/\/$/, "")}/d/${token}`, linkExpires: new Date(exp),
       }));
     };

@@ -63,11 +63,16 @@ function table(text: string, required: string[]): { rows: Record<string, string>
 export function parseCsv(text: string): ParsedCsv {
   const { rows, errors } = table(text, ["employee_id", "date"]);
   const out: ParsedCsv = { shifts: [], records: [], errors };
+  const seen = new Map<string, number>(); // one shift and one record per employee per day (open-questions.md)
   rows.forEach((r, i) => {
     const line = i + 2;
     const employeeExternalId = r["employee_id"] ?? "", date = r["date"] ?? "";
     if (!employeeExternalId) { out.errors.push(`line ${line}: employee_id is empty`); return; }
     if (!DATE.test(date)) { out.errors.push(`line ${line}: date must be YYYY-MM-DD`); return; }
+    const key = `${employeeExternalId}|${date}`;
+    const first = seen.get(key);
+    if (first !== undefined) { out.errors.push(`line ${line}: second row for ${employeeExternalId} on ${date} (first on line ${first}); one shift and one record per day`); return; }
+    seen.set(key, line);
     const ps = r["planned_start"] || null, pe = r["planned_end"] || null;
     const ci = r["clock_in"] || null, co = r["clock_out"] || null;
     for (const [name, v] of [["planned_start", ps], ["planned_end", pe], ["clock_in", ci], ["clock_out", co]] as const) {

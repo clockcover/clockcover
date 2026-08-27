@@ -12,7 +12,8 @@ data migration.
 
 ```text
 employers
-  id, name, payroll_email          -- where escalations go; one accountant per employer
+  id, name, payroll_email,         -- where escalations go; one accountant per employer
+  timezone                         -- IANA name; defines "today" for digests and the SLA
 
 employees
   id, employer_id, external_id, full_name, manager_id (FK → managers), active
@@ -75,9 +76,10 @@ holds the timeline.
 **One shift and one record per employee per day.** The matching engine
 compares by date, so the schema holds one row of each per
 `(employee, date)`; a re-import of the same day replaces the earlier
-values (`import_id` moves to the new run). Split shifts or double
-clock-ins are an open question (`open-questions.md`); supporting them
-means keying by shift, not by day.
+values (`import_id` moves to the new run). An export with two rows for
+the same employee and day is rejected by the importer (decided
+2026-08-28, `open-questions.md`); supporting split shifts would mean
+keying by shift, not by day.
 
 **Roster.** `employees` and `managers` are upserted by
 `(employer_id, external_id)` from a roster CSV (`architecture.md`
@@ -136,17 +138,16 @@ import), the gap is resolved with `resolution = record_arrived`.
   `send` is the delivery adapter (email today), passed in — the core
   never imports it (ADR-0003).
 - Before sending, it checks `digests` for
-  `(manager_id, digest_date = today)` — "today" is the UTC calendar date
-  of `now` until an employer timezone is configured (see
-  `open-questions.md`). Already present → skip. This
+  `(manager_id, digest_date = today)` — "today" is the calendar date of
+  `now` in `employers.timezone`. Already present → skip. This
   makes the job safe to re-run; a crash between "email sent" and
   "digest row written" costs at most one duplicate email.
 - Sends each manager **only their own list** (not one company-wide
   feed), then writes the `digests` row, sets `manager_notified_at` on
   the included gaps (first notification only), and appends
   `digest_sent` events.
-- SLA timer (e.g. 48 hours, configurable; business vs. calendar days is
-  an open question): `computeEscalations(openGaps, now, sla)` returns
+- SLA timer (48 hours, calendar time; configurable per deployment):
+  `computeEscalations(openGaps, now, sla)` returns
   gaps where `manager_notified_at + sla < now` and `resolved_at` is
   null. `runEscalations(store, employerId, now, sla)` turns each into an
   `escalation` addressed to `employers.payroll_email` plus an `escalated`
@@ -162,10 +163,9 @@ the digest page, `POST /d/<token>/gaps/:gapId/resolve` →
 `resolveByManager(store, gapId, now, note)`, `resolution =
 manager_action`) or by a later import supplying the missing record
 (`runDetection` re-run, `resolution = record_arrived`). Both set `resolved_at`
-and append a `gap_resolved` event. Whether `record_arrived` counts as
-the manager having acted for SLA purposes is a domain-expert question
-(see `open-questions.md`); the data model keeps the two apart so either
-answer is computable.
+and append a `gap_resolved` event. `record_arrived` does **not** count as
+the manager having acted (decided 2026-08-28): the SLA metric counts
+`manager_action` only, which is why the two resolutions are kept apart.
 
 ## Acceptance scenarios
 
