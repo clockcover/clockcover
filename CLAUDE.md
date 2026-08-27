@@ -62,19 +62,21 @@ No code in the repo yet. Synthetic data only.
 ## How to work
 
 - Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
-  (`type(scope): subject`). Enforced by commitlint via a husky
-  `commit-msg` hook — set up automatically by `pnpm install`
-  (`prepare` script).
+  (`type(scope): subject`), enforced by a git hook.
 - Never add `Co-Authored-By` (or any similar trailer) naming an AI
   agent to a commit. Commits are authored by humans only; the
-  `commit-msg` hook rejects such trailers.
+  `no-ai-coauthor` guard rejects such trailers.
+- Guards (`no-ai-coauthor`, `synthetic-only`), git hooks, and the rules
+  for adding new guards: `docs/contributing.md`.
 - Don't decide scope/architecture silently — check against the relevant
   doc in `docs/`; if something's unclear or conflicting, ask.
 - Order: contracts and logic first (types, matching engine, tests
   against synthetic scenarios), tooling/infra second — not the other
   way around.
-- Verify (fill in once package.json exists): typecheck + test command —
-  required before calling a step done.
+- Verify before calling a step done: `pnpm test:guards` today;
+  `pnpm typecheck && pnpm test` once `packages/core` exists (update this
+  line then). For matching/routing changes, the acceptance scenarios in
+  `docs/core-design.md` must all pass.
 
 ## Ambiguity
 

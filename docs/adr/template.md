@@ -19,6 +19,12 @@ Why this decision was needed. What constraints existed.
 
 What was decided, stated clearly.
 
+**Reversibility:** one-way door | two-way door — and why. One-way doors
+(public APIs, data schemas, pricing, UX patterns users learn) need the
+full alternatives writeup below and explicit sign-off before merging.
+
+**Revisit when:** the metric, date, or condition that reopens this.
+
 ## Consequences
 
 - What this enables

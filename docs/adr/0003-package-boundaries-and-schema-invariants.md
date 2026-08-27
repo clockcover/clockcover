@@ -104,6 +104,11 @@ them so the SLA metric can count only manager actions if the domain
 expert wants that. Recorded here because it changes what
 "acted within SLA" means — see revisit trigger.
 
+**Reversibility:** the layout and "one port" choices are two-way doors
+(splitting a package or extracting an interface later is mechanical).
+The schema invariants are one-way doors once real data exists — which
+is exactly why they are fixed now, while all data is synthetic.
+
 ### Deferred to its own ADR
 
 How a manager reaches their digest (signed token link vs. login) is a
