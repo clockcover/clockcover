@@ -113,9 +113,12 @@ does not persist in this WSL setup.
   employers`; rosters and exports go through `scripts/upload.ts`
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
-Current deployment: `clockcover-api`, `clockcover-web`, `clockcover-site`
-on `*.andrew-molyuk.workers.dev`, D1 `clockcover` (WEUR). Synthetic
-fixtures only.
+Current deployment (Workers custom domains on the `clockcover.com`
+zone, declared as `routes` in each `wrangler.jsonc`):
+`clockcover.com` + `www` → `clockcover-site`, `digest.clockcover.com` →
+`clockcover-web`, `api.clockcover.com` → `clockcover-api`; D1
+`clockcover` (WEUR). The `*.andrew-molyuk.workers.dev` URLs still work.
+Synthetic fixtures only.
 
 ## Tests
 
