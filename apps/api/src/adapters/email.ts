@@ -185,6 +185,9 @@ export function resendSender(config: EmailConfig, fetchFn: typeof fetch = fetch)
       headers: { authorization: `Bearer ${config.apiKey}`, "content-type": "application/json" },
       body: JSON.stringify({ from: config.from, to: [email.to], subject: email.subject, text: email.text, html: email.html }),
     });
-    if (!res.ok) throw new Error(`email provider returned ${res.status} for ${email.to}`);
+    if (!res.ok) {
+      const detail = (await res.text().catch(() => "")).replace(/\s+/g, " ").slice(0, 300);
+      throw new Error(`email provider returned ${res.status} for ${email.to}: ${detail}`);
+    }
   };
 }

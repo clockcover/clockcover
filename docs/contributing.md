@@ -117,8 +117,8 @@ Current deployment (Workers custom domains on the `clockcover.com`
 zone, declared as `routes` in each `wrangler.jsonc`):
 `clockcover.com` + `www` → `clockcover-site`, `digest.clockcover.com` →
 `clockcover-web`, `api.clockcover.com` → `clockcover-api`; D1
-`clockcover` (WEUR). The `*.andrew-molyuk.workers.dev` URLs still work.
-Synthetic fixtures only.
+`clockcover` (WEUR). Declaring routes turns the `*.workers.dev` URLs off,
+so the custom domains are the only entry points. Synthetic fixtures only.
 
 ## Tests
 
