@@ -1,0 +1,1 @@
+node tooling/guards/pre-push.ts

@@ -44,3 +44,17 @@ test("synthetic-only stays silent outside data files and on clean data", () => {
   assert.equal(run("synthetic-only", { tool_name: "Write", tool_input: { file_path: "docs/x.md", content: "dana@gmail.com" } }).decision, null);
   assert.equal(run("synthetic-only", { tool_name: "Write", tool_input: { file_path: "fixtures/e.csv", content: "dana@example.com" } }).decision, null);
 });
+
+test("destructive-git denies plain force-push", () => {
+  const { decision } = run("destructive-git", { tool_name: "Bash", tool_input: { command: "git push --force origin main" } });
+  assert.equal(decision.permissionDecision, "deny");
+  assert.match(decision.permissionDecisionReason, /force-with-lease/);
+});
+test("destructive-git asks before reset --hard", () => {
+  const { decision } = run("destructive-git", { tool_name: "Bash", tool_input: { command: "git reset --hard HEAD~1" } });
+  assert.equal(decision.permissionDecision, "ask");
+  assert.match(decision.permissionDecisionReason, /discards uncommitted work/);
+});
+test("destructive-git stays silent on ordinary git", () => {
+  assert.equal(run("destructive-git", { tool_name: "Bash", tool_input: { command: "git push && git log -1" } }).decision, null);
+});

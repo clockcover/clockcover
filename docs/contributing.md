@@ -14,6 +14,7 @@ Code:
 | Guard | Rule | Claude Code hook | git hook (husky) |
 |---|---|---|---|
 | `no-ai-coauthor` | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent | `PreToolUse` on `Bash` → denies the `git commit` | `commit-msg` |
+| `destructive-git` | Force-push without `--force-with-lease` is denied; commands that discard work or rewrite history (`reset --hard`, `checkout --`, `restore`, `clean -f`, `branch -D`, `stash drop/clear`, `rebase`, `commit --amend`, `--force-with-lease`) make Claude **ask** first | `PreToolUse` on `Bash` → deny / ask | `pre-push`: refuses non-fast-forward pushes and deletions on `main` |
 | `synthetic-only` | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`) | `PreToolUse` on `Write\|Edit` → denies the write | `pre-commit` on staged files |
 
 Run all guard tests with `pnpm test:guards` (Node's built-in runner;
@@ -22,7 +23,9 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
 - `tooling/guards/tests/<guard>.test.ts` — unit tests for `check` /
   `appliesTo`.
 - `tooling/guards/tests/git-hook.test.ts` — runs `git-hook.ts` as a
-  process; asserts exit code and stderr.
+  process; asserts exit code and stderr. (`pre-push.ts` is covered via
+  its pure core `checkPushRefs` in `destructive-git.test.ts`; the git
+  call is injected.)
 - `.claude/hooks/tests/hooks.test.ts` — runs each Claude hook with a
   stdin payload; asserts the allow/deny decision.
 
@@ -35,8 +38,10 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   `tooling/guards/git-hook.ts <guard> <files>` (files → exit code).
 - Guard, hook file, and git-hook mode share one name (`no-ai-coauthor`,
   `synthetic-only`); stderr lines are prefixed with it.
-- An entry point either denies with the findings as the reason or stays
-  silent. No advisory warnings.
+- An entry point either denies, asks (Claude Code only — forces a
+  confirmation prompt even in auto mode), or stays silent. No advisory
+  warnings. `ask` is for actions that are sometimes right but never
+  routine; `deny` for actions that are never right from an agent.
 - Anything a Claude Code hook blocks is also blocked by a git hook or
   CI. Hooks shorten the feedback loop; they are not the only defence.
 - Timeout ≤ 10 s. Slow checks are not hooks.
@@ -61,4 +66,6 @@ the `commit-msg` hook. Human authors only — see `no-ai-coauthor` above.
 Git hooks are managed by husky and installed automatically by
 `pnpm install` (the `prepare` script). `.husky/commit-msg` runs
 `no-ai-coauthor` then commitlint; `.husky/pre-commit` runs
-`synthetic-only` over staged files.
+`synthetic-only` over staged files; `.husky/pre-push` refuses
+non-fast-forward pushes to `main`. Bypassing a hook (`--no-verify`) is
+a deliberate act — say so in the commit or PR.

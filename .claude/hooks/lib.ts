@@ -10,12 +10,17 @@ export async function readInput(): Promise<HookInput> {
   return JSON.parse(raw);
 }
 
-export function deny(reason: string): never {
+function decide(permissionDecision: "deny" | "ask", reason: string): never {
   process.stdout.write(JSON.stringify({
-    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: reason },
+    hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision, permissionDecisionReason: reason },
   }));
   process.exit(0);
 }
+
+/** Block the tool call. */
+export function deny(reason: string): never { return decide("deny", reason); }
+/** Force a confirmation prompt even in auto mode. */
+export function ask(reason: string): never { return decide("ask", reason); }
 
 /** Text a Write/Edit is about to put on disk. */
 export function writtenText(input: HookInput): string {

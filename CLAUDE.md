@@ -66,7 +66,8 @@ No code in the repo yet. Synthetic data only.
 - Never add `Co-Authored-By` (or any similar trailer) naming an AI
   agent to a commit. Commits are authored by humans only; the
   `no-ai-coauthor` guard rejects such trailers.
-- Guards (`no-ai-coauthor`, `synthetic-only`), git hooks, and the rules
+- Guards (`no-ai-coauthor`, `synthetic-only`, `destructive-git`), git
+  hooks, and the rules
   for adding new guards: `docs/contributing.md`.
 - Don't decide scope/architecture silently — check against the relevant
   doc in `docs/`; if something's unclear or conflicting, ask.
