@@ -49,10 +49,19 @@ The only thing that changes per employer is the **adapter** at the input.
 The core (matching + routing) never depends on the vendor.
 
 - **First implementation:** a plain function `parseCsv(text)` returning
-  `{ shifts: ScheduledShift[], records: AttendanceRecord[] }`, used for
-  both attendance and schedule exports (most systems export CSV). No
-  adapter interface yet — it is extracted when the second adapter is
-  written (ADR-0003).
+  shifts and records from one file format
+  (`employee_id,date,planned_start,planned_end,clock_in,clock_out` — a
+  row with planned times is a shift, with clock times a record, or
+  both). No adapter interface yet — it is extracted when the second
+  adapter is written (ADR-0003).
+- **Roster:** employees and their managers come from a second CSV
+  (`employee_id,employee_name,manager_id,manager_name,manager_email`),
+  upserted by external id. Re-uploading it is how a reassignment is
+  recorded; gaps already detected keep their manager snapshot.
+- **Endpoints** (`apps/api`), all behind one operator API key until
+  ADR-0004: `POST /employers/:id/roster`, `POST /employers/:id/imports`
+  (runs detection for the dates in the file), `GET /health`. The cron
+  trigger (08:00 UTC) runs digests then escalations for every employer.
 - **When a new employer is known** — write a specific adapter for
   whatever they actually provide (Excel/PDF/API/etc.), without touching
   the rest of the code; add its format to `imports.source` then.
@@ -70,8 +79,10 @@ packages/core     domain types, matching engine, routing/escalation,
                   No runtime/framework imports (enforced by
                   tests/boundary.test.ts).
 apps/api          Hono: routes, cron entry point, and all adapters
-                  (src/adapters/{store-d1, csv, email}). Wires adapters
-                  into core by hand.
+                  (src/adapters/{store-d1, csv, email}). src/index.ts
+                  is the only file that knows about Workers bindings;
+                  src/app.ts takes every dependency as an argument so
+                  tests run it on libsql with a fake mailer.
 apps/web          Vue 3 + Tailwind 4: digest page, resolve action.
 apps/site         Marketing website. Static, no product data, no
                   dependency on core. Stack: to be decided when it is

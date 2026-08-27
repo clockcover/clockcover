@@ -5,7 +5,7 @@ import { detectGaps, runDetection } from "../src/detect.ts";
 import { runDailyDigest, resolveByManager } from "../src/digest.ts";
 import { runEscalations } from "../src/escalate.ts";
 import type { DigestMessage } from "../src/digest.ts";
-import { MemoryStore } from "./memory-store.ts";
+import { MemoryStore } from "../src/testing/memory-store.ts";
 import { DAY, HOURS, at, employees, employer, managers, period, record, shift } from "../fixtures/synthetic.ts";
 
 const { ada, ben, cyd } = employees;

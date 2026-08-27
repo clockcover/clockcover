@@ -82,6 +82,12 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   `core-design.md`, same numbering, against `packages/core/fixtures`
   (synthetic people, `example.com` addresses — `synthetic-only` applies
   to `fixtures/`).
+- `apps/api/tests/` — CSV parsing, the SQL `Store` and import writers
+  against libsql in memory with the real `migrations/` applied (same
+  SQLite dialect as D1), and the Hono app + scheduled job with a fake
+  mailer. `pnpm db:generate` (drizzle-kit) regenerates migrations from
+  `src/adapters/store-d1/schema.ts`; wrangler applies them.
+  `wrangler deploy --dry-run` checks the Worker bundles.
 
 ## Tests
 
@@ -94,9 +100,11 @@ and the same layout in `apps/*` once they exist).
 - `pnpm-workspace.yaml` sets `minimumReleaseAge: 4320` (3 days): a
   freshly published package version is not installed until it has been
   public long enough for a compromised release to be noticed.
-- pnpm ≥ 10 does not run dependency lifecycle scripts unless listed in
-  `onlyBuiltDependencies` — keep that list empty unless a package
-  genuinely needs it.
+- pnpm does not run dependency lifecycle scripts unless allowed in
+  `allowBuilds` (`pnpm-workspace.yaml`). Packages that would run one
+  are listed there as `false` — esbuild and workerd ship prebuilt
+  binaries and work without it. Set one to `true` only when a package
+  genuinely needs its build step.
 - GitHub Actions are pinned to a commit SHA (with the version as a
   comment), never to a movable tag.
 - CI runs `pnpm audit --prod --audit-level high`.

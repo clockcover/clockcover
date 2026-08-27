@@ -1,9 +1,9 @@
 // In-memory Store for tests. Mirrors the unique keys in docs/core-design.md.
-import type { Store } from "../src/store.ts";
+import type { Store } from "../store.ts";
 import type {
   Digest, Employer, Escalation, Event, Gap, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent,
   NewGap, NewUnscheduledAttendance, Resolution, UnscheduledAttendance,
-} from "../src/types.ts";
+} from "../types.ts";
 
 export class MemoryStore implements Store {
   gaps: Gap[] = [];
