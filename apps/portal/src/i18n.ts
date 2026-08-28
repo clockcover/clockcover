@@ -92,7 +92,7 @@ const M = {
     "a.none": "No employers yet.",
     "a.th.employer": "Employer", "a.th.operator": "Operator", "a.th.employees": "Employees", "a.th.tier": "Tier", "a.th.open": "Open gaps", "a.th.lastImport": "Last import", "a.th.source": "Source",
     "a.change": "change", "a.none.op": "none", "a.mgr": "mgr", "a.esc": "esc.", "a.never": "never", "a.upload": "upload", "a.url": "URL", "a.resend": "Resend invite",
-    "a.tierNote": "Tier is by active employees on the roster (ADR-0006): Team ≤ 50 (€49), Company ≤ 200 (€149), Site ≤ 500 (€349), Larger by agreement.",
+    "a.tierNote": "Tier is by active employees on the roster (ADR-0006): Team ≤ 50 ($49), Company ≤ 200 ($149), Site ≤ 500 ($349), Larger by agreement.",
     "lang.en": "English", "lang.he": "עברית",
   },
   he: {
@@ -171,7 +171,7 @@ const M = {
     "a.none": "עדיין אין מעסיקים.",
     "a.th.employer": "מעסיק", "a.th.operator": "מפעיל/ה", "a.th.employees": "עובדים", "a.th.tier": "מסלול", "a.th.open": "פערים פתוחים", "a.th.lastImport": "ייבוא אחרון", "a.th.source": "מקור",
     "a.change": "שינוי", "a.none.op": "אין", "a.mgr": "מנהלים", "a.esc": "הועברו", "a.never": "מעולם לא", "a.upload": "העלאה", "a.url": "URL", "a.resend": "שליחת הזמנה מחדש",
-    "a.tierNote": "המסלול נקבע לפי עובדים פעילים ברשימה (ADR-0006): Team ≤ 50 (€49), Company ≤ 200 (€149), Site ≤ 500 (€349), Larger בהסכמה.",
+    "a.tierNote": "המסלול נקבע לפי עובדים פעילים ברשימה (ADR-0006): Team ≤ 50 ($49), Company ≤ 200 ($149), Site ≤ 500 ($349), Larger בהסכמה.",
     "lang.en": "English", "lang.he": "עברית",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
