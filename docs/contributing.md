@@ -170,12 +170,13 @@ so the custom domains are the only entry points. Synthetic fixtures only.
 
 ### Ops
 
-Rate limits on `/console/login`, `/admin/login` and `/contact` are
-enforced by a Cloudflare WAF rate-limiting rule (configured in the
-Cloudflare dashboard on the `clockcover.com` zone, not in the repo) in
-addition to the in-code per-address cooldown. The in-code cooldown is
-best effort — one Worker isolate's memory; the WAF rule is the limit
-that holds.
+Rate limits on `/console/login`, `/admin/login` and `/contact` are the
+in-code per-address (and, for `/contact`, per-IP) cooldowns backed by
+the D1 `send_cooldowns` table, so they hold across Worker isolates. A
+Cloudflare rate-limiting rule in front of them is deferred (2026-08-28:
+account-level WAF is a paid tier; the free plan allows one zone-level
+rule, which is the first thing to add when the login endpoints see
+abuse). Revisit when the first paying employer signs.
 
 ## Tests
 
