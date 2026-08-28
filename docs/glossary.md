@@ -10,7 +10,8 @@ copy use these words. Implementation details do not belong in this file.
 ## People & Roles
 
 **Employee**:
-The person whose attendance is tracked. Belongs to exactly one Manager.
+The person whose attendance is tracked. Belongs to exactly one Manager. Active while listed in the
+latest roster; a re-upload without them deactivates them (no new Gaps, not counted for the tier).
 _Defined in_: `docs/core-design.md` (`employees` table)
 
 **Manager** (Department Manager):

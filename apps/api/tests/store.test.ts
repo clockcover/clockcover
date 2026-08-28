@@ -46,6 +46,21 @@ test("roster upsert is idempotent and reassigns managers", async () => {
   assert.equal(byExt(after, "E-001").managerId, south.id);
 });
 
+test("roster re-upload deactivates who is missing; they stop producing gaps but keep their open ones", async () => {
+  const { db, store, importCsv } = await setup();
+  await importCsv("day-1.csv"); // Ada: no record → open gap
+  const smaller = parseRoster("employee_id,employee_name,manager_id,manager_name,manager_email\nE-002,Ben Sample,M-100,Manager North,north@example.com\nE-003,Cyd Sample,M-200,Manager South,south@example.com").rows;
+  const active = await saveRoster(db, EMPLOYER, smaller);
+  assert.deepEqual(active.map((e) => e.externalId).sort(), ["E-002", "E-003"], "Ada is no longer active");
+  const ada = (await db.select().from(s.employees)).find((e) => e.externalId === "E-001")!;
+  assert.equal(ada.active, false);
+  assert.equal((await store.listOpenGaps(EMPLOYER)).length, 2, "her open gap stays until someone closes it");
+  const again = await saveImport(db, EMPLOYER, parseCsv(fixture("day-1.csv")), later(1));
+  assert.deepEqual(again.unknownEmployees, ["E-001"], "rows for a deactivated employee are skipped and reported");
+  const back = await saveRoster(db, EMPLOYER, parseRoster(fixture("roster.csv")).rows);
+  assert.equal(back.length, 3, "listing her again reactivates");
+});
+
 test("import + detection: gaps and unscheduled attendance land in SQL (scenarios 1-5 end to end)", async () => {
   const { db, store, employees, importCsv } = await setup();
   const { created } = await importCsv("day-1.csv");

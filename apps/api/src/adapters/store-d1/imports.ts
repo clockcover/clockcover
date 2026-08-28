@@ -1,6 +1,6 @@
 // Writing imported data. Not part of the core's Store port — ingestion is an
 // apps/api concern (ADR-0003) — but it shares the schema and the database handle.
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, lte, notInArray } from "drizzle-orm";
 import type { AttendanceRecord, Employee, Id, ScheduledShift } from "@clockcover/core";
 import type { Db } from "./store.ts";
 import * as s from "./schema.ts";
@@ -8,7 +8,13 @@ import type { ParsedCsv, RosterRow } from "../csv.ts";
 
 const newId = () => crypto.randomUUID();
 
-/** Upserts managers and employees by external id. Returns the employees as the core sees them. */
+/**
+ * The roster file is the whole truth about who is tracked: managers and employees
+ * are upserted by external id, and every employee of this employer who is *not* in
+ * the file is deactivated. Deactivated employees produce no new gaps and do not
+ * count toward headcount (ADR-0006); their open gaps stay open until someone closes
+ * them. Returns the active employees as the core sees them.
+ */
 export async function saveRoster(db: Db, employerId: Id, rows: RosterRow[]): Promise<Employee[]> {
   for (const r of rows) {
     await db.insert(s.managers)
@@ -32,6 +38,9 @@ export async function saveRoster(db: Db, employerId: Id, rows: RosterRow[]): Pro
         set: { fullName: r.employeeName, managerId, active: true },
       });
   }
+  const listed = rows.map((r) => r.employeeExternalId);
+  await db.update(s.employees).set({ active: false })
+    .where(and(eq(s.employees.employerId, employerId), eq(s.employees.active, true), ...(listed.length ? [notInArray(s.employees.externalId, listed)] : [])));
   return db.select().from(s.employees).where(and(eq(s.employees.employerId, employerId), eq(s.employees.active, true)));
 }
 

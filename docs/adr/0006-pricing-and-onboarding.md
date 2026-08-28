@@ -103,8 +103,8 @@ headcount the roster does not reflect (contractors, seasonal staff).
 - Sales motion is conversations, not a funnel — right for zero-to-three
   customers, wrong for thirty. That is the revisit trigger.
 - The roster becomes a billing input; `employees.active` has to be
-  right. Deactivation on roster re-upload is not implemented yet
-  (`core-design.md` § Roster) — needed before the first invoice.
+  right. A roster re-upload deactivates whoever is missing from it
+  (`core-design.md` § Roster), so headcount follows the file.
 - No payment provider, invoicing or metering is built now; the first
   invoices are manual. Stripe (or similar) comes with the second
   customer.
