@@ -23,7 +23,7 @@ async function setup() {
   const emails: Email[] = [];
   let now = T0;
   const deps: Deps = {
-    db, store: new SqlStore(db), apiKey: KEY, linkSecret: SECRET, webUrl: WEB, consoleUrl: "https://app.example.com", adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", slaHours: 48,
+    db, store: new SqlStore(db), apiKey: KEY, linkSecret: SECRET, webUrl: WEB, consoleUrl: "https://app.example.com", adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48,
     sendEmail: async (e) => { emails.push(e); },
     now: () => now,
   };
@@ -204,4 +204,22 @@ test("CORS is open only to the web origin", async () => {
   assert.equal(res.headers.get("access-control-allow-origin"), WEB);
   const other = await app.request("/d/x", { method: "OPTIONS", headers: { origin: "https://evil.example", "access-control-request-method": "GET" } });
   assert.notEqual(other.headers.get("access-control-allow-origin"), "https://evil.example");
+});
+
+test("contact form: validated, honeypot silently dropped, emailed to us with reply address", async () => {
+  const { app, emails } = await setup();
+  const post = (b: unknown, origin = "https://site.example.com") => app.request("/contact", { method: "POST", headers: { "content-type": "application/json", origin }, body: JSON.stringify(b) });
+  const bad = await post({ name: "", email: "nope", message: "hi" });
+  assert.equal(bad.status, 400);
+  assert.deepEqual((await bad.json() as { fields: string[] }).fields, ["name", "email", "message"]);
+  assert.equal((await post({ name: "Bot", email: "b@example.com", message: "buy now buy now", website: "http://spam" })).status, 202);
+  assert.equal(emails.length, 0, "honeypot filled → nothing sent");
+  const ok = await post({ name: "Dana Sample", email: "dana@example.com", employer: "Example Logistics", message: "We use an old terminal system, can you read its CSV?", locale: "he" });
+  assert.equal(ok.status, 202);
+  assert.equal(ok.headers.get("access-control-allow-origin"), "https://site.example.com");
+  assert.equal(emails.length, 1);
+  assert.equal(emails[0]!.to, "hello@example.com");
+  assert.equal(emails[0]!.subject, "Contact form: Dana Sample (Example Logistics)");
+  assert.match(emails[0]!.text, /From: Dana Sample <dana@example.com>/);
+  assert.match(emails[0]!.text, /old terminal system/);
 });

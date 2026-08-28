@@ -56,7 +56,9 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   by the owner at creation and by the operator in Settings); Hebrew is
   right-to-left. The site is served at `/` (English) and `/he/`
   (Hebrew). Pages carry a switch for the reader; the employer's choice
-  is the default.
+  is the default. The site has Help (formats, cases), Integrations
+  (what we support and build, what we need from an employer), About and
+  a contact form.
 - **Owner's admin area** (`admin.clockcover.com`, ADR-0006): the list of
   all employers with headcount, operator and last import; create an
   employer and invite its operator; change an operator. Signed in by

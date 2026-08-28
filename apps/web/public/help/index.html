@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClockCover — Help</title>
+    <meta name="description" content="File formats, how imports work, what happens to a gap, common cases." />
+    <link rel="alternate" hreflang="en" href="https://clockcover.com/help/" />
+    <link rel="alternate" hreflang="he" href="https://clockcover.com/he/help/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/" dir="ltr">CLOCKCOVER</a>
+        <nav class="menu" aria-label="Main">
+          <a href="/help/" aria-current="page">Help</a>
+          <a href="/integrations/">Integrations</a>
+          <a href="/about/">About</a>
+          <a class="lang" href="/he/help/" lang="he" hreflang="he">עברית</a>
+          <a class="top-link" href="/contact/">Get in touch</a>
+        </nav>
+      </header>
+
+      <article class="prose">
+        <h1>Help</h1>
+        <p class="lede">How data gets into ClockCover, what the files must look like, and what happens to a gap once it is found.</p>
+
+        <h2 id="flow">How it works, end to end</h2>
+        <ol>
+          <li><strong>Roster.</strong> A CSV of your employees and their managers. Upload it in the console, or point us at an https address where your HR system publishes it.</li>
+          <li><strong>Export.</strong> The shift schedule and the clock entries from your attendance system, one CSV. Uploaded by hand or fetched every morning from an https address you set in Settings.</li>
+          <li><strong>Detection.</strong> Every scheduled shift is checked for a clock-in and a clock-out. A missing one is a <em>gap</em>: no clock-in, no clock-out, or no record at all.</li>
+          <li><strong>Digest.</strong> Each morning every manager with open gaps gets one email listing their own team's gaps and a link to resolve them. No account, no password.</li>
+          <li><strong>Resolution.</strong> The manager either <em>approves the hours</em> (the person worked, the entry is missing) or <em>reports an absence</em> (with a note). A clock entry that arrives with a later export closes the gap on its own.</li>
+          <li><strong>Escalation.</strong> A gap nobody touches within the SLA (48 hours by default) goes to the payroll accountant by email, with a link to close it when the entry will never arrive.</li>
+          <li><strong>Corrections.</strong> The console exports everything people closed in a period as CSV — approved hours and reported absences with notes — for your payroll run.</li>
+        </ol>
+
+        <h2 id="roster">Roster file</h2>
+        <p>CSV, UTF-8, header row required. One row per employee. Managers are created from the rows that name them.</p>
+        <pre dir="ltr"><code>employee_id,employee_name,manager_id,manager_name,manager_email
+E-001,Ada Sample,M-100,Manager North,north@example.com
+E-002,Ben Sample,M-100,Manager North,north@example.com</code></pre>
+        <ul>
+          <li><code>employee_id</code> and <code>manager_id</code> are your own identifiers — payroll numbers work well. They must be stable between uploads.</li>
+          <li>Re-uploading is how changes are recorded: a moved employee gets the new manager; anyone <strong>missing</strong> from the file is deactivated (no new gaps, not counted for your tier). Gaps already detected keep the manager they were routed to.</li>
+        </ul>
+
+        <h2 id="export">Shifts &amp; clock entries file</h2>
+        <p>CSV, UTF-8, header row required. One row per employee per day. A row with planned times is a shift; a row with clock times is an attendance record; a row can be both.</p>
+        <pre dir="ltr"><code>employee_id,date,planned_start,planned_end,clock_in,clock_out
+E-001,2026-03-02,08:00,16:00,08:02,16:05      ← complete
+E-001,2026-03-03,08:00,16:00,,                ← shift, no entry yet → gap
+E-002,2026-03-02,08:00,16:00,08:01,           ← no clock-out → gap
+E-002,2026-03-01,,,09:00,17:00                ← worked without a shift → noted, not a gap</code></pre>
+        <ul>
+          <li>Dates are <code>YYYY-MM-DD</code>; times are <code>HH:MM</code> (24 h). Overnight shifts are fine: <code>23:00–07:00</code>.</li>
+          <li>Two rows for the same employee and day are rejected with the line numbers — one shift and one entry per day in this version. If your people work split shifts, <a href="/contact/">tell us</a>.</li>
+          <li>Employees not on the roster are skipped and listed in the result, so a typo in an id never silently disappears.</li>
+          <li>Re-uploading the same day replaces the earlier values. A gap whose entry arrives is closed automatically as “hours approved”.</li>
+        </ul>
+
+        <h2 id="cases">Common cases</h2>
+        <dl class="cases">
+          <dt>Badge left at home, the person was at work</dt><dd>Manager: <em>Approve the hours</em>, optional note. The corrections export lists the planned hours to credit.</dd>
+          <dt>Sick day, nobody told the system</dt><dd>Manager: <em>Report an absence</em> with a note (“sick, called in 07:30”). Appears in the corrections export as an absence.</dd>
+          <dt>Terminal was down for a whole department</dt><dd>Fix the entries in your attendance system and re-export; the next import closes the gaps by itself. Nobody has to click through them.</dd>
+          <dt>Employee left the company mid-month</dt><dd>Remove them from the roster (they stop producing gaps). Any open gap will escalate; payroll closes it from the escalation email with a note.</dd>
+          <dt>Manager on holiday</dt><dd>Gaps escalate after the SLA to the payroll accountant, who can close them. Or forward the digest: the link works for anyone who has it for 14 days.</dd>
+          <dt>Wrong manager on a gap</dt><dd>Fix the roster and re-upload for future gaps; the existing gap keeps the manager it was routed to (by design — the SLA clock does not move).</dd>
+        </dl>
+
+        <h2 id="faq">Questions we get</h2>
+        <dl class="cases">
+          <dt>Where do I set the timezone, SLA and language?</dt><dd>Console → Settings. “Today” for digests follows the timezone; the job runs at 08:00 UTC.</dd>
+          <dt>Can I re-send a digest?</dt><dd>Not from the console — one digest per manager per day, on purpose. The link in yesterday's email still works for 14 days.</dd>
+          <dt>What does the payroll accountant see?</dt><dd>Only escalations, by email — never a list of all gaps. That is the point.</dd>
+          <dt>Is any of this biometric data?</dt><dd>No. We read only that a clock event exists or does not; never the template behind it. Files are deleted after parsing.</dd>
+        </dl>
+        <p class="lede">Stuck on a file? <a href="/contact/">Send us a sample</a> — during early access we build the connector for you.</p>
+      </article>
+
+      <footer class="mono foot">
+        <div dir="ltr">© 2026 ClockCover</div>
+        <div>no accounts · no biometrics · exports deleted after parsing</div>
+      </footer>
+    </div>
+  </body>
+</html>

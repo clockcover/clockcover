@@ -51,7 +51,7 @@ export const employees = sqliteTable(
 export const imports = sqliteTable("imports", {
   id: id(),
   employerId: employerId(),
-  source: text("source", { enum: ["csv", "excel", "pdf"] }).notNull(),
+  source: text("source", { enum: ["csv", "excel"] }).notNull(),
   /** How the run started: an upload (console or script) or the daily fetch from import_url. */
   trigger: text("trigger", { enum: ["upload", "url"] }).notNull().default("upload"),
   importedAt: instant("imported_at").notNull(),

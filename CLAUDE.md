@@ -60,7 +60,8 @@ says so,
 and the owner onboards employers from admin.clockcover.com (list,
 create + invite operator, change operator). Everything a person reads
 — emails, pages, site — exists in English and Hebrew (RTL), chosen per
-employer. Open:
+employer; the site has Help, Integrations, About and a contact form
+(`POST /contact`). PDF is not an import format for now. Open:
 export target, the first real employer's file location and layoutSynthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.

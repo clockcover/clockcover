@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClockCover — דברו איתנו</title>
+    <meta name="description" content="כתבו לנו על המעסיק, מספר העובדים ומערכת הנוכחות." />
+    <link rel="alternate" hreflang="en" href="https://clockcover.com/contact/" />
+    <link rel="alternate" hreflang="he" href="https://clockcover.com/he/contact/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/he/" dir="ltr">CLOCKCOVER</a>
+        <nav class="menu" aria-label="ראשי">
+          <a href="/he/help/">עזרה</a>
+          <a href="/he/integrations/">אינטגרציות</a>
+          <a href="/he/about/">אודות</a>
+          <a class="lang" href="/contact/" lang="en" hreflang="en">English</a>
+          <a class="top-link" href="/he/contact/" aria-current="page">דברו איתנו</a>
+        </nav>
+      </header>
+
+      <article class="prose">
+        <h1>דברו איתנו</h1>
+        <p class="lede">ספרו לנו על המעסיק, כמה אנשים מחתימים ואיזו מערכת נוכחות בשימוש. אנחנו עונים מ-<a href="mailto:hello@clockcover.com" dir="ltr">hello@clockcover.com</a>, בדרך כלל בתוך יום עבודה.</p>
+        <form class="contact card" id="contact" novalidate>
+          <label>השם שלך<input name="name" required maxlength="120" autocomplete="name" /></label>
+          <label>מייל עבודה<input name="email" type="email" required maxlength="200" autocomplete="email" dir="ltr" /></label>
+          <label>מעסיק<input name="employer" maxlength="200" autocomplete="organization" /></label>
+          <label>הודעה<textarea name="message" required minlength="10" maxlength="4000" rows="6" placeholder="מספר עובדים, מערכת נוכחות, מה תרצו לנסות…"></textarea></label>
+          <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off" /></label>
+          <input type="hidden" name="locale" value="he" />
+          <div class="row"><button class="button" type="submit">שליחה</button><span class="status" role="status"></span></div>
+        </form>
+        <p class="small">מעדיפים מייל? <a href="mailto:hello@clockcover.com" dir="ltr">hello@clockcover.com</a>. מעדיפים לקרוא קודם? <a href="/he/help/">עזרה</a> ו<a href="/he/integrations/">אינטגרציות</a> מכסים את רוב השאלות.</p>
+      </article>
+      <script src="/contact.js"></script>
+
+      <footer class="mono foot">
+        <div dir="ltr">© 2026 ClockCover</div>
+        <div>בלי חשבונות · בלי ביומטריה · קובצי הייצוא נמחקים אחרי הקריאה</div>
+      </footer>
+    </div>
+  </body>
+</html>

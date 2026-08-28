@@ -78,6 +78,9 @@ The core (matching + routing) never depends on the vendor.
   required for absent) runs `resolveByManager`. Tokens are HMAC-SHA-256 over
   `{employerId, managerId, exp}` with `LINK_SECRET`, valid 14 days.
   CORS on `/d/*` is open to `WEB_URL` only. No accounts or sessions.
+- **Contact form**: `POST /contact` from the site (`SITE_URLS` origins
+  only) — validated, honeypot field, size-capped — emails
+  `CONTACT_EMAIL` with the sender as reply address. No auth, no storage.
 - **Payroll access** (ADR-0004 § extended): each escalation email links
   to `/e/<token>` (one gap, `kind: "payroll"`, 14 days); `GET /e/:token`
   shows it, `POST /e/:token/handle` closes it with `outcome` + `note`
@@ -103,7 +106,7 @@ The core (matching + routing) never depends on the vendor.
   `PATCH /admin/employers/:id` (re-invites when the operator changes),
   `POST /admin/employers/:id/invite`. CORS to `ADMIN_URL` only.
 - **When a new employer is known** — write a specific adapter for
-  whatever they actually provide (Excel/PDF/API/etc.), without touching
+  whatever they actually provide (Excel/API/etc.), without touching
   the rest of the code; add its format to `imports.source` then.
   Adapters get added as the need for them shows up, not ahead of time.
 
@@ -131,10 +134,14 @@ apps/portal       Vue 3 + Tailwind 4 (Vite). One worker, three hosts:
                   employer list and onboarding (ADR-0006). View logic in
                   src/*.ts, API clients in src/*-api.ts; VITE_API_URL →
                   https://api.clockcover.com, VITE_CONSOLE_URL → console.
-apps/web          Marketing website: one static HTML page + CSS served
-                  as Worker assets. No framework, no build, no data,
-                  no dependency on core — a one-page site does not
-                  justify one.
+apps/web          Marketing website: static HTML + CSS served as
+                  Worker assets, in English (/) and Hebrew (/he/):
+                  front page (early access, pricing), Help (file
+                  formats, cases, FAQ), Integrations (what exists,
+                  what we build, what we need, the two-week process),
+                  About, Get in touch (a form posting to the API's
+                  /contact). No framework, no build, no dependency on
+                  core.
 ```
 
 **Languages.** Copy lives in two dictionaries — `apps/api/src/i18n.ts`
