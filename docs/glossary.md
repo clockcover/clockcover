@@ -31,8 +31,8 @@ configures, the Payroll Accountant receives Escalations. One Operator per Employ
 (`employers.operator_email`), signed in through the **Console** by emailed link (ADR-0005).
 
 **Console**:
-The Operator's area of `apps/web` (`/console`): Sign in, Imports, Settings, Overview. Not a list
-of Gaps.
+The Operator's area of `apps/web`, on its own host (`app.clockcover.com`): Sign in, Imports,
+Settings, Overview. Not a list of Gaps.
 
 **Employer**:
 The company that owns the employee data. Real (non-synthetic) data may only be used once the

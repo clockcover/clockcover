@@ -72,7 +72,9 @@ The core (matching + routing) never depends on the vendor.
   `{employerId, managerId, exp}` with `LINK_SECRET`, valid 14 days.
   CORS on `/d/*` is open to `WEB_URL` only. No accounts or sessions.
 - **Operator console** (ADR-0005): `POST /console/login` emails a
-  7-day operator token to `employers.operator_email`; the browser keeps
+  7-day operator token to `employers.operator_email` as a link on
+  `CONSOLE_URL`; CORS on `/console/*` is open to that origin only. The
+  browser keeps
   it in `sessionStorage` and sends it as a bearer to
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
   `POST /console/imports`, `GET /console/imports`, `GET /console/overview`.
@@ -100,12 +102,13 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
                   tests run it on libsql with a fake mailer.
-apps/web          Vue 3 + Tailwind 4 (Vite), https://digest.clockcover.com.
-                  /d/:token — the manager's digest page (ADR-0004);
-                  /console — the operator console (ADR-0005): sign-in,
-                  overview, imports, settings. View logic in src/*.ts,
-                  API clients in src/api.ts and src/console-api.ts;
-                  VITE_API_URL points at https://api.clockcover.com.
+apps/web          Vue 3 + Tailwind 4 (Vite). One worker, two hosts:
+                  https://digest.clockcover.com/d/:token — the manager's
+                  digest page (ADR-0004); https://app.clockcover.com —
+                  the operator console (ADR-0005): sign-in, overview,
+                  imports, settings. View logic in src/*.ts, API clients
+                  in src/api.ts and src/console-api.ts; VITE_API_URL →
+                  https://api.clockcover.com, VITE_CONSOLE_URL → the app host.
 apps/site         Marketing website: one static HTML page + CSS served
                   as Worker assets. No framework, no build, no data,
                   no dependency on core — a one-page site does not

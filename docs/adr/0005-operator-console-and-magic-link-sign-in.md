@@ -40,7 +40,10 @@ What has to be decided:
 ### Scope
 
 **An operator console is part of the MVP**, as a second area of
-`apps/web` at `/console`. It has four screens and nothing else:
+`apps/web` served on its own host — `app.clockcover.com` — while the
+manager's digest page keeps `digest.clockcover.com`. One worker, two
+doors: each audience sees a hostname that names what it gets. It has
+four screens and nothing else:
 
 - **Sign in** — email address; a link arrives by email.
 - **Imports** — upload the roster CSV and the shift/attendance export;
@@ -97,8 +100,10 @@ rows.
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
   `POST /console/imports`, `GET /console/imports`, `GET /console/overview`.
   The API-key endpoints stay for scripts.
-- `apps/web`: `/console` (sign-in), `/console/<token>` (landing, stores
-  the token, redirects), `/console/{overview,imports,settings}`.
+- `apps/web`: on the console host, `/` and `/console` (sign-in),
+  `/console/<token>` (landing, stores the token, redirects),
+  `/console/{overview,imports,settings}`. `CONSOLE_URL` (api) and
+  `VITE_CONSOLE_URL` (web) name that host; `WEB_URL` stays the digest host.
 - `packages/core`: `Employer` gains `operatorEmail` and `slaHours`;
   `runEscalations` keeps taking the SLA as an argument. No other change.
 - Email adapter: a magic-link template.

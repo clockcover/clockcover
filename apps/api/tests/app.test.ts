@@ -23,7 +23,7 @@ async function setup() {
   const emails: Email[] = [];
   let now = T0;
   const deps: Deps = {
-    db, store: new SqlStore(db), apiKey: KEY, linkSecret: SECRET, webUrl: WEB, slaHours: 48,
+    db, store: new SqlStore(db), apiKey: KEY, linkSecret: SECRET, webUrl: WEB, consoleUrl: "https://app.example.com", slaHours: 48,
     sendEmail: async (e) => { emails.push(e); },
     now: () => now,
   };

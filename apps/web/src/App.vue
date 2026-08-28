@@ -4,9 +4,10 @@ import { consoleRoute } from "./console-api.ts";
 import DigestPage from "./DigestPage.vue";
 import ConsoleApp from "./console/ConsoleApp.vue";
 
-const path = window.location.pathname;
-const token = tokenFromPath(path);
-const isConsole = consoleRoute(path) !== null;
+const { pathname, hostname } = window.location;
+const token = tokenFromPath(pathname);
+const isConsole = consoleRoute(pathname, hostname) !== null;
+const consoleUrl = (import.meta.env?.VITE_CONSOLE_URL as string | undefined) ?? "/console";
 </script>
 
 <template>
@@ -19,7 +20,7 @@ const isConsole = consoleRoute(path) !== null;
       <p class="text-[15px] text-muted text-pretty">
         The link in your daily digest is the only way in — it is signed for you and needs no account or password.
       </p>
-      <p class="text-[13px] text-fainter">Operators: <a href="/console" class="text-accent">sign in to the console</a>.</p>
+      <p class="text-[13px] text-fainter">Operators: <a :href="consoleUrl" class="text-accent">sign in to the console</a>.</p>
     </div>
   </main>
 </template>

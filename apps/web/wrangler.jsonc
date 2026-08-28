@@ -4,6 +4,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clockcover-web",
   "compatibility_date": "2026-08-01",
-  "routes": [{ "pattern": "digest.clockcover.com", "custom_domain": true }],
+  "routes": [
+    { "pattern": "digest.clockcover.com", "custom_domain": true }, // managers: /d/<token>
+    { "pattern": "app.clockcover.com", "custom_domain": true } // operators: /console
+  ],
   "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
 }

@@ -13,6 +13,7 @@ interface Env {
   RESEND_API_KEY: string;
   EMAIL_FROM: string;
   WEB_URL: string;
+  CONSOLE_URL: string;
   SLA_HOURS: string;
 }
 
@@ -25,6 +26,7 @@ function deps(env: Env): Deps {
     apiKey: env.API_KEY,
     linkSecret: env.LINK_SECRET,
     webUrl: env.WEB_URL,
+    consoleUrl: env.CONSOLE_URL,
     slaHours: Number(env.SLA_HOURS) || 48,
   };
 }
