@@ -54,7 +54,9 @@ can close an escalated gap from the escalation email (`/e/<token>`).
 The daily job can fetch the export and roster from https URLs set in
 the console and emails the operator on failure; corrections export as
 CSV. ADR-0006 fixes the money model (per employer, by headcount, free
-month, access by request; prices $20/$50/$100 published), the site says so,
+month, access by request; prices $20/$50/$100 published; early access:
+90 days free and an integration built by us within two weeks), the site
+says so,
 and the owner onboards employers from admin.clockcover.com (list,
 create + invite operator, change operator). Everything a person reads
 — emails, pages, site — exists in English and Hebrew (RTL), chosen per

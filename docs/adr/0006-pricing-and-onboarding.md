@@ -48,7 +48,8 @@ What we know about the buyer:
 - Cancellation any time; data export (roster, corrections CSV) is
   always available so leaving is not hostage-taking.
 
-List — set by the owner on 2026-08-28 (first $49/$149/$349, lowered the same day to $20/$50/$100) and published on the site:
+List — set by the owner on 2026-08-28 (first $49/$149/$349, lowered the
+same day to $20/$50/$100) and published on the site:
 
 | Tier | Active employees | Monthly (USD) |
 |---|---|---|
@@ -62,6 +63,25 @@ The numbers were chosen to be low enough not to need procurement at a
 per month pays for the tier. They may still move after the first
 conversations; the *shape* (per employer, by headcount, no per-manager
 fee, free month) is the harder decision.
+
+### Early access (until we say otherwise)
+
+Employers onboarded while ClockCover is in early access get two things
+the standard terms do not:
+
+- **90 days free** instead of 30 — a full quarter of payroll runs to see
+  the SLA metric move.
+- **Free integration with their current systems, delivered by us within
+  two weeks.** If their attendance or payroll system is not yet
+  supported, we build the import (and, once a target is known, the
+  export) adapter at no charge. The two weeks are *our* delivery
+  commitment, counted from the day we receive a sample export — not a
+  deadline for the employer. This is how the open questions about file
+  formats and export targets get answered: by the first employers, on
+  our time.
+
+Early access ends when we announce it; employers already in keep their
+terms. The list prices above apply after the free period.
 
 ### Onboarding: by request, not self-serve
 
@@ -85,9 +105,10 @@ fee, free month) is the harder decision.
 
 ### What the site says
 
-The marketing page shows the four tiers with their prices and states
-the model: per employer, by headcount, managers unlimited, 30 days free
-on your own files, access by request.
+The marketing page shows the four tiers with their prices, the early
+access terms (90 days free, integration built by us within two weeks),
+and states the model: per employer, by headcount, managers unlimited,
+access by request.
 
 **Reversibility:** one-way door for the shape (customers remember "per
 employer, by headcount"); two-way for the numbers while there are no
