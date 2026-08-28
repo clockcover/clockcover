@@ -25,7 +25,7 @@ async function setup() {
   const deps: Deps = { db, store: new SqlStore(db), linkSecret: SECRET, webUrl: WEB, consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
   const app = createApp(deps);
   const login = async (email: string) => app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
-  const tokenFromEmail = () => emails.at(-1)!.text.split(`${CONSOLE}/console/`)[1]!.split(/\s/)[0]!;
+  const tokenFromEmail = () => emails.at(-1)!.text.split(`${CONSOLE}/`)[1]!.split(/\s/)[0]!;
   const authed = (token: string) => (path: string, init: RequestInit = {}) =>
     app.request(`/console${path}`, { ...init, headers: { authorization: `Bearer ${token}`, ...(init.headers as Record<string, string> | undefined) } });
   return { app, db, deps, emails, login, tokenFromEmail, authed, advance: (d: Date) => { now = d; } };
@@ -39,7 +39,7 @@ test("login: same 202 for known and unknown addresses; only the known one gets a
   assert.equal(emails.length, 1);
   assert.equal(emails[0]!.to, "operator@example.com");
   assert.match(emails[0]!.subject, /^Sign in to the ClockCover console — Example Logistics/);
-  assert.ok(emails[0]!.text.includes(`${CONSOLE}/console/`), "link points at the console host, not the digest host");
+  assert.ok(emails[0]!.text.includes(`${CONSOLE}/`), "link points at the console host, not the digest host");
   assert.match(tokenFromEmail(), /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/, "token is url-safe payload.signature");
   assert.equal((await login("not-an-email")).status, 400);
 });

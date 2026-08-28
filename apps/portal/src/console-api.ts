@@ -114,15 +114,23 @@ export type ConsoleRoute =
 /** The console lives on console.…; the pages people reach from emails on portal.…  Same worker, two doors. */
 export const isConsoleHost = (hostname: string) => /^console\./.test(hostname);
 
-/** `/console`, `/console/<token>`, `/console/overview|imports|settings`; on the console host `/` is the sign-in too. */
+/**
+ * On the console host the pages sit at the root: `/`, `/<token>`, `/overview|imports|settings`.
+ * Elsewhere (the digest host, local dev) they need the `/console` prefix; the prefix is still accepted on the console host for old links.
+ */
 export function consoleRoute(pathname: string, hostname = ""): ConsoleRoute | null {
-  if (isConsoleHost(hostname) && (pathname === "/" || pathname === "")) return { page: "signin" };
-  const m = /^\/console(?:\/([^/]+))?\/?$/.exec(pathname);
+  const m = (isConsoleHost(hostname) ? /^(?:\/console)?(?:\/([^/]+))?\/?$/ : /^\/console(?:\/([^/]+))?\/?$/).exec(pathname);
   if (!m) return null;
   const seg = m[1] ? decodeURIComponent(m[1]) : "";
   if (seg === "") return { page: "signin" };
   if (seg === "overview" || seg === "imports" || seg === "settings") return { page: seg };
   return { page: "landing", token: seg };
+}
+
+/** The address to show for a console page: no prefix on the console host, `/console/...` elsewhere. */
+export function consolePath(page: string, hostname = ""): string {
+  const prefix = isConsoleHost(hostname) ? "" : "/console";
+  return page === "signin" ? prefix || "/" : `${prefix}/${page}`;
 }
 
 /** Percentage string for the metric card; "—" when there is nothing to measure. */

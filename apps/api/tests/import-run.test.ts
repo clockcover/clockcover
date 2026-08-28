@@ -35,7 +35,7 @@ async function setup(urls: { importUrl?: string; rosterUrl?: string }, files: Re
   let now = T0;
   const deps: Deps = { db, store: new SqlStore(db), linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now, fetch: fakeFetch(files) };
   const app = createApp(deps);
-  const login = async () => { await app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: OPERATOR }) }); return emails.pop()!.text.split(`${CONSOLE}/console/`)[1]!.split(/\s/)[0]!; };
+  const login = async () => { await app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: OPERATOR }) }); return emails.pop()!.text.split(`${CONSOLE}/`)[1]!.split(/\s/)[0]!; };
   const authed = (token: string) => (path: string, init: RequestInit = {}) => app.request(`/console${path}`, { ...init, headers: { authorization: `Bearer ${token}`, ...(init.headers as Record<string, string> | undefined) } });
   return { app, db, deps, emails, login, authed, advance: (d: Date) => { now = d; } };
 }
@@ -64,7 +64,7 @@ test("a failing fetch or a bad file emails the operator with the reason; digests
   const failure = emails.find((e) => e.to === OPERATOR)!;
   assert.match(failure.subject, /today's export import failed/);
   assert.match(failure.text, /HTTP 500 from files\.example\.com/);
-  assert.ok(failure.text.includes(`${CONSOLE}/console/imports`));
+  assert.ok(failure.text.includes(`${CONSOLE}/imports`));
 
   deps.fetch = fakeFetch({ [ROSTER]: fixture("roster.csv"), [EXPORT]: "employee_id,date\nE-001,not-a-date\n" });
   advance(new Date("2026-03-04T08:00:00Z"));

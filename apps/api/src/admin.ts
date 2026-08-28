@@ -23,7 +23,7 @@ export function adminRoutes(deps: Deps) {
     if (!employer.operatorEmail) return false;
     const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
     const token = await signOperator({ kind: "operator", employerId: employer.id, email: employer.operatorEmail, exp }, deps.linkSecret);
-    await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: employer.operatorEmail, employerName: employer.name, link: `${consoleWeb}/console/${token}`, expires: new Date(exp) }));
+    await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: employer.operatorEmail, employerName: employer.name, link: `${consoleWeb}/${token}`, expires: new Date(exp) }));
     return true;
   }
 
@@ -36,7 +36,7 @@ export function adminRoutes(deps: Deps) {
       const t = now();
       const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
       const token = await signAdmin({ kind: "admin", email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ locale, to: email, employerName: "ClockCover", link: `${adminWeb}/admin/${token}`, expires: new Date(exp), area: "admin" }));
+      await deps.sendEmail(renderMagicLink({ locale, to: email, employerName: "ClockCover", link: `${adminWeb}/${token}`, expires: new Date(exp), area: "admin" }));
     }
     return c.json({ ok: true, message: "If that is the owner's address, a sign-in link is on its way." }, 202);
   });

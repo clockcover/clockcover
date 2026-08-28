@@ -216,14 +216,14 @@ ${brand(L, badge(t(L, "imp.badge"), C.breachBg, C.breachFg))}
 <div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">${esc(t(L, "imp.title", { step }))}</div>
 <div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(t(L, "imp.lead", { message: input.message }))}</div>
 ${list.length ? `<pre dir="ltr" style="margin-top:16px;padding:14px 16px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px;font-family:${MONO};font-size:12px;line-height:1.5;white-space:pre-wrap;text-align:left">${esc(list.join("\n"))}${more ? `\n${esc(more)}` : ""}</pre>` : ""}
-${button(`${input.consoleUrl}/console/imports`, t(L, "imp.cta"))}
+${button(`${input.consoleUrl}/imports`, t(L, "imp.cta"))}
 ${footer([esc(t(L, "imp.footer"))])}`);
   const text = [
     t(L, "imp.title", { step }) + ": " + input.message + ".",
     ...(list.length ? ["", ...list, more].filter(Boolean) : []),
     "",
     t(L, "imp.footer"),
-    `${input.consoleUrl}/console/imports`,
+    `${input.consoleUrl}/imports`,
   ].join("\n");
   return { to: input.to, subject, text, html };
 }

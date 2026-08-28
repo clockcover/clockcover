@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { ApiError } from "../api.ts";
-import { consoleRoute, me, session } from "../console-api.ts";
+import { consolePath, consoleRoute, me, session } from "../console-api.ts";
 import type { ConsoleRoute, EmployerSettings } from "../console-api.ts";
 import { setLocale, t } from "../i18n.ts";
 import LangSwitch from "../LangSwitch.vue";
@@ -16,7 +16,7 @@ const employer = ref<EmployerSettings | null>(null);
 const notice = ref<string | null>(null);
 
 function go(page: "overview" | "imports" | "settings" | "signin") {
-  window.history.replaceState(null, "", page === "signin" ? "/console" : `/console/${page}`);
+  window.history.replaceState(null, "", consolePath(page, window.location.hostname));
   route.value = { page };
 }
 

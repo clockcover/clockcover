@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { ApiError } from "../api.ts";
-import { adminMe, adminRoute, adminSession, requestAdminLink } from "../admin-api.ts";
+import { adminMe, adminPath, adminRoute, adminSession, requestAdminLink } from "../admin-api.ts";
 import type { AdminRoute } from "../admin-api.ts";
 import { locale, t } from "../i18n.ts";
 import LangSwitch from "../LangSwitch.vue";
@@ -15,7 +15,7 @@ const sent = ref<string | null>(null);
 const busy = ref(false);
 
 function go(page: "employers" | "signin") {
-  window.history.replaceState(null, "", page === "signin" ? "/admin" : `/admin/${page}`);
+  window.history.replaceState(null, "", adminPath(page, window.location.hostname));
   route.value = { page };
 }
 async function load() {

@@ -26,7 +26,7 @@ async function setup() {
   const app = createApp(deps);
   const json = (b: unknown, method = "POST") => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
   const login = async (email: string) => app.request("/admin/login", json({ email }));
-  const tokenFromEmail = () => emails.at(-1)!.text.split(`${ADMIN}/admin/`)[1]!.split(/\s/)[0]!;
+  const tokenFromEmail = () => emails.at(-1)!.text.split(`${ADMIN}/`)[1]!.split(/\s/)[0]!;
   const authed = (token: string) => (path: string, init: RequestInit = {}) =>
     app.request(`/admin${path}`, { ...init, headers: { authorization: `Bearer ${token}`, ...(init.headers as Record<string, string> | undefined) } });
   return { app, db, deps, emails, json, login, tokenFromEmail, authed, advance: (d: Date) => { now = d; } };
@@ -39,7 +39,7 @@ test("only the owner's address gets a link; same 202 for anyone", async () => {
   assert.equal((await login(" Owner@Example.com ")).status, 202);
   assert.equal(emails.length, 1);
   assert.equal(emails[0]!.subject, "Sign in to ClockCover admin");
-  assert.ok(emails[0]!.text.includes(`${ADMIN}/admin/`));
+  assert.ok(emails[0]!.text.includes(`${ADMIN}/`));
 });
 
 test("admin endpoints refuse no token, operator tokens, and a changed ADMIN_EMAIL", async () => {
@@ -92,7 +92,7 @@ test("create an employer → operator receives a console invite; validation; cha
   assert.equal(emails.length, 1);
   assert.equal(emails[0]!.to, "op2@example.com");
   assert.match(emails[0]!.subject, /^כניסה ללוח הבקרה של ClockCover — Second Employer$/, "invite in the employer's language");
-  assert.ok(emails[0]!.text.includes(`${CONSOLE}/console/`), "invite is a console link, not an admin link");
+  assert.ok(emails[0]!.text.includes(`${CONSOLE}/`), "invite is a console link, not an admin link");
   const [row] = await db.select().from(s.employers).where((await import("drizzle-orm")).eq(s.employers.id, id));
   assert.equal(row!.timezone, "Asia/Jerusalem");
   assert.equal(row!.slaHours, 48);

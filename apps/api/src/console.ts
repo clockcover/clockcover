@@ -32,7 +32,7 @@ export function consoleRoutes(deps: Deps) {
       const t = now();
       const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
       const token = await signOperator({ kind: "operator", employerId: employer.id, email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: email, employerName: employer.name, link: `${web}/console/${token}`, expires: new Date(exp) }));
+      await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: email, employerName: employer.name, link: `${web}/${token}`, expires: new Date(exp) }));
     }
     return c.json({ ok: true, message: "If that address runs a ClockCover employer, a sign-in link is on its way." }, 202);
   });

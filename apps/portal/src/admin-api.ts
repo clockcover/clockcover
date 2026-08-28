@@ -45,13 +45,21 @@ export type AdminRoute = { page: "signin" } | { page: "landing"; token: string }
 
 export const isAdminHost = (hostname: string) => /^admin\./.test(hostname);
 
-/** `/admin`, `/admin/<token>`, `/admin/employers`; on the admin host `/` is the sign-in. */
+/**
+ * On the admin host the pages sit at the root: `/`, `/<token>`, `/employers`.
+ * Elsewhere they need the `/admin` prefix; the prefix is still accepted on the admin host for old links.
+ */
 export function adminRoute(pathname: string, hostname = ""): AdminRoute | null {
-  if (isAdminHost(hostname) && (pathname === "/" || pathname === "")) return { page: "signin" };
-  const m = /^\/admin(?:\/([^/]+))?\/?$/.exec(pathname);
+  const m = (isAdminHost(hostname) ? /^(?:\/admin)?(?:\/([^/]+))?\/?$/ : /^\/admin(?:\/([^/]+))?\/?$/).exec(pathname);
   if (!m) return null;
   const seg = m[1] ? decodeURIComponent(m[1]) : "";
   if (seg === "") return { page: "signin" };
   if (seg === "employers") return { page: "employers" };
   return { page: "landing", token: seg };
+}
+
+/** The address to show for an admin page: no prefix on the admin host, `/admin/...` elsewhere. */
+export function adminPath(page: string, hostname = ""): string {
+  const prefix = isAdminHost(hostname) ? "" : "/admin";
+  return page === "signin" ? prefix || "/" : `${prefix}/${page}`;
 }
