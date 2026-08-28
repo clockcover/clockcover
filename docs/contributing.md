@@ -62,6 +62,13 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   protection, and it has no `git-hook.ts` mode (nor does
   `destructive-git`, whose git side is `pre-push.ts`).
 - Timeout ≤ 10 s. Slow checks are not hooks.
+- Hook commands in `settings.json` are
+  `cd "$CLAUDE_PROJECT_DIR" && node .claude/hooks/<guard>.ts || exit 2`:
+  they run from the project root whatever the shell's cwd is (a bare
+  `node .claude/hooks/…` silently fails once the agent has `cd`-ed into
+  a package), and a crashed hook **blocks** the tool call (exit 2)
+  instead of letting it through as a "non-blocking" error. Fail closed.
+  `docs-consistency.test.ts` enforces the shape.
 - New guard = `tooling/guards/<guard>.ts` + `tests/<guard>.test.ts` +
   `.claude/hooks/<guard>.ts` registered in `.claude/settings.json` +
   entry in `GUARDS` in `git-hook.ts` wired into `.husky/` + cases in
