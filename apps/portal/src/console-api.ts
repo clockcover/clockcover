@@ -68,6 +68,9 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
 
 export const requestLink = (email: string) =>
   call<{ ok: true; message: string }>("/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) }, false);
+/** Turns the single-use token from the emailed link into the 7-day session token. */
+export const exchangeLink = (token: string) =>
+  call<{ token: string; sessionExpires: string }>("/exchange", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ token }) }, false);
 export const me = () => call<EmployerSettings>("/me");
 export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "payrollEmail" | "operatorEmail" | "timezone" | "slaHours" | "importUrl" | "rosterUrl" | "locale">>) =>
   call<EmployerSettings>("/employer", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
@@ -114,15 +117,25 @@ export type ConsoleRoute =
 /** The console lives on console.…; the pages people reach from emails on portal.…  Same worker, two doors. */
 export const isConsoleHost = (hostname: string) => /^console\./.test(hostname);
 
-/** `/console`, `/console/<token>`, `/console/overview|imports|settings`; on the console host `/` is the sign-in too. */
-export function consoleRoute(pathname: string, hostname = ""): ConsoleRoute | null {
-  if (isConsoleHost(hostname) && (pathname === "/" || pathname === "")) return { page: "signin" };
-  const m = /^\/console(?:\/([^/]+))?\/?$/.exec(pathname);
+/**
+ * On the console host the pages sit at the root: `/`, `/overview|imports|settings`.
+ * Elsewhere (the digest host, local dev) they need the `/console` prefix; the prefix is still accepted on the console host.
+ * The emailed link is the sign-in page with the token in the fragment (`/#<token>`),
+ * which browsers never send to a server or leave in referrers.
+ */
+export function consoleRoute(pathname: string, hostname = "", hash = ""): ConsoleRoute | null {
+  const m = (isConsoleHost(hostname) ? /^(?:\/console)?(?:\/([^/]+))?\/?$/ : /^\/console(?:\/([^/]+))?\/?$/).exec(pathname);
   if (!m) return null;
   const seg = m[1] ? decodeURIComponent(m[1]) : "";
-  if (seg === "") return { page: "signin" };
+  if (seg === "") return hash.length > 1 ? { page: "landing", token: hash.slice(1) } : { page: "signin" };
   if (seg === "overview" || seg === "imports" || seg === "settings") return { page: seg };
-  return { page: "landing", token: seg };
+  return null;
+}
+
+/** The address to show for a console page: no prefix on the console host, `/console/...` elsewhere. */
+export function consolePath(page: string, hostname = ""): string {
+  const prefix = isConsoleHost(hostname) ? "" : "/console";
+  return page === "signin" ? prefix || "/" : `${prefix}/${page}`;
 }
 
 /** Percentage string for the metric card; "—" when there is nothing to measure. */

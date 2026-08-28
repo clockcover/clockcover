@@ -13,11 +13,17 @@ Code:
 
 | Guard               | Rule                                                                                                                                                                                                                                                                                                                              | Claude Code hook                                                                                                               | git hook (husky)                                                    |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `no-ai-coauthor`    | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent                                                                                                                                                                                                                                                                         | `PreToolUse` on `Bash` → denies the `git commit`                                                                               | `commit-msg`                                                        |
-| `destructive-git`   | Force-push without `--force-with-lease` is denied; commands that discard work or rewrite history (`reset --hard`, `checkout --`/`checkout .`, `restore` (not `--staged`), `clean -f/-x/-X`, `branch -D`, `stash drop/clear`, `rebase`, `commit --amend`, `--force-with-lease`) make Claude **ask** first                                                              | `PreToolUse` on `Bash` → deny / ask                                                                                            | `pre-push`: refuses non-fast-forward pushes and deletions on `main` |
-| `no-secrets`        | No credentials in tracked files: private-key blocks, AWS/GitHub/OpenAI-Anthropic/Slack token formats, JWTs, and `api_key = "<long opaque value>"`-style assignments. Env references and placeholders pass. Lockfiles, tests and binaries are skipped                                                                              | `PreToolUse` on `Write\|Edit` → denies the write; on `Bash` → denies reading protected files / dumping env (`docs/privacy.md`) | `pre-commit` on staged files                                        |
-| `harness-integrity` | The harness is not weakened by the agent: editing `.claude/`, `.husky/`, `tooling/guards/`, `.github/workflows/`, `CLAUDE.md`, `.commitlintrc.json`, `pnpm-workspace.yaml`, `tsconfig.json` **asks** for a human; `--no-verify`/`-n` on commit or push, `HUSKY=0`, setting or unsetting `core.hooksPath` (reading it is fine), removing husky, `chmod` on `.husky/`/`.claude/` are denied | `PreToolUse` on `Write\|Edit` → ask; on `Bash` → deny                                                                          | — (a person may bypass hooks deliberately; say so in the commit)    |
-| `synthetic-only`    | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`)                                                                | `PreToolUse` on `Write\|Edit` → denies the write                                                                               | `pre-commit` on staged files                                        |
+| `no-ai-coauthor`    | No `Co-Authored-By`/`Signed-off-by` crediting an AI agent, as a trailer line or `--trailer key=value`                                                                                                                                                                                                                                                                         | `PreToolUse` on `Bash` → denies the `git commit`                                                                               | `commit-msg`                                                        |
+| `destructive-git`   | Plain `--force`/`-f`/`+ref` push is denied (`--force-with-lease`, `--force-if-includes` ask); commands that discard work or rewrite history (`reset --hard/--merge`, `checkout [ref] --`/`checkout .`/`checkout -f`, `switch --discard-changes`, `restore` (not `--staged`), `clean -f/-x/-X`, `branch -D`/`--delete --force`, `stash drop/clear`, `rebase`, `commit --amend`, `--force-with-lease`) make Claude **ask** first. `git` is recognised wherever a command starts — `xargs git`, `bash -c 'git …'`, `$(git …)`, `/usr/bin/git`, each line of a multi-line command                                                              | `PreToolUse` on `Bash` → deny / ask                                                                                            | `pre-push`: refuses non-fast-forward pushes and deletions on `main` |
+| `no-secrets`        | No credentials in tracked files: private-key blocks, AWS/GitHub/OpenAI-Anthropic/Slack/Cloudflare (`cfut_…`)/Resend (`re_…`) token formats, JWTs, and `api_key = "<long opaque value>"`-style assignments (any name ending in `api_key`, `secret`, `token`, `password`, …). Env references and placeholders pass. Lockfiles, tests and binaries are skipped. Bash: `cat`, `grep`, `jq`, `python`, `node`, `git show`/`diff`/`cat-file`… on `.env*`, `.dev.vars`, keys, `~/.ssh`, `.wrangler/`, `data/real/`, `.claude/settings.local.json`, and env dumps, are denied                                                                              | `PreToolUse` on `Write\|Edit` → denies the write; on `Bash` → denies reading protected files / dumping env (`docs/privacy.md`) | `pre-commit` on the staged blobs                                    |
+| `harness-integrity` | The harness is not weakened by the agent: editing `.claude/`, `.husky/`, `tooling/guards/`, `.github/workflows/`, `CLAUDE.md`, `.commitlintrc.json`, `pnpm-workspace.yaml`, `tsconfig.json` **asks** for a human; `--no-verify`/`-n` on commit or push, `HUSKY=0`, setting or unsetting `core.hooksPath` (`=` or space; reading it is fine), removing husky, touching husky's user-level init (`~/.config/husky/init.sh`, `.huskyrc`), `chmod` on `.husky`/`.claude` are denied. Root `package.json`, `turbo.json`, `.markdownlint-cli2.jsonc` and `.gitignore` are harness files too | `PreToolUse` on `Write\|Edit` → ask; on `Bash` → deny                                                                          | — (a person may bypass hooks deliberately; say so in the commit)    |
+| `synthetic-only`    | Synthetic data only (`docs/privacy.md`): no real-looking personal data — emails outside reserved domains (`example.*`, `.test`, `.invalid`, `localhost`), phone/ID-like numbers — in data files (`fixtures/`, `seed/`, `synthetic/`, `*.csv`, `*.json`, `*.sql`, `*.xlsx`)                                                                | `PreToolUse` on `Write\|Edit` → denies the write                                                                               | `pre-commit` on the staged blobs                                    |
+
+The `Write|Edit` matcher in `settings.json` also covers `NotebookEdit` and
+`MultiEdit`. A Bash redirect (`echo … > fixtures/x.csv`) is not a
+`Write`, so it reaches no `Write|Edit` hook: real-looking data or a
+credential that gets into a file that way is caught only by the
+`pre-commit` hook (and CI's `guards:scan`).
 
 `pnpm typecheck` typechecks the root tooling (`tsconfig.json` covers
 `tooling/` and `.claude/hooks/`) and then every package — see
@@ -31,13 +37,16 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
 - `tooling/guards/tests/<guard>.test.ts` — unit tests for `check` /
   `appliesTo`.
 - `tooling/guards/tests/git-hook.test.ts` — runs `git-hook.ts` as a
-  process; asserts exit code and stderr. (`pre-push.ts` is covered via
+  process; asserts exit code and stderr, and that `--staged` reads the
+  index blob rather than the working tree. (`pre-push.ts` is covered via
   its pure core `checkPushRefs` in `destructive-git.test.ts`; the git
   call is injected.)
 - `.claude/hooks/tests/hooks.test.ts` — runs each Claude hook with a
   stdin payload; asserts the allow/deny decision.
 - `tooling/guards/tests/docs-consistency.test.ts` — ADR files ↔
-  `INDEX.md` rows and statuses; `CLAUDE.md` Status date < 90 days; the
+  `INDEX.md` rows and statuses; `CLAUDE.md` Status `Last confirmed:` date
+  < 90 days and its "all N acceptance scenarios" equals the number of
+  rows in the `core-design.md` table and of numbered core tests; the
   guard set is identical across `git-hook.ts`, `.claude/hooks`,
   `settings.json`, `CLAUDE.md` and the table above; `.gitignore` covers
   `data/real/`, `.dev.vars`, `.wrangler/`; hook commands run from the
@@ -50,7 +59,10 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   clean) and optionally `appliesTo(path): boolean`. Pure functions, no
   I/O. I/O lives only in the thin entry points, one per caller:
   `.claude/hooks/<guard>.ts` (stdin JSON → allow/deny) and
-  `tooling/guards/git-hook.ts <guard> <files>` (files → exit code).
+  `tooling/guards/git-hook.ts [--staged] <guard> <files>` (files → exit
+  code; `--staged` checks the index blob, `git show :<path>`, which is
+  what the commit will contain — `pre-commit` uses it; `guards:scan`
+  reads the working tree).
 - Guard, hook file, and git-hook mode share one name (`no-ai-coauthor`,
   `synthetic-only`); stderr lines are prefixed with it.
 - An entry point either denies, asks (Claude Code only — forces a
@@ -59,10 +71,13 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   routine; `deny` for actions that are never right from an agent.
 - Anything a Claude Code hook blocks is also blocked by a git hook or
   CI. Hooks shorten the feedback loop; they are not the only defence.
-  The one exception is `harness-integrity`: a git hook cannot stop
+  Two exceptions: `harness-integrity` — a git hook cannot stop
   `--no-verify`, so its git-side backstop is the CI run and branch
   protection, and it has no `git-hook.ts` mode (nor does
-  `destructive-git`, whose git side is `pre-push.ts`).
+  `destructive-git`, whose git side is `pre-push.ts`); and the Bash mode
+  of `no-secrets` — reading a secret into the transcript writes no file,
+  so nothing on the git side can see it; the hook is the only defence,
+  together with the `Read` denies in `settings.json`.
 - Timeout ≤ 10 s. Slow checks are not hooks.
 - Hook commands in `settings.json` are
   `cd "$CLAUDE_PROJECT_DIR" && node .claude/hooks/<guard>.ts || exit 2`:
@@ -76,7 +91,9 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   entry in `GUARDS` in `git-hook.ts` wired into `.husky/` + cases in
   both entry-point test files + row in the table above.
 - `.claude/settings.json` is committed (team rules). Personal overrides
-  go in `.claude/settings.local.json` (gitignored).
+  and local tokens go in `.claude/settings.local.json` (gitignored,
+  read-denied in `settings.json` and by `no-secrets`: the agent must not
+  read it — `grep` for a key name if needed).
 
 ## Packages
 
@@ -98,8 +115,10 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   signed links. `pnpm db:generate` (drizzle-kit) regenerates migrations
   from `src/adapters/store-d1/schema.ts`; wrangler applies them. CI runs
   `drizzle-kit generate` and fails if it produces a file — a schema
-  change without its migration never reaches `main`.
-  `wrangler deploy --dry-run` checks the Worker bundles.
+  change without its migration never reaches `main`. CI also runs
+  `wrangler deploy --dry-run` in every app (after `pnpm build`, so the
+  portal's `dist/` exists) — bundling needs no credentials, so a Worker
+  that would not deploy fails the PR.
 - `apps/portal/tests/` — view logic (`src/digest.ts`, `src/api.ts`,
   `src/console-api.ts`) with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
   which CI runs; there is no vue-tsc because it does not support
@@ -117,9 +136,10 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
 
 Cloudflare, per ADR-0001. Wrangler authenticates with
 `CLOUDFLARE_API_TOKEN` (+ `CLOUDFLARE_ACCOUNT_ID`) from
-`.claude/settings.local.json` or the shell — a User API token with
-*Edit Cloudflare Workers* and *Account · D1 · Edit*; `wrangler login`
-does not persist in this WSL setup.
+`.claude/settings.local.json` (read-denied to the agent — it is
+exported into the environment, never read as a file) or the shell — a
+User API token with *Edit Cloudflare Workers* and *Account · D1 · Edit*;
+`wrangler login` does not persist in this WSL setup.
 
 - `apps/api`: `pnpm db:migrate:remote`, then `pnpm deploy`. Secrets come
   from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
@@ -148,6 +168,16 @@ and `console.clockcover.com` → `clockcover-portal` (managers / operators),
 `clockcover` (WEUR). Declaring routes turns the `*.workers.dev` URLs off,
 so the custom domains are the only entry points. Synthetic fixtures only.
 
+### Ops
+
+Rate limits on `/console/login`, `/admin/login` and `/contact` are the
+in-code per-address (and, for `/contact`, per-IP) cooldowns backed by
+the D1 `send_cooldowns` table, so they hold across Worker isolates. A
+Cloudflare rate-limiting rule in front of them is deferred (2026-08-28:
+account-level WAF is a paid tier; the free plan allows one zone-level
+rule, which is the first thing to add when the login endpoints see
+abuse). Revisit when the first paying employer signs.
+
 ## Tests
 
 Tests live in a `tests/` folder next to the code they cover, never mixed
@@ -165,14 +195,16 @@ and the same layout in `apps/*` once they exist).
   binaries and work without it. Set one to `true` only when a package
   genuinely needs its build step.
 - GitHub Actions are pinned to a commit SHA (with the version as a
-  comment), never to a movable tag.
+  comment), never to a movable tag. pnpm is installed by
+  `pnpm/action-setup`, which reads the version from `packageManager` in
+  `package.json` — one place to bump.
 - CI runs `pnpm audit --prod --audit-level high`.
 
 ## CI
 
 `.github/workflows/ci.yml` runs on every push to `main` and every PR:
 `pnpm typecheck`, `pnpm lint:md`, `pnpm test`, `pnpm build`,
-`pnpm guards:scan`, commitlint over the pushed/PR commit range, and (on
+`wrangler deploy --dry-run` per app, `pnpm guards:scan`, commitlint over the pushed/PR commit range, and (on
 PRs) commitlint over the PR title. It is the backstop for a clone where
 hooks were never installed. `main` is protected by a GitHub ruleset
 (linear history, no force-push, no deletion, signed commits, CodeQL code
@@ -197,10 +229,20 @@ before pushing (`git pull --rebase`, or set `pull.rebase = true`); merge
 PRs by squash (see § CI), never with a merge commit. One PR = one
 logical change, since it lands as one commit.
 
+Claude Code's Bash sandbox is on for this project (`sandbox` in
+`.claude/settings.json`, rules in `docs/privacy.md`). On Linux and WSL2
+it needs `bwrap` and `socat` installed (`sudo apt install bubblewrap
+socat`); with them missing Bash refuses to run rather than running
+unsandboxed. Network egress from Bash is limited to GitHub, the npm
+registry and the Cloudflare API — add a domain to
+`sandbox.network.allowedDomains` when a new tool needs one.
+
 Git hooks are managed by husky and installed automatically by
 `pnpm install` (the `prepare` script). `.husky/commit-msg` runs
 `no-ai-coauthor` then commitlint; `.husky/pre-commit` runs
-`synthetic-only`, `no-secrets` and markdownlint (`pnpm lint:md`, config in
-`.markdownlint-cli2.jsonc`) over staged files; `.husky/pre-push` refuses
+`synthetic-only` and `no-secrets` over the staged blobs (`--staged`: what
+the commit will contain, not the working tree) and markdownlint
+(`pnpm lint:md`, config in `.markdownlint-cli2.jsonc`) over staged
+files; `.husky/pre-push` refuses
 non-fast-forward pushes to `main` and deletion of `main`. Bypassing a hook (`--no-verify`) is
 a deliberate act — say so in the commit or PR.

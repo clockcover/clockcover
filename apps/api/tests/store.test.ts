@@ -16,7 +16,6 @@ const EMPLOYER = "emp-1";
 const DAY = { from: "2026-03-02", to: "2026-03-02" };
 const T0 = new Date("2026-03-02T18:00:00Z");
 const HOURS = 3_600_000;
-const SLA = 48 * HOURS;
 const later = (h: number) => new Date(T0.getTime() + h * HOURS);
 
 async function setup() {
@@ -93,6 +92,37 @@ test("7. corrected import → gap resolved record_arrived", async () => {
   assert.equal((await store.listOpenGaps(EMPLOYER)).length, 1);
 });
 
+test("resolveGap resolves an open gap once; a second resolve throws and leaves the first untouched", async () => {
+  const { store, importCsv } = await setup();
+  await importCsv("day-1.csv");
+  const [gap] = await store.listOpenGaps(EMPLOYER);
+  const first = await store.resolveGap(gap!.id, "manager_action", later(1), "present", null);
+  assert.equal(first.outcome, "present");
+  await assert.rejects(store.resolveGap(gap!.id, "payroll_action", later(2), "absent", "no"), /already resolved/);
+  await assert.rejects(store.resolveGap("no-such-gap", "manager_action", later(2), "present", null), /not found/);
+  const again = (await store.listOpenGaps(EMPLOYER)).find((g) => g.id === gap!.id);
+  assert.equal(again, undefined);
+  const outcome = await resolveByManager(store, (await store.listOpenGaps(EMPLOYER))[0]!.id, later(3), "present");
+  assert.equal(outcome.resolution, "manager_action");
+  await assert.rejects(resolveByManager(store, outcome.id, later(4), "absent", "x"), /already resolved/);
+});
+
+test("saveImport writes the run and its rows in batches; a re-run of the same file changes no counts", async () => {
+  const { db, importCsv } = await setup();
+  await importCsv("day-1.csv");
+  const count = async () => ({
+    imports: (await db.select().from(s.imports)).length,
+    shifts: (await db.select().from(s.scheduledShifts)).length,
+    records: (await db.select().from(s.attendanceRecords)).length,
+  });
+  const once = await count();
+  assert.equal(once.imports, 1);
+  assert.ok(once.shifts > 0 && once.records > 0);
+  await importCsv("day-1.csv", later(1));
+  const twice = await count();
+  assert.deepEqual(twice, { ...once, imports: 2 }, "rows upserted, one more run recorded");
+});
+
 test("9+10. digests per manager, idempotent per day, notified once", async () => {
   const { db, store, sent, send, importCsv } = await setup();
   await importCsv("day-1.csv");
@@ -111,10 +141,10 @@ test("11+12. escalation after SLA, once; none when resolved by manager", async (
   await runDailyDigest(store, EMPLOYER, T0, send);
   const [first] = await store.listOpenGaps(EMPLOYER);
   await resolveByManager(store, first!.id, later(1), "present", "called them");
-  const escalated = await runEscalations(store, EMPLOYER, later(50), SLA);
+  const escalated = await runEscalations(store, EMPLOYER, later(50), async () => {});
   assert.equal(escalated.length, 1);
   assert.equal(escalated[0]?.escalatedTo, "payroll@example.com");
-  assert.equal((await runEscalations(store, EMPLOYER, later(51), SLA)).length, 0);
+  assert.equal((await runEscalations(store, EMPLOYER, later(51), async () => {})).length, 0);
   assert.equal((await db.select().from(s.escalations)).length, 1);
   const types = (await db.select().from(s.events)).map((e) => e.type).sort();
   assert.deepEqual(types, ["digest_sent", "escalated", "gap_detected", "gap_detected", "gap_resolved"]);

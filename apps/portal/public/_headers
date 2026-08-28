@@ -1,0 +1,7 @@
+# Copied into dist/ by vite (public dir) and applied by Cloudflare to every asset. The app
+# talks only to the API; localhost:8787 is the API under `wrangler dev`.
+/*
+  Referrer-Policy: same-origin
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://api.clockcover.com http://localhost:8787; frame-ancestors 'none'; base-uri 'self'; form-action 'self'

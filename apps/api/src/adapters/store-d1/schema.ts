@@ -45,7 +45,7 @@ export const employees = sqliteTable(
     managerId: text("manager_id").notNull().references(() => managers.id),
     active: integer("active", { mode: "boolean" }).notNull().default(true),
   },
-  (t) => [uniqueIndex("employees_external").on(t.employerId, t.externalId)],
+  (t) => [uniqueIndex("employees_external").on(t.employerId, t.externalId), index("employees_by_manager").on(t.employerId, t.managerId)],
 );
 
 export const imports = sqliteTable("imports", {
@@ -144,7 +144,7 @@ export const escalations = sqliteTable(
     escalatedTo: text("escalated_to").notNull(),
     reason: text("reason", { enum: ["sla_breach"] }).notNull(),
   },
-  (t) => [uniqueIndex("escalations_once_per_gap").on(t.gapId)],
+  (t) => [uniqueIndex("escalations_once_per_gap").on(t.gapId), index("escalations_by_employer").on(t.employerId)],
 );
 
 export const events = sqliteTable(
@@ -158,7 +158,7 @@ export const events = sqliteTable(
     managerId: text("manager_id"),
     payload: text("payload", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
   },
-  (t) => [index("events_by_gap").on(t.gapId)],
+  (t) => [index("events_by_gap").on(t.gapId), index("events_by_employer_time").on(t.employerId, t.occurredAt)],
 );
 
 /** Per-employer keys for the upload API (scripts, schedulers). Only a hash is stored; the value is shown once. */
@@ -177,3 +177,16 @@ export const apiKeys = sqliteTable(
   },
   (t) => [uniqueIndex("api_keys_hash").on(t.keyHash), index("api_keys_employer").on(t.employerId)],
 );
+
+/** Emailed sign-in links are single-use: the SHA-256 of each redeemed link token, kept until the link would have expired anyway. */
+export const usedLinkTokens = sqliteTable("used_link_tokens", {
+  hash: text("hash").primaryKey(),
+  expiresAt: instant("expires_at").notNull(),
+});
+
+/** Rate limits for endpoints that send email: one row per key (address, IP), a window end and the sends taken inside it. */
+export const sendCooldowns = sqliteTable("send_cooldowns", {
+  key: text("key").primaryKey(),
+  until: instant("until").notNull(),
+  count: integer("count").notNull().default(0),
+});

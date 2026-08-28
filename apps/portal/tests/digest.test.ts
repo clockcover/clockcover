@@ -27,8 +27,8 @@ test("detail line per gap type", () => {
 test("SLA line: notified → urgent under 24 h → escalated", () => {
   const notified = "2026-08-27T08:00:00Z";
   assert.deepEqual(slaStatus(gap(), 48, new Date("2026-08-27T10:00:00Z")), { text: "Notified Thu 27 Aug, 08:00", tone: "muted" });
-  assert.deepEqual(slaStatus(gap(), 48, new Date("2026-08-28T20:00:00Z")), { text: "Escalates to payroll in 12 h", tone: "warn" });
-  assert.deepEqual(slaStatus(gap(), 48, new Date("2026-08-29T09:00:00Z")), { text: "Escalated to payroll — SLA passed", tone: "danger" });
+  assert.deepEqual(slaStatus(gap(), 48, new Date("2026-08-28T20:00:00Z")), { text: "Escalates to the payroll accountant in 12 h", tone: "warn" });
+  assert.deepEqual(slaStatus(gap(), 48, new Date("2026-08-29T09:00:00Z")), { text: "Escalated to the payroll accountant — SLA passed", tone: "danger" });
   assert.deepEqual(slaStatus(gap({ escalated: true, managerNotifiedAt: notified }), 48, new Date("2026-08-27T09:00:00Z")).tone, "danger");
   assert.deepEqual(slaStatus(gap({ managerNotifiedAt: null }), 48, new Date()), { text: "Not yet in a digest", tone: "muted" });
 });

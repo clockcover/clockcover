@@ -32,10 +32,10 @@ const allClear = computed(() => digest.value !== null && digest.value.gaps.lengt
 
 const startResolve = (g: DigestGap) => { resolvingId.value = g.id; noteDraft.value = ""; outcomeDraft.value = null; };
 const canConfirm = computed(() => outcomeDraft.value !== null && (outcomeDraft.value === "present" || noteDraft.value.trim().length > 0));
-const cancel = () => { resolvingId.value = null; };
+const cancel = () => { resolvingId.value = null; error.value = null; };
 async function confirm(g: DigestGap) {
   if (!digest.value || busy.value || !outcomeDraft.value || !canConfirm.value) return;
-  busy.value = true;
+  busy.value = true; error.value = null;
   try {
     const r = await resolveGap(props.token, g.id, outcomeDraft.value, noteDraft.value);
     resolved.value = new Map(resolved.value).set(g.id, { outcome: r.outcome, note: r.note ?? "" });
@@ -104,9 +104,9 @@ const tone = { muted: "text-faint", warn: "text-warn", danger: "text-danger" } a
                       <button v-for="o in (['present', 'absent'] as const)" :key="o" type="button"
                         class="flex-1 text-start border rounded-[7px] px-3 py-2 text-[13.5px]"
                         :class="outcomeDraft === o ? 'border-accent text-ink bg-strong/40' : 'border-field text-ink-soft hover:border-accent'"
-                        @click="outcomeDraft = o">{{ outcomeLabel(o) }}</button>
+                        :aria-pressed="outcomeDraft === o" @click="outcomeDraft = o">{{ outcomeLabel(o) }}</button>
                     </div>
-                    <input v-model="noteDraft" maxlength="500" :placeholder="t(outcomeDraft === 'absent' ? 'digest.note.absent' : 'digest.note.present')"
+                    <input v-model="noteDraft" maxlength="500" :aria-label="t('digest.note.label')" :placeholder="t(outcomeDraft === 'absent' ? 'digest.note.absent' : 'digest.note.present')"
                       class="border border-field rounded-[7px] px-3 py-[9px] text-[13.5px] outline-none focus:border-accent"
                       @keydown.enter.prevent="confirm(g)" @keydown.esc="cancel" />
                     <div class="flex gap-2">

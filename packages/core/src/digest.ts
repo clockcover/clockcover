@@ -21,7 +21,9 @@ export function isoDate(d: Date, timeZone = "UTC"): IsoDate {
 /**
  * Once a day per employer. Groups open gaps by the snapshotted manager, sends each
  * manager only their own list, records the digest. Idempotent per (manager, day):
- * check `digests`, then send, then record — at-least-once, at most one duplicate.
+ * check `digests`, then send, then mark the gaps notified, then write the digest row —
+ * at-least-once, at most one duplicate email, and a gap that was sent is never left
+ * without its `managerNotifiedAt` (the SLA timer starts from the first email).
  */
 export async function runDailyDigest(store: Store, employerId: Id, now: Date, send: SendDigest): Promise<Digest[]> {
   const employer = await store.getEmployer(employerId);
@@ -36,8 +38,8 @@ export async function runDailyDigest(store: Store, employerId: Id, now: Date, se
     if (await store.findDigest(employerId, managerId, digestDate)) continue;
     const manager = await store.getManager(managerId);
     await send({ manager, gaps });
-    const digest = await store.saveDigest({ employerId, managerId, digestDate, sentAt: now, gapCount: gaps.length });
     await store.markNotified(gaps.filter((g) => g.managerNotifiedAt === null).map((g) => g.id), now);
+    const digest = await store.saveDigest({ employerId, managerId, digestDate, sentAt: now, gapCount: gaps.length });
     await store.appendEvent({ employerId, occurredAt: now, type: "digest_sent", gapId: null, managerId, payload: { digestId: digest.id, gapCount: gaps.length } });
     sent.push(digest);
   }

@@ -8,8 +8,11 @@
     ? { sending: "שולח…", sent: "נשלח. נחזור אליכם בהקדם.", invalid: "בדקו את השדות המסומנים.", failed: "לא נשלח. נסו שוב או כתבו לנו במייל." }
     : { sending: "Sending…", sent: "Sent. We'll get back to you shortly.", invalid: "Please check the highlighted fields.", failed: "Not sent. Try again or email us." };
   var status = form.querySelector(".status");
+  var submit = form.querySelector('[type="submit"]');
   form.addEventListener("submit", function (ev) {
     ev.preventDefault();
+    if (submit.disabled) return;
+    submit.disabled = true;
     var data = {};
     new FormData(form).forEach(function (v, k) { data[k] = String(v); });
     form.querySelectorAll("[name]").forEach(function (el) { el.classList.remove("bad"); });
@@ -24,6 +27,7 @@
         }
         status.textContent = T.failed;
       })
-      .catch(function () { status.textContent = T.failed; });
+      .catch(function () { status.textContent = T.failed; })
+      .then(function () { submit.disabled = false; });
   });
 })();

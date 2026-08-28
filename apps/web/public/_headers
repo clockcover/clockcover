@@ -1,0 +1,7 @@
+# Applied by Cloudflare to every asset (wrangler assets → _headers). Fonts come from Google;
+# the only script is contact.js, which posts the contact form to the API.
+/*
+  Referrer-Policy: same-origin
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src https://api.clockcover.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:

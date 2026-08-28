@@ -18,7 +18,15 @@
   are meant to be secret addresses (a token in the path or query); they
   are stored in D1 as plain text and shown in the console Settings to
   the signed-in operator only. Files fetched from them are parsed and
-  discarded like uploads — nothing raw is kept.
+  discarded like uploads — nothing raw is kept. The trust runs one way:
+  the operator is trusted to supply the address, the address itself is
+  not — https only, no redirects, no IP-literal or local hosts, capped
+  size (ADR-0007).
+- Two small tables exist only to keep sign-in honest: `used_link_tokens`
+  holds SHA-256 hashes of redeemed sign-in tokens (nothing else) and
+  `send_cooldowns` holds the email addresses and client IPs that asked
+  for a sign-in link or sent the contact form, for at most an hour. That
+  is the only place a visitor's IP address is stored.
 
 ## What Claude Code must not read
 
@@ -32,24 +40,42 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
   the (gitignored) place real employee exports go if we ever get them.
   `.dev.vars`, `.wrangler/` and `data/real/` are also gitignored;
   `apps/api/.dev.vars.example` holds placeholders only. Worker secrets
-  are `LINK_SECRET` (signs manager, payroll, operator and admin links)
-  and `RESEND_API_KEY`; rotating `LINK_SECRET` invalidates every link at
-  once. Upload API keys are per employer, issued in the console, stored
-  only as SHA-256 hashes in D1 and shown to the operator once. They are uploaded with `wrangler secret bulk .dev.vars`,
-  so values move from the local file to Cloudflare without passing
-  through a terminal or a transcript.
+  are `LINK_SECRET` (signs manager, payroll-accountant, operator and
+  admin links and tokens; the Worker refuses to start with fewer than
+  32 characters) and `RESEND_API_KEY`; rotating `LINK_SECRET`
+  invalidates every link at once. The secrets are uploaded with
+  `wrangler secret bulk .dev.vars`, so values move from the local file
+  to Cloudflare without passing through a terminal or a transcript.
+  Upload API keys are not Worker secrets at all: they are per employer,
+  issued in the console, stored only as SHA-256 hashes in D1 and shown
+  to the operator once (ADR-0007).
+- `.claude/settings.local.json` is gitignored, read-denied in
+  `.claude/settings.json`, and holds only the owner's own Claude Code
+  permissions and CLI tokens — never project data.
 - The `no-secrets` guard on `Bash` denies commands that would read those
   paths (`cat .env`, `source .env`, `less ~/.aws/credentials`, …) or dump
   the environment (`env`, `printenv`, `echo $API_TOKEN`).
 - The same guard on `Write`/`Edit` denies writing credential-shaped
   values into tracked files; `pre-commit` and CI repeat that check.
 
-These are pattern checks, not a sandbox. Claude Code's sandbox
-(`sandbox.credentials` — OS-level masking of env vars and denial of
-files, plus network egress control) is the non-heuristic layer; it is
-off today. **Turn it on before the first real secret lands in `.env`**
-— i.e. before the first `wrangler deploy` — not later. If a secret is in a file that
+These are pattern checks, not a sandbox. Claude Code's sandbox is the
+non-heuristic layer and it is **on** (`sandbox` in
+`.claude/settings.json`, since 2026-08-28): Bash runs in a bubblewrap
+namespace where `apps/api/.dev.vars`, `.claude/settings.local.json`,
+`data/real/`, `~/.ssh`, `~/.config/gh` and `~/.netrc` do not exist
+(`filesystem.denyRead`; `~/.aws` is left to `permissions.deny` because
+on WSL it is a symlink onto the Windows drive, which bubblewrap cannot
+mask), `CLOUDFLARE_API_TOKEN`/`GH_TOKEN` are
+withheld from the environment, and network egress is limited to GitHub,
+the npm registry and the Cloudflare API. `failIfUnavailable` is set:
+when `bwrap` or `socat` is missing, Bash refuses to run rather than
+silently running unsandboxed. A test keeps the deny list above and the
+one in `permissions.deny` covering the same places.
+If a secret is in a file that
 is otherwise legitimately read (a config with a pasted key), nothing
 here stops it — so config files reference `${VARS}` and never hold
-values. For real employee data the same logic applies: keep it out of
-the working tree except under `data/real/`, and it cannot be read.
+values. One explicit exception: `ADMIN_EMAIL` in `apps/api/wrangler.jsonc`
+is a literal — the owner's own contact address, which is not a secret
+and not employee data. For real employee data the same logic applies:
+keep it out of the working tree except under `data/real/`, and it
+cannot be read.

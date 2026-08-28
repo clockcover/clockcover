@@ -2,7 +2,7 @@
 import { reactive, ref } from "vue";
 import { updateEmployer } from "../console-api.ts";
 import type { EmployerSettings } from "../console-api.ts";
-import { dayMonthYear, t } from "../i18n.ts";
+import { apiError, dayMonthYear, t } from "../i18n.ts";
 
 const props = defineProps<{ employer: EmployerSettings }>();
 const emit = defineEmits<{ saved: [EmployerSettings] }>();
@@ -24,7 +24,7 @@ const busy = ref(false);
 async function save() {
   busy.value = true; error.value = null; saved.value = false;
   try { emit("saved", await updateEmployer({ ...form, slaHours: Number(form.slaHours) })); saved.value = true; }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 const field = "border border-field rounded-[7px] px-3 py-[9px] text-[14px] outline-none focus:border-accent w-full";

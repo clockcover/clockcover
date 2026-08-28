@@ -1,5 +1,5 @@
 // Operator console API (ADR-0005). Mounted at /console by app.ts. Bearer token =
-// an operator claim signed with LINK_SECRET; obtained through the emailed link.
+// an operator claim signed with LINK_SECRET; obtained by exchanging the emailed link.
 import { Hono } from "hono";
 import { eq } from "drizzle-orm";
 import { runDetection } from "@clockcover/core";
@@ -8,37 +8,66 @@ import { parseCsv, parseRoster } from "./adapters/csv.ts";
 import { renderMagicLink } from "./adapters/email.ts";
 import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts";
 import { isTimezone, listImports, overview, resolutionsBetween, resolutionsCsv } from "./adapters/store-d1/console-queries.ts";
+import { consumeLinkToken, takeSendSlot } from "./adapters/store-d1/throttle.ts";
 import { ImportError, hasImportSources, runImportFromUrls, validateSourceUrl } from "./import-run.ts";
 import { createApiKey, listApiKeys, revokeApiKey } from "./api-keys.ts";
+import { readCappedText } from "./body.ts";
 import * as s from "./adapters/store-d1/schema.ts";
-import { OPERATOR_TTL_MS, signOperator, verifyOperator } from "./link.ts";
+import { OPERATOR_TTL_MS, SIGNIN_LINK_TTL_MS, signConsoleLink, signOperator, tokenHash, verifyConsoleLink, verifyOperator } from "./link.ts";
 import type { OperatorClaims } from "./link.ts";
 
 type Vars = { claims: OperatorClaims; employer: typeof s.employers.$inferSelect };
 
+/** One sign-in email per address per minute. */
+export const LOGIN_COOLDOWN_MS = 60_000;
+
+/**
+ * Emails an operator a console sign-in link: a 15-minute, single-use token in the URL
+ * fragment, which the console exchanges for a 7-day session. Also used by admin invites.
+ */
+export async function sendConsoleLink(deps: Deps, employer: { id: string; name: string; locale: "en" | "he" }, email: string, t: Date): Promise<void> {
+  const exp = t.getTime() + SIGNIN_LINK_TTL_MS;
+  const token = await signConsoleLink({ kind: "console_link", employerId: employer.id, email, exp, t: crypto.randomUUID() }, deps.linkSecret);
+  const web = deps.consoleUrl.replace(/\/$/, "");
+  await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: email, employerName: employer.name, link: `${web}/#${token}`, expires: new Date(exp) }));
+}
+
 export function consoleRoutes(deps: Deps) {
   const now = deps.now ?? (() => new Date());
-  const web = deps.consoleUrl.replace(/\/$/, "");
   const app = new Hono<{ Variables: Vars }>();
 
-  // Same answer whether or not the address is known — no account enumeration.
-  // `exp` is rounded to the minute so repeated requests within a minute yield one identical link.
+  // Same answer whether or not the address is known, and whether or not a link was sent
+  // (one per address per minute) — no account enumeration, no mail flood.
   app.post("/login", async (c) => {
     const body = await c.req.json<{ email?: unknown }>().catch(() => ({} as { email?: unknown }));
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     if (!email.includes("@")) return c.json({ error: "email required" }, 400);
-    const [employer] = await deps.db.select().from(s.employers).where(eq(s.employers.operatorEmail, email));
-    if (employer) {
-      const t = now();
-      const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
-      const token = await signOperator({ kind: "operator", employerId: employer.id, email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: email, employerName: employer.name, link: `${web}/console/${token}`, expires: new Date(exp) }));
+    const t = now();
+    if (await takeSendSlot(deps.db, `console_login:${email}`, t, LOGIN_COOLDOWN_MS, 1)) {
+      const [employer] = await deps.db.select().from(s.employers).where(eq(s.employers.operatorEmail, email));
+      if (employer) await sendConsoleLink(deps, employer, email, t);
     }
     return c.json({ ok: true, message: "If that address runs a ClockCover employer, a sign-in link is on its way." }, 202);
   });
 
+  // The emailed token, once, within 15 minutes → a 7-day session token. A session token
+  // presented here is refused: only `console_link` tokens are exchangeable.
+  app.post("/exchange", async (c) => {
+    const body = await c.req.json<{ token?: unknown }>().catch(() => ({} as { token?: unknown }));
+    const token = typeof body.token === "string" ? body.token : "";
+    const t = now();
+    const link = await verifyConsoleLink(token, deps.linkSecret, t);
+    if (!link) return c.json({ error: "link invalid or expired" }, 401);
+    if (!(await consumeLinkToken(deps.db, await tokenHash(token), new Date(link.exp), t))) return c.json({ error: "link already used" }, 401);
+    const [employer] = await deps.db.select().from(s.employers).where(eq(s.employers.id, link.employerId));
+    if (!employer || employer.operatorEmail?.toLowerCase() !== link.email) return c.json({ error: "link invalid or expired" }, 401);
+    const exp = t.getTime() + OPERATOR_TTL_MS;
+    const session = await signOperator({ kind: "operator", employerId: employer.id, email: link.email, exp }, deps.linkSecret);
+    return c.json({ token: session, sessionExpires: new Date(exp).toISOString() });
+  });
+
   app.use("/*", async (c, next) => {
-    if (c.req.path.endsWith("/login")) return next();
+    if (c.req.path.endsWith("/login") || c.req.path.endsWith("/exchange")) return next();
     const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const claims = await verifyOperator(token, deps.linkSecret, now());
     if (!claims) return c.json({ error: "sign in required" }, 401);
@@ -87,7 +116,9 @@ export function consoleRoutes(deps: Deps) {
   });
 
   app.post("/roster", async (c) => {
-    const { rows, errors } = parseRoster(await c.req.text());
+    const text = await readCappedText(c.req.raw);
+    if (text === null) return c.json({ error: "file is larger than 10 MB" }, 413);
+    const { rows, errors } = parseRoster(text);
     if (errors.length) return c.json({ error: "invalid csv", details: errors }, 400);
     const employees = await saveRoster(deps.db, c.get("employer").id, rows);
     return c.json({ employees: employees.length });
@@ -95,7 +126,9 @@ export function consoleRoutes(deps: Deps) {
 
   app.post("/imports", async (c) => {
     const employerId = c.get("employer").id;
-    const parsed = parseCsv(await c.req.text());
+    const text = await readCappedText(c.req.raw);
+    if (text === null) return c.json({ error: "file is larger than 10 MB" }, 413);
+    const parsed = parseCsv(text);
     if (parsed.errors.length) return c.json({ error: "invalid csv", details: parsed.errors }, 400);
     const period = periodOf(parsed);
     if (!period) return c.json({ error: "no rows" }, 400);
@@ -140,7 +173,7 @@ export function consoleRoutes(deps: Deps) {
     const e = c.get("employer");
     const from = c.req.query("from") ?? "", to = c.req.query("to") ?? "";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return c.json({ error: "from and to must be YYYY-MM-DD, from ≤ to" }, 400);
-    const rows = await resolutionsBetween(deps.db, e.id, from, to);
+    const rows = await resolutionsBetween(deps.db, e.id, from, to, e.timezone);
     return c.body(resolutionsCsv(rows), 200, {
       "content-type": "text/csv; charset=utf-8",
       "content-disposition": `attachment; filename="clockcover-corrections-${from}-${to}.csv"`,

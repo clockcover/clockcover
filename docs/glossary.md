@@ -81,14 +81,15 @@ _Defined in_: `docs/core-design.md`
 _In code_: `detectGaps` (pure) and `runDetection` (persists the result) in `packages/core`.
 
 **Period**:
-The date range one detection run or Digest covers — a day or a week, per the configured cadence.
+The date range one detection run or Digest covers — a day today; a week if a weekly cadence is
+ever built (`docs/open-questions.md`).
 
 **Routing**:
 Grouping a day's Gaps by Manager and sending each Manager only their own team's list — never a
 company-wide feed.
 
 **Digest**:
-The per-Manager summary of their team's Gaps for the period (daily/weekly cadence).
+The per-Manager summary of their team's Gaps for the period, sent daily.
 
 **SLA**:
 The time window a Manager has to act on a Gap before it triggers an Escalation: 48 hours, calendar
@@ -137,10 +138,29 @@ parsing (`docs/privacy.md`); Scheduled Shifts and Attendance Records keep only t
 so a corrected Import stays traceable.
 
 **Corrections export**:
-The CSV the Operator downloads from the Console: Gaps closed by a Manager or by Payroll in a
-period, with Outcome, note, planned hours and clock times — what has to be carried into the
-attendance or payroll system.
+The CSV the Operator downloads from the Console: Gaps closed by a Manager or by the Payroll
+Accountant in a period, with Outcome, note, planned hours and clock times — what has to be
+carried into the attendance or payroll system.
 _Defined in_: `docs/core-design.md` (`imports` table)
+
+**Import URL**:
+The https address of an export (or roster) the daily job fetches for an Employer. A credential:
+the address is expected to carry its own token, is shown only to the signed-in Operator, and is
+never logged. Fetch rules (https only, no redirects, no private hosts, size cap) in ADR-0007.
+_Defined in_: `docs/adr/0007-how-data-gets-in.md`
+
+**API key**:
+A per-Employer credential the Operator issues in the Console for scripts and schedulers that
+upload files. Stored hashed, shown once, revocable one at a time; it names the Employer and must
+agree with the path it is used on. Not to be confused with a Worker secret.
+_Defined in_: `docs/adr/0007-how-data-gets-in.md`
+
+**Link token** / **Session token**:
+Two halves of signing in to the Console or the Admin area (ADR-0005, amended). The **Link token**
+travels in the emailed link: fifteen minutes, single use. The page exchanges it for the
+**Session token**: seven days, kept by the browser and sent with every request. A Manager's
+digest link and the Payroll Accountant's escalation link are neither — they are signed links
+that need no exchange (ADR-0004).
 
 **Attendance System**:
 Whatever system an employer uses to track employee clock-ins/outs. The product is deliberately
@@ -149,5 +169,6 @@ _Avoid_: naming a specific vendor/product in docs or code outside of an Adapter'
 implementation notes.
 
 This glossary was bootstrapped from the current project docs (`docs/scope.md`,
-`docs/architecture.md`, `docs/core-design.md`, `docs/privacy.md`) on 2026-08-27 — a first pass,
-not exhaustive. Extend it as new terms show up in code or product copy.
+`docs/architecture.md`, `docs/core-design.md`, `docs/privacy.md`) on 2026-08-27 and last
+extended on 2026-08-28 (credentials, tokens, cadence) — not exhaustive. Extend it as new terms
+show up in code or product copy.

@@ -1,15 +1,19 @@
 // SQL implementation of the core's Store port (ADR-0001, ADR-0003). Written against
 // Drizzle's async SQLite database type, so it runs on D1 in production and on libsql
 // in tests — same dialect, same SQL.
-import { and, eq, gte, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, gte, isNull, lte } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
+import type { BatchItem, BatchResponse } from "drizzle-orm/batch";
 import type {
-  Digest, Employer, Escalation, Gap, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent, NewGap,
+  Digest, Employer, Escalation, Gap, GapType, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent, NewGap,
   NewUnscheduledAttendance, Outcome, Resolution, Store,
 } from "@clockcover/core";
 import * as s from "./schema.ts";
 
-export type Db = BaseSQLiteDatabase<"async", unknown, typeof s>;
+/** Drizzle's async SQLite database plus `batch` — one round trip, one transaction — which both the D1 and the libsql drivers provide. */
+export type Db = BaseSQLiteDatabase<"async", unknown, typeof s> & {
+  batch<U extends BatchItem<"sqlite">, T extends Readonly<[U, ...U[]]>>(batch: T): Promise<BatchResponse<T>>;
+};
 
 const iso = (d: Date) => d.toISOString();
 const date = (v: string | null) => (v === null ? null : new Date(v));
@@ -62,17 +66,32 @@ export class SqlStore implements Store {
     const rows = await this.db.select().from(s.gaps).where(and(
       eq(s.gaps.employerId, employerId), isNull(s.gaps.resolvedAt),
       ...(range ? [gte(s.gaps.gapDate, range.from), lte(s.gaps.gapDate, range.to)] : []),
-    ));
+    )).orderBy(asc(s.gaps.gapDate), asc(s.gaps.employeeId));
     return rows.map(toGap);
   }
 
+  /** Resolves an open gap. Throws "gap already resolved" when another resolve got there first — the caller answers 409. */
   async resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, outcome: Outcome | null, note: string | null): Promise<Gap> {
-    await this.db.update(s.gaps)
+    const updated = await this.db.update(s.gaps)
       .set({ resolution, resolvedAt: iso(resolvedAt), outcome, resolutionNote: note })
-      .where(eq(s.gaps.id, gapId));
+      .where(and(eq(s.gaps.id, gapId), isNull(s.gaps.resolvedAt)))
+      .returning({ id: s.gaps.id });
     const [row] = await this.db.select().from(s.gaps).where(eq(s.gaps.id, gapId));
     if (!row) throw new Error(`gap not found: ${gapId}`);
+    if (updated.length === 0) throw new Error(`gap already resolved: ${gapId}`);
     return toGap(row);
+  }
+
+  async retypeGap(gapId: Id, gapType: GapType): Promise<Gap | null> {
+    const [row] = await this.db.select().from(s.gaps).where(eq(s.gaps.id, gapId));
+    if (!row) throw new Error(`gap not found: ${gapId}`);
+    const [taken] = await this.db.select({ id: s.gaps.id }).from(s.gaps).where(and(
+      eq(s.gaps.employerId, row.employerId), eq(s.gaps.employeeId, row.employeeId),
+      eq(s.gaps.gapDate, row.gapDate), eq(s.gaps.gapType, gapType),
+    ));
+    if (taken) return null;
+    await this.db.update(s.gaps).set({ gapType }).where(eq(s.gaps.id, gapId));
+    return toGap({ ...row, gapType });
   }
 
   async markNotified(gapIds: Id[], at: Date): Promise<void> {

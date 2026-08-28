@@ -108,8 +108,9 @@ import (scenario 7) is traceable without keeping the file.
 
 Pure function: `detectGaps({ shifts, records, employees }, now) → { gaps, unscheduled }`.
 No I/O. `runDetection(store, employerId, period, input, now)` wraps it:
-upserts through `Store`, appends events, and resolves gaps whose record
-has arrived (below).
+drops input rows that belong to another employer (a mixed-tenant array
+cannot create cross-tenant gaps), upserts through `Store`, appends
+events, and resolves gaps whose record has arrived (below).
 
 Pseudocode for the main loop (per period — day/week):
 
@@ -140,8 +141,31 @@ finds the same gap already open appends nothing.
 **Idempotency.** The store upserts gaps on
 `(employer_id, employee_id, gap_date, gap_type)`. Running detection
 twice for the same period is a no-op the second time. If a re-run finds
-that a previously detected gap now has its record (e.g. a corrected
-import), the gap is resolved with `resolution = record_arrived`.
+that a previously detected gap now has its **complete** record (e.g. a
+corrected import), the gap is resolved with `resolution = record_arrived`,
+`outcome = present`. That happens only when the input actually carries
+the employee *and* a record for that day: an open gap whose employee is
+missing from the input (deactivated) or whose shift vanished from a
+re-import has not been explained and stays open (§ Roster).
+
+**Type change, same gap.** When the record arrives incomplete — an open
+`no_record_at_all` and the re-import brings a clock-in only — the
+employee was not shown present; the gap changes type in place
+(`Store.retypeGap`, here to `no_clockout`), keeping its `id` and
+`manager_notified_at` so the SLA timer does not restart and no new
+`gap_detected` is appended. If a gap of the new type already exists for
+that day (it was resolved earlier), the store refuses the retype and the
+old gap falls back to the `record_arrived` path above.
+
+**Midnight-crossing shifts.** Matching is by shift date only:
+`attendance_records.record_date` is compared with
+`scheduled_shifts.shift_date`, never with clock times. A night shift
+whose clock-out lands on the next calendar day must arrive with
+`record_date` = the shift's date — normalising that is the ingestion
+adapter's job (`architecture.md` § Ingestion), not the engine's. The
+generic CSV adapter takes the date column as given; whether the first
+real employer's export needs the shift-start rule is in
+`open-questions.md`.
 
 ## Scheduled import
 
@@ -168,15 +192,28 @@ needs it.
   makes the job safe to re-run; a crash between "email sent" and
   "digest row written" costs at most one duplicate email.
 - Sends each manager **only their own list** (not one company-wide
-  feed), then writes the `digests` row, sets `manager_notified_at` on
-  the included gaps (first notification only), and appends
-  `digest_sent` events.
-- SLA timer (`employers.sla_hours`, 48 by default, calendar time):
-  `computeEscalations(openGaps, now, sla)` returns
-  gaps where `manager_notified_at + sla < now` and `resolved_at` is
-  null. `runEscalations(store, employerId, now, sla)` turns each into an
-  `escalation` addressed to `employers.payroll_email` plus an `escalated`
-  event. A gap escalates once.
+  feed), then sets `manager_notified_at` on the included gaps (first
+  notification only), then writes the `digests` row and appends the
+  `digest_sent` event — in that order, so a crash after the send never
+  leaves an emailed gap without its SLA start; the worst case is one
+  duplicate email whose gaps are already marked.
+- `Store.listOpenGaps` returns gaps ordered by `gap_date`, then
+  `employee_id`, so a digest lists the same gaps in the same order on
+  every run.
+- SLA timer (`employers.sla_hours`, 48 by default, calendar time —
+  decided 2026-08-28): `computeEscalations(openGaps, now, slaMs)` is
+  pure and returns gaps where `manager_notified_at + sla < now` and
+  `resolved_at` is null. `runEscalations(store, employerId, now, send)`
+  reads `sla_hours` from the employer, and for each breached gap that
+  has no `escalations` row yet: calls `send` (the email adapter, passed
+  in like the digest's), **then** writes the `escalation` addressed to
+  `employers.payroll_email` and the `escalated` event. At-least-once
+  like the digest: a failed send records nothing and the next run
+  retries; a crash between send and record costs one duplicate email. A
+  gap escalates once.
+- The daily job runs import → detection → digest → escalations per
+  employer inside its own try/catch: one employer's failure is logged
+  and counted, the next employer still runs.
 - The payroll accountant only sees **escalations**, not the full stream —
   this is the key difference from the current process, where they see
   everything at once.
@@ -192,7 +229,9 @@ the hours count) or `absent` (the gap is real and needs an explanation):
   `resolution = manager_action`). The manager picks the outcome; a note is
   required for `absent`.
 - **A later import** supplying the missing record (`runDetection` re-run,
-  `resolution = record_arrived`, `outcome = present`).
+  `resolution = record_arrived`, `outcome = present`). Only a record
+  with both times counts; a partial one changes the gap's type instead
+  (§ Matching Engine).
 - **Payroll**, from the escalation email (`POST /e/<token>/handle` →
   `resolveByPayroll(store, gapId, now, outcome, note)`,
   `resolution = payroll_action`), for gaps whose entry will never arrive
@@ -200,7 +239,9 @@ the hours count) or `absent` (the gap is real and needs an explanation):
   both required; the note is the only trace of why.
 
 All three set `resolved_at` and append a `gap_resolved` event with the
-resolution and outcome in the payload. For the SLA metric only
+resolution and outcome in the payload. `Store.resolveGap` sets them
+once: on an already-resolved gap it throws, so exactly one of two racing
+callers wins and the HTTP layer answers the other with 409. For the SLA metric only
 `manager_action` counts as the manager having acted (decided 2026-08-28);
 `record_arrived` and `payroll_action` count as not acted — otherwise
 payroll closing tails would flatter managers' numbers.
@@ -229,3 +270,5 @@ Add a row before changing behaviour, not after.
 | 12 | Gap notified, resolved before SLA                          | no escalation                                                                                        |
 | 13 | Employer timezone east of UTC, job runs late UTC evening   | `digest_date` is the employer's local date, not the UTC date                                         |
 | 14 | Escalated gap, payroll closes it with a note               | `resolution = payroll_action`, `outcome` set, no further escalation, `gap_resolved` event            |
+| 15 | Gap detected, roster re-uploaded without the employee      | gap stays open; no `gap_resolved`; same when only the shift is missing from a re-import              |
+| 16 | Open `no_record_at_all`, record with `clock_in` only       | same gap (same id) becomes `no_clockout`; `manager_notified_at` kept; not resolved, no new event     |

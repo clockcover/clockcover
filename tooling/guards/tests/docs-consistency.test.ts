@@ -24,8 +24,8 @@ test("ADR status in INDEX matches the file's frontmatter", () => {
 
 test("CLAUDE.md Status block carries a date no older than 90 days", () => {
   const status = read("CLAUDE.md").match(/## Status\n([\s\S]*?)\n## /)?.[1] ?? "";
-  const date = status.match(/\b(\d{4}-\d{2}-\d{2})\b/)?.[1];
-  assert.ok(date, "Status block must state the date it was last true (YYYY-MM-DD)");
+  const date = status.match(/Last confirmed: (\d{4}-\d{2}-\d{2})/)?.[1];
+  assert.ok(date, "Status block must open with `Last confirmed: YYYY-MM-DD`");
   const ageDays = (Date.now() - new Date(date).getTime()) / 86_400_000;
   assert.ok(ageDays < 90, `Status was last confirmed ${Math.round(ageDays)} days ago — re-check and update the date`);
 });
@@ -60,16 +60,20 @@ test("every Claude hook runs from the project root and fails closed", () => {
 
 test("every acceptance scenario row in core-design.md has a core test with the same number", () => {
   const rows = [...read("docs/core-design.md").matchAll(/^\| (\d+)\s+\|/gm)].map((m) => Number(m[1]));
-  assert.ok(rows.length >= 12, "scenario table missing");
+  assert.ok(rows.length > 0, "scenario table missing");
   const tests = read("packages/core/tests/scenarios.test.ts");
   for (const n of rows) {
     assert.match(tests, new RegExp(`^test\\("${n}\\. `, "m"), `scenario ${n} has no test named "${n}. …" in scenarios.test.ts`);
   }
+  const numbered = [...tests.matchAll(/^test\("(\d+)\. /gm)].length;
+  assert.equal(numbered, rows.length, "scenarios.test.ts has numbered tests that are not rows in the core-design.md table");
+  const claimed = Number(read("CLAUDE.md").match(/all\s+(\d+)\s+acceptance scenarios/)?.[1]);
+  assert.equal(claimed, rows.length, `CLAUDE.md Status says "all ${claimed} acceptance scenarios"; core-design.md has ${rows.length}`);
 });
 
 test("packages/core has the boundary test the docs say enforces the infra-agnostic core", () => {
   const t = read("packages/core/tests/boundary.test.ts");
-  for (const banned of ["cloudflare:", "hono", "drizzle-orm", "apps"]) assert.match(t, new RegExp(banned), `boundary test must ban ${banned}`);
+  for (const banned of ["cloudflare:", "hono", "drizzle-orm", "node:", "apps"]) assert.match(t, new RegExp(banned), `boundary test must ban ${banned}`);
 });
 
 test(".gitignore excludes data/real/ and the wrangler secret paths docs/privacy.md names", () => {
@@ -77,4 +81,23 @@ test(".gitignore excludes data/real/ and the wrangler secret paths docs/privacy.
   assert.match(gi, /^data\/real\/$/m);
   assert.match(gi, /^\.dev\.vars$/m);
   assert.match(gi, /^\.wrangler\/$/m);
+});
+
+test("the sandbox is on and its denyRead list covers what privacy.md names", () => {
+  const settings = JSON.parse(read(".claude/settings.json")) as {
+    permissions: { deny: string[] };
+    sandbox: { enabled: boolean; failIfUnavailable: boolean; filesystem: { denyRead: string[] } };
+  };
+  assert.equal(settings.sandbox.enabled, true, "privacy.md says the sandbox is on");
+  assert.equal(settings.sandbox.failIfUnavailable, true, "privacy.md says Bash refuses to run unsandboxed");
+  // The places privacy.md § "What Claude Code must not read" names for the sandbox.
+  const named = ["apps/api/.dev.vars", ".claude/settings.local.json", "data/real", "~/.ssh", "~/.config/gh", "~/.netrc"];
+  const denied = settings.sandbox.filesystem.denyRead.map((d) => d.replace(/^\.\//, "").replace(/\/$/, ""));
+  for (const p of named) assert.ok(denied.includes(p), `sandbox.filesystem.denyRead covers ${p}`);
+  const privacy = read("docs/privacy.md");
+  for (const p of named) assert.ok(privacy.includes(p.replace(/^apps\/api\//, "")), `privacy.md names ${p}`);
+  for (const d of denied) {
+    const key = d.split("/").pop()!;
+    assert.ok(settings.permissions.deny.some((r) => r.includes(key)), `permissions.deny also covers ${d}`);
+  }
 });

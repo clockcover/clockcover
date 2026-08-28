@@ -21,6 +21,9 @@ interface Env {
 }
 
 function deps(env: Env): Deps {
+  if (!env.LINK_SECRET || env.LINK_SECRET.length < 32) {
+    throw new Error("LINK_SECRET must be at least 32 characters — set it with `wrangler secret put LINK_SECRET` (locally: .dev.vars)");
+  }
   const db = drizzle(env.DB, { schema });
   return {
     db,

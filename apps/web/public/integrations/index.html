@@ -52,7 +52,7 @@
           <dt>A sample export</dt><dd>One real-shaped file (synthetic or anonymised names are fine) covering a few days: which columns exist, how dates and times look, how a missing entry appears (empty cell? “—”? absent row?).</dd>
           <dt>The roster source</dt><dd>Where employee → manager lives: an HR export, the attendance system, or a spreadsheet someone maintains. And what the stable employee identifier is.</dd>
           <dt>Access, if we fetch</dt><dd>An https URL with a secret, or read-only API credentials for the attendance system. We never need write access to anything of yours. Credentials go into an encrypted Worker secret, never into email or chat.</dd>
-          <dt>Two settings</dt><dd>Your timezone and the SLA you want (hours before a gap goes to payroll).</dd>
+          <dt>Two settings</dt><dd>Your timezone and the SLA you want (hours before a gap goes to the payroll accountant).</dd>
           <dt>Where corrections should land</dt><dd>Which payroll or attendance system, and whether it takes a file or an API call. If unknown, the CSV export is the answer for now.</dd>
         </dl>
 
@@ -66,7 +66,7 @@
 
         <h2 id="security">Security notes</h2>
         <ul>
-          <li>No accounts or passwords for managers or payroll: signed, expiring links. The operator console and the admin area use emailed sign-in links.</li>
+          <li>No accounts or passwords for managers or the payroll accountant: signed, expiring links. The operator console and the admin area use emailed sign-in links.</li>
           <li>We store normalised records only; raw files are parsed and discarded. No biometric data ever reaches us.</li>
           <li>Everything is per employer; nothing is shared between employers.</li>
         </ul>
@@ -76,7 +76,7 @@
       <footer class="mono foot">
         <div dir="ltr">© 2026 ClockCover</div>
         <div class="foot-mid">no accounts · no biometrics · exports deleted after parsing</div>
-        <a class="lang" href="/he/integrations/" lang="he" hreflang="he">עברית</a>
+        <a class="lang" href="/he/integrations/?lang=he" lang="he" hreflang="he">עברית</a>
       </footer>
     </div>
   </body>
