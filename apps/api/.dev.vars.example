@@ -1,6 +1,7 @@
 # Copy to .dev.vars (gitignored, read-denied for the agent) for `wrangler dev`.
 # Production values are set with `wrangler secret put <NAME>`.
-API_KEY=change-me
+# A per-employer upload key from the console (Settings → API keys), for scripts/upload.ts only
+API_KEY=ck_...
 LINK_SECRET=change-me-too
 RESEND_API_KEY=re_xxxxxxxxx
 # For scripts/upload.ts — the deployed API origin (or http://localhost:8787 under wrangler dev)

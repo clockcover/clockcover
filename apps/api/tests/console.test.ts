@@ -22,7 +22,7 @@ async function setup() {
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: OPERATOR, timezone: "UTC" });
   const emails: Email[] = [];
   let now = T0;
-  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: WEB, consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
+  const deps: Deps = { db, store: new SqlStore(db), linkSecret: SECRET, webUrl: WEB, consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
   const app = createApp(deps);
   const login = async (email: string) => app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
   const tokenFromEmail = () => emails.at(-1)!.text.split(`${CONSOLE}/console/`)[1]!.split(/\s/)[0]!;
@@ -171,4 +171,31 @@ test("locale: settings switch to Hebrew; the next digest is Hebrew and right-to-
   emails.length = 0;
   await login(OPERATOR);
   assert.match(emails[0]!.subject, /^כניסה ללוח הבקרה של ClockCover — Example Logistics$/, "sign-in mail follows the employer locale");
+});
+
+test("API keys: created once in plaintext, listed hashed, usable on uploads, revocable", async () => {
+  const { app, login, tokenFromEmail, authed } = await setup();
+  await login(OPERATOR);
+  const api = authed(tokenFromEmail());
+  assert.equal((await api("/api-keys", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })).status, 400, "name required");
+  const created = await api("/api-keys", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: "HR scheduler" }) });
+  assert.equal(created.status, 201);
+  const { id, key, prefix } = await created.json() as { id: string; key: string; prefix: string };
+  assert.match(key, /^ck_[A-Za-z0-9_-]{32}$/);
+  assert.equal(prefix, key.slice(0, 12));
+  const list = (await (await api("/api-keys")).json() as { keys: Array<Record<string, unknown>> }).keys;
+  assert.equal(list.length, 1);
+  assert.equal(list[0]!["name"], "HR scheduler");
+  assert.equal(list[0]!["prefix"], prefix);
+  assert.ok(!JSON.stringify(list).includes(key), "the plaintext never comes back");
+  assert.equal(list[0]!["lastUsedAt"], null);
+
+  const upload = await app.request("/employers/emp-1/roster", { method: "POST", headers: { authorization: `Bearer ${key}` }, body: fixture("roster.csv") });
+  assert.equal(upload.status, 200);
+  const used = (await (await api("/api-keys")).json() as { keys: Array<Record<string, unknown>> }).keys[0]!;
+  assert.ok(used["lastUsedAt"], "use is recorded");
+
+  assert.equal((await api(`/api-keys/${id}`, { method: "DELETE" })).status, 200);
+  assert.equal((await api(`/api-keys/${id}`, { method: "DELETE" })).status, 404, "already revoked");
+  assert.equal((await app.request("/employers/emp-1/roster", { method: "POST", headers: { authorization: `Bearer ${key}` }, body: fixture("roster.csv") })).status, 401, "revoked key is dead");
 });

@@ -64,9 +64,13 @@ The core (matching + routing) never depends on the vendor.
   (`employee_id,employee_name,manager_id,manager_name,manager_email`),
   upserted by external id. Re-uploading it is how a reassignment is
   recorded; gaps already detected keep their manager snapshot.
-- **Endpoints** (`apps/api`): operator endpoints behind one API key —
-  `POST /employers/:id/roster`, `POST /employers/:id/imports` (runs
-  detection for the dates in the file) — and `GET /health`. The cron
+- **Endpoints** (`apps/api`): upload endpoints for scripts and
+  schedulers — `POST /employers/:id/roster`, `POST /employers/:id/imports`
+  (runs detection for the dates in the file) — behind a **per-employer
+  API key** the operator issues in the console (Settings → API keys:
+  shown once, stored as a SHA-256 hash, revocable, last use recorded;
+  the key decides the employer and must match the path); and
+  `GET /health`. The cron
   trigger (08:00 UTC) runs, per employer: scheduled import from the
   configured URLs, digests, then escalations.
 - **Manager access** (ADR-0004): the digest email carries a signed,
@@ -95,9 +99,9 @@ The core (matching + routing) never depends on the vendor.
   `POST /console/imports/run` (fetch the configured URLs now),
   `GET /console/resolutions.csv?from&to` (corrections export),
   `GET /console/overview`.
+  `GET/POST /console/api-keys`, `DELETE /console/api-keys/:id`.
   Tokens carry `kind: "operator"`, so a manager's digest token is never
-  accepted there and vice versa. The API-key endpoints remain for
-  scripts.
+  accepted there and vice versa.
 - **Owner admin area** (ADR-0006, `admin.clockcover.com`, `ADMIN_URL`):
   `POST /admin/login` emails a 7-day `kind: "admin"` token to
   `ADMIN_EMAIL` only; bearer to `GET /admin/me`, `GET /admin/employers`
@@ -148,8 +152,11 @@ apps/web          Marketing website: static HTML + CSS served as
 (emails, dates) and `apps/portal/src/i18n.ts` (pages) — keyed the same
 way in `en` and `he`; the employer's `locale` selects one, `he` renders
 right-to-left (`dir="rtl"` on emails and `<html>`), and the Heebo face
-supplies Hebrew glyphs next to Schibsted Grotesk. The site is two static
-pages, `/` and `/he/`, cross-linked with `hreflang`. Dates are formatted
+supplies Hebrew glyphs next to Schibsted Grotesk. The site is static pages
+under `/` and `/he/`, cross-linked with `hreflang`; a one-function Worker
+in front of the assets sends a browser whose `Accept-Language` prefers
+Hebrew from the bare `/` to `/he/` (302, `Vary: Accept-Language`;
+`/?lang=en` opts out). The language link itself lives in the footer. Dates are formatted
 by hand in both languages (weekday, day, month) so emails and pages
 agree. Adding a language is a third column in the two dictionaries.
 

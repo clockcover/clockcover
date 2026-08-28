@@ -33,7 +33,7 @@ async function setup(urls: { importUrl?: string; rosterUrl?: string }, files: Re
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: OPERATOR, timezone: "UTC", importUrl: urls.importUrl ?? null, rosterUrl: urls.rosterUrl ?? null });
   const emails: Email[] = [];
   let now = T0;
-  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now, fetch: fakeFetch(files) };
+  const deps: Deps = { db, store: new SqlStore(db), linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now, fetch: fakeFetch(files) };
   const app = createApp(deps);
   const login = async () => { await app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: OPERATOR }) }); return emails.pop()!.text.split(`${CONSOLE}/console/`)[1]!.split(/\s/)[0]!; };
   const authed = (token: string) => (path: string, init: RequestInit = {}) => app.request(`/console${path}`, { ...init, headers: { authorization: `Bearer ${token}`, ...(init.headers as Record<string, string> | undefined) } });

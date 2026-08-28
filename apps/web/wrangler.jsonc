@@ -1,11 +1,13 @@
-// Static marketing site served as Worker assets — no code, no data, no bindings.
+// Static marketing site served as Worker assets. The one line of code (src/index.ts) sends
+// Hebrew-speaking browsers from the bare root to /he/; everything else is plain assets.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clockcover-web",
+  "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
   "routes": [
     { "pattern": "clockcover.com", "custom_domain": true },
     { "pattern": "www.clockcover.com", "custom_domain": true }
   ],
-  "assets": { "directory": "./public", "not_found_handling": "404-page" }
+  "assets": { "directory": "./public", "not_found_handling": "404-page", "binding": "ASSETS", "run_worker_first": ["/"] }
 }

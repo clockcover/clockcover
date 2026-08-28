@@ -160,3 +160,20 @@ export const events = sqliteTable(
   },
   (t) => [index("events_by_gap").on(t.gapId)],
 );
+
+/** Per-employer keys for the upload API (scripts, schedulers). Only a hash is stored; the value is shown once. */
+export const apiKeys = sqliteTable(
+  "api_keys",
+  {
+    id: id(),
+    employerId: employerId(),
+    name: text("name").notNull(),
+    /** First 12 characters of the key, for recognising it in the list. */
+    prefix: text("prefix").notNull(),
+    keyHash: text("key_hash").notNull(),
+    createdAt: instant("created_at").notNull(),
+    lastUsedAt: instant("last_used_at"),
+    revokedAt: instant("revoked_at"),
+  },
+  (t) => [uniqueIndex("api_keys_hash").on(t.keyHash), index("api_keys_employer").on(t.employerId)],
+);
