@@ -1,5 +1,6 @@
-// Cloudflare Workers config (ADR-0001). Secrets (API_KEY, RESEND_API_KEY) are set
+// Cloudflare Workers config (ADR-0001). Secrets (LINK_SECRET, RESEND_API_KEY) are set
 // with `wrangler secret put`, never here; locally they live in .dev.vars (gitignored).
+// Upload API keys are per employer and live in D1 (api_keys), issued from the console.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clockcover-api",
@@ -8,7 +9,8 @@
   "observability": { "enabled": true },
   "routes": [{ "pattern": "api.clockcover.com", "custom_domain": true }],
   "triggers": {
-    // Daily digest + escalations, 08:00 UTC. Employer timezone is an open question.
+    // Daily imports, digests and escalations at 08:00 UTC; each employer's dates and the
+    // SLA are computed in its own timezone (employers.timezone).
     "crons": ["0 8 * * *"]
   },
   "d1_databases": [

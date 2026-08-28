@@ -2,13 +2,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { eq } from "drizzle-orm";
 import { testDb } from "./db.ts";
 import { createApp, runScheduled } from "../src/app.ts";
 import type { Deps } from "../src/app.ts";
 import { SqlStore } from "../src/adapters/store-d1/store.ts";
 import type { Email } from "../src/adapters/email.ts";
-import { signLink } from "../src/link.ts";
+import { signLink, signPayroll } from "../src/link.ts";
 import { createApiKey } from "../src/api-keys.ts";
+import { CONTACT_LIMIT } from "../src/app.ts";
 import * as s from "../src/adapters/store-d1/schema.ts";
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url).pathname, "utf8");
@@ -74,7 +76,7 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   const { deps, emails, seed, advance } = await setup();
   await seed();
 
-  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 1, escalations: 0 });
+  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 1, escalations: 0, failures: 0 });
   const digest = emails[0]!;
   assert.equal(digest.to, "north@example.com");
   assert.equal(digest.subject, "2 clock gaps on your team — Mon 2 Mar");
@@ -88,7 +90,7 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   assert.match(digest.text, /expires 16 Mar 2026/);
 
   advance(new Date(T0.getTime() + 3 * H));
-  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 0, escalations: 0 }, "same day: nothing new");
+  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 0, escalations: 0, failures: 0 }, "same day: nothing new");
 
   advance(new Date("2026-03-05T08:00:00Z"));
   assert.equal((await runScheduled(deps)).escalations, 2);
@@ -131,8 +133,19 @@ test("payroll handle link: shows the gap, requires a note, closes once, never es
   const gapId = body.gap["id"] as string;
   const managerToken = await signLink({ employerId: "emp-1", managerId: "x", exp: Date.now() + 60_000 }, SECRET);
   assert.equal((await app.request(`/e/${managerToken}`)).status, 401);
+  assert.equal((await app.request(`/e/${managerToken}/handle`, json({ outcome: "absent", note: "x" }))).status, 401);
   assert.equal((await app.request(`/d/${token}`)).status, 401);
   assert.equal((await app.request(`/d/${token}/gaps/${gapId}/resolve`, { method: "POST" })).status, 401);
+
+  // a payroll token is bound to one gap of one employer: the same claims with another gap,
+  // another employer or another address open nothing, even when the signature is genuine
+  const exp = Date.now() + 60_000;
+  const otherGap = (await deps.db.select().from(s.gaps)).find((g) => g.id !== gapId)!;
+  await deps.db.insert(s.employers).values({ id: "emp-2", name: "Other Employer", payrollEmail: "payroll@example.com" });
+  assert.equal((await app.request(`/e/${await signPayroll({ kind: "payroll", employerId: "emp-2", gapId: otherGap.id, email: "payroll@example.com", exp }, SECRET)}`)).status, 401, "gap belongs to emp-1, token says emp-2");
+  assert.equal((await app.request(`/e/${await signPayroll({ kind: "payroll", employerId: "emp-1", gapId: "no-such-gap", email: "payroll@example.com", exp }, SECRET)}`)).status, 401, "unknown gap");
+  assert.equal((await app.request(`/e/${await signPayroll({ kind: "payroll", employerId: "emp-1", gapId: otherGap.id, email: "someone@example.com", exp }, SECRET)}`)).status, 401, "not the payroll accountant's address");
+  assert.equal((await app.request(`/e/${await signPayroll({ kind: "payroll", employerId: "emp-1", gapId: otherGap.id, email: "payroll@example.com", exp }, SECRET)}/handle`, json({ outcome: "absent", note: "x" }))).status, 200, "the matching triple works");
 
   advance(new Date("2026-03-06T08:00:00Z"));
   const again = await runScheduled(deps);
@@ -141,11 +154,51 @@ test("payroll handle link: shows the gap, requires a note, closes once, never es
 });
 
 test("a failing mailer leaves no digest row behind, so the next run retries", async () => {
-  const { deps, seed } = await setup();
+  const { deps, emails, seed, advance } = await setup();
   await seed();
+  const mailer = deps.sendEmail;
   deps.sendEmail = async () => { throw new Error("provider down"); };
-  await assert.rejects(runScheduled(deps), /provider down/);
+  assert.equal((await runScheduled(deps)).failures, 1, "the failure is counted, not thrown");
   assert.equal((await deps.db.select().from(s.digests)).length, 0);
+  deps.sendEmail = mailer;
+  advance(new Date(T0.getTime() + H));
+  assert.equal((await runScheduled(deps)).digests, 1, "the next run retries");
+  assert.equal(emails.length, 1);
+});
+
+test("a failing mailer at escalation time records nothing; the next run retries and records once", async () => {
+  const { deps, emails, seed, advance } = await setup();
+  await seed();
+  await runScheduled(deps);
+  const mailer = deps.sendEmail;
+  advance(new Date("2026-03-05T08:00:00Z"));
+  deps.sendEmail = async () => { throw new Error("provider down"); };
+  const failed = await runScheduled(deps);
+  assert.equal(failed.escalations, 0);
+  assert.equal(failed.failures, 1);
+  assert.equal((await deps.db.select().from(s.escalations)).length, 0);
+  assert.equal((await deps.db.select().from(s.events)).filter((e) => e.type === "escalated").length, 0);
+  deps.sendEmail = mailer;
+  advance(new Date("2026-03-05T09:00:00Z"));
+  assert.equal((await runScheduled(deps)).escalations, 2);
+  assert.equal((await deps.db.select().from(s.escalations)).length, 2);
+  assert.equal(emails.filter((e) => e.to === "payroll@example.com").length, 2);
+});
+
+test("one employer failing does not block the next", async () => {
+  const { deps, seed, post } = await setup();
+  await seed();
+  await deps.db.insert(s.employers).values({ id: "emp-2", name: "Other Logistics", payrollEmail: "p2@example.com", operatorEmail: "o2@example.com" });
+  const other = (await createApiKey(deps.db, "emp-2", "other", T0)).key;
+  await post("/employers/emp-2/roster", fixture("roster.csv"), other);
+  await post("/employers/emp-2/imports", fixture("day-1.csv"), other);
+  const mailer = deps.sendEmail;
+  let calls = 0;
+  deps.sendEmail = async (e) => { if (++calls === 1) throw new Error("provider down"); await mailer(e); };
+  const result = await runScheduled(deps);
+  assert.equal(result.failures, 1);
+  assert.equal(result.digests, 1);
+  assert.deepEqual((await deps.db.select().from(s.digests)).map((d) => d.employerId), ["emp-2"]);
 });
 
 test("GET /d/:token returns only that manager's gaps, with shift/record detail", async () => {
@@ -201,6 +254,24 @@ test("POST resolve: own gap only, once, with an optional note", async () => {
   assert.equal(events.filter((t) => t === "gap_resolved").length, 1);
   const page = await (await app.request(`/d/${north}`)).json() as { gaps: unknown[] };
   assert.equal(page.gaps.length, 1);
+
+  // two resolves racing for the second gap: one wins, the other gets 409, one event
+  const second = gaps[1]!.id;
+  const race = await Promise.all([
+    app.request(`/d/${north}/gaps/${second}/resolve`, json({ outcome: "present" })),
+    app.request(`/d/${north}/gaps/${second}/resolve`, json({ outcome: "absent", note: "was off sick" })),
+  ]);
+  assert.deepEqual(race.map((r) => r.status).sort(), [200, 409]);
+  assert.equal((await deps.db.select().from(s.events)).filter((e) => e.type === "gap_resolved" && e.gapId === second).length, 1);
+  const [row] = await deps.db.select().from(s.gaps).where(eq(s.gaps.id, second));
+  assert.ok(row!.resolvedAt);
+});
+
+test("unknown ids answer with a fixed body, never the store's message", async () => {
+  const { app } = await setup();
+  const missing = await app.request(`/d/${await signLink({ employerId: "emp-1", managerId: "ghost-manager", exp: T0.getTime() + H }, SECRET)}`);
+  assert.equal(missing.status, 404);
+  assert.deepEqual(await missing.json(), { error: "not found" });
 });
 
 test("CORS is open only to the web origin", async () => {
@@ -227,4 +298,20 @@ test("contact form: validated, honeypot silently dropped, emailed to us with rep
   assert.equal(emails[0]!.subject, "Contact form: Dana Sample (Example Logistics)");
   assert.match(emails[0]!.text, /From: Dana Sample <dana@example.com>/);
   assert.match(emails[0]!.text, /old terminal system/);
+
+  // header injection: line breaks in name/employer never reach the subject
+  await post({ name: "Eve\r\nBcc: everyone@example.com", email: "eve@example.com", employer: "Acme\nX", message: "a message long enough to pass" });
+  assert.equal(emails.at(-1)!.subject, "Contact form: Eve Bcc: everyone@example.com (Acme X)");
+});
+
+test("contact form is limited per address and per client IP: 5 an hour, then 429 until the window passes", async () => {
+  const { app, emails, advance } = await setup();
+  const post = (email: string, ip: string) => app.request("/contact", { method: "POST", headers: { "content-type": "application/json", origin: "https://site.example.com", "cf-connecting-ip": ip }, body: JSON.stringify({ name: "Sam Sample", email, message: "a message long enough to pass" }) });
+  for (let i = 0; i < CONTACT_LIMIT; i++) assert.equal((await post("sam@example.com", "203.0.113.1")).status, 202);
+  assert.equal((await post("sam@example.com", "203.0.113.2")).status, 429, "same address from another IP");
+  assert.equal((await post("other@example.com", "203.0.113.1")).status, 429, "same IP with another address");
+  assert.equal((await post("other@example.com", "203.0.113.3")).status, 202, "unrelated sender is unaffected");
+  assert.equal(emails.length, CONTACT_LIMIT + 1);
+  advance(new Date(T0.getTime() + H + 1000));
+  assert.equal((await post("sam@example.com", "203.0.113.1")).status, 202, "window over");
 });

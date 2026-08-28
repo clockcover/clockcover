@@ -1,12 +1,15 @@
 // Writing imported data. Not part of the core's Store port — ingestion is an
 // apps/api concern (ADR-0003) — but it shares the schema and the database handle.
 import { and, eq, gte, lte, notInArray } from "drizzle-orm";
+import type { BatchItem } from "drizzle-orm/batch";
 import type { AttendanceRecord, Employee, Id, ScheduledShift } from "@clockcover/core";
 import type { Db } from "./store.ts";
 import * as s from "./schema.ts";
 import type { ParsedCsv, RosterRow } from "../csv.ts";
 
 const newId = () => crypto.randomUUID();
+/** Statements per `db.batch()`; well under D1's request limits for rows this size. */
+const BATCH_SIZE = 200;
 
 /**
  * The roster file is the whole truth about who is tracked: managers and employees
@@ -69,27 +72,36 @@ export async function saveImport(db: Db, employerId: Id, parsed: ParsedCsv, now:
   };
 
   const importId = newId();
-  await db.insert(s.imports).values({ id: importId, employerId, source: "csv", trigger, importedAt: now.toISOString(), rowCount: parsed.shifts.length + parsed.records.length });
-
+  // The imports row and the upserts go to the database in batches (D1's atomic unit),
+  // not one round trip per row. A file that fits one batch is all-or-nothing; a larger
+  // one is applied in chunks, the imports row in the first (the rows reference it), and a
+  // failure mid-way is healed by the next import of the same days — upserts replace.
+  const statements: BatchItem<"sqlite">[] = [
+    db.insert(s.imports).values({ id: importId, employerId, source: "csv", trigger, importedAt: now.toISOString(), rowCount: parsed.shifts.length + parsed.records.length }),
+  ];
   for (const sh of parsed.shifts) {
     const e = resolve(sh.employeeExternalId);
     if (!e) continue;
-    await db.insert(s.scheduledShifts)
+    statements.push(db.insert(s.scheduledShifts)
       .values({ id: newId(), employerId, employeeId: e.id, shiftDate: sh.date, plannedStart: sh.plannedStart, plannedEnd: sh.plannedEnd, importId })
       .onConflictDoUpdate({
         target: [s.scheduledShifts.employerId, s.scheduledShifts.employeeId, s.scheduledShifts.shiftDate],
         set: { plannedStart: sh.plannedStart, plannedEnd: sh.plannedEnd, importId },
-      });
+      }));
   }
   for (const rec of parsed.records) {
     const e = resolve(rec.employeeExternalId);
     if (!e) continue;
-    await db.insert(s.attendanceRecords)
+    statements.push(db.insert(s.attendanceRecords)
       .values({ id: newId(), employerId, employeeId: e.id, recordDate: rec.date, clockIn: rec.clockIn, clockOut: rec.clockOut, importId })
       .onConflictDoUpdate({
         target: [s.attendanceRecords.employerId, s.attendanceRecords.employeeId, s.attendanceRecords.recordDate],
         set: { clockIn: rec.clockIn, clockOut: rec.clockOut, importId },
-      });
+      }));
+  }
+  for (let i = 0; i < statements.length; i += BATCH_SIZE) {
+    const chunk = statements.slice(i, i + BATCH_SIZE) as [BatchItem<"sqlite">, ...BatchItem<"sqlite">[]];
+    await db.batch(chunk);
   }
 
   const dates = [...parsed.shifts.map((x) => x.date), ...parsed.records.map((x) => x.date)];

@@ -4,11 +4,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { isoDate, resolveByManager, resolveByPayroll, runDailyDigest, runDetection, runEscalations } from "@clockcover/core";
-import type { DigestMessage, Gap, Store } from "@clockcover/core";
+import type { DigestMessage, EscalationMessage, Gap, Store } from "@clockcover/core";
 import { eq } from "drizzle-orm";
 import type { Db } from "./adapters/store-d1/store.ts";
 import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts";
 import { gapViews, unscheduledFor } from "./adapters/store-d1/views.ts";
+import { takeSendSlot } from "./adapters/store-d1/throttle.ts";
+import { readCappedText } from "./body.ts";
 import * as s from "./adapters/store-d1/schema.ts";
 import { parseCsv, parseRoster } from "./adapters/csv.ts";
 import { renderContact, renderDigest, renderEscalation, renderImportFailure } from "./adapters/email.ts";
@@ -44,6 +46,8 @@ export interface Deps {
 }
 
 const HOUR = 3_600_000;
+/** Contact form: this many messages per hour, per sender address and per client IP. */
+export const CONTACT_LIMIT = 5;
 
 export function createApp(deps: Deps) {
   const now = deps.now ?? (() => new Date());
@@ -51,7 +55,7 @@ export function createApp(deps: Deps) {
 
   app.get("/health", (c) => c.json({ ok: true }));
 
-  // ---- Contact form from the public site. No auth; validated, honeypot, size-capped, emailed to us.
+  // ---- Contact form from the public site. No auth; validated, honeypot, size-capped, rate-limited, emailed to us.
   app.use("/contact", cors({ origin: deps.siteUrls, allowMethods: ["POST"], allowHeaders: ["content-type"] }));
   app.post("/contact", async (c) => {
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
@@ -64,7 +68,12 @@ export function createApp(deps: Deps) {
     if (!email.includes("@")) errors.push("email");
     if (message.length < 10) errors.push("message");
     if (errors.length) return c.json({ error: "invalid", fields: errors }, 400);
-    await deps.sendEmail(renderContact({ to: deps.contactEmail, name, email, employer, message, locale, receivedAt: now() }));
+    const t = now();
+    const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+    if (!(await takeSendSlot(deps.db, `contact:ip:${ip}`, t, HOUR, CONTACT_LIMIT)) || !(await takeSendSlot(deps.db, `contact:email:${email.toLowerCase()}`, t, HOUR, CONTACT_LIMIT))) {
+      return c.json({ error: "too many messages — please try again in an hour" }, 429);
+    }
+    await deps.sendEmail(renderContact({ to: deps.contactEmail, name, email, employer, message, locale, receivedAt: t }));
     return c.json({ ok: true }, 202);
   });
 
@@ -82,7 +91,9 @@ export function createApp(deps: Deps) {
   app.post("/employers/:employerId/roster", async (c) => {
     const employerId = c.req.param("employerId");
     await deps.store.getEmployer(employerId);
-    const { rows, errors } = parseRoster(await c.req.text());
+    const text = await readCappedText(c.req.raw);
+    if (text === null) return c.json({ error: "file is larger than 10 MB" }, 413);
+    const { rows, errors } = parseRoster(text);
     if (errors.length) return c.json({ error: "invalid csv", details: errors }, 400);
     const employees = await saveRoster(deps.db, employerId, rows);
     return c.json({ employees: employees.length });
@@ -91,7 +102,9 @@ export function createApp(deps: Deps) {
   app.post("/employers/:employerId/imports", async (c) => {
     const employerId = c.req.param("employerId");
     await deps.store.getEmployer(employerId);
-    const parsed = parseCsv(await c.req.text());
+    const text = await readCappedText(c.req.raw);
+    if (text === null) return c.json({ error: "file is larger than 10 MB" }, 413);
+    const parsed = parseCsv(text);
     if (parsed.errors.length) return c.json({ error: "invalid csv", details: parsed.errors }, 400);
     const period = periodOf(parsed);
     if (!period) return c.json({ error: "no rows" }, 400);
@@ -159,8 +172,13 @@ export function createApp(deps: Deps) {
     if (!outcome) return c.json({ error: "outcome must be 'present' (worked, entry missing) or 'absent' (did not work)" }, 400);
     const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, 500) : null;
     if (outcome === "absent" && !note) return c.json({ error: "an absence needs a note — what happened?" }, 400);
-    const gap = await resolveByManager(deps.store, gapId, now(), outcome, note);
-    return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
+    try {
+      const gap = await resolveByManager(deps.store, gapId, now(), outcome, note);
+      return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
+    } catch (err) {
+      if (isAlreadyResolved(err)) return c.json({ error: "already resolved" }, 409);
+      throw err;
+    }
   });
 
   // ---- Payroll accountant: one escalated gap per signed link (scope.md, ADR-0004 § extended).
@@ -208,12 +226,19 @@ export function createApp(deps: Deps) {
     if (!outcome) return c.json({ error: "outcome must be 'present' or 'absent'" }, 400);
     const note = typeof body.note === "string" ? body.note.trim().slice(0, 500) : "";
     if (!note) return c.json({ error: "a note is required — say why the entry will never arrive" }, 400);
-    const gap = await resolveByPayroll(deps.store, found.row.id, now(), outcome, note);
-    return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
+    try {
+      const gap = await resolveByPayroll(deps.store, found.row.id, now(), outcome, note);
+      return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
+    } catch (err) {
+      if (isAlreadyResolved(err)) return c.json({ error: "already resolved" }, 409);
+      throw err;
+    }
   });
 
+  // Error text never reaches the client: a "not found" from the store becomes a fixed 404
+  // body, anything else a fixed 500 (the message may carry ids or SQL).
   app.onError((err, c) => {
-    if (/not found/.test(err.message)) return c.json({ error: err.message }, 404);
+    if (/not found/.test(err.message)) return c.json({ error: "not found" }, 404);
     console.error(err);
     return c.json({ error: "internal error" }, 500);
   });
@@ -221,13 +246,21 @@ export function createApp(deps: Deps) {
   return app;
 }
 
-/** The daily job: digests, then escalations, for every employer. Invoked by the Cron Trigger. */
-export async function runScheduled(deps: Deps): Promise<{ imports: number; importFailures: number; digests: number; escalations: number }> {
+/** The store's signal that a resolve lost the race with another (SqlStore.resolveGap). */
+const isAlreadyResolved = (err: unknown) => err instanceof Error && /already resolved/.test(err.message);
+
+/**
+ * The daily job: import, digests, then escalations, for every employer. Invoked by the Cron
+ * Trigger. Employers are isolated: one failing employer is logged and counted in `failures`;
+ * the next one still runs. Every step is at-least-once, so the next run picks up what failed.
+ */
+export async function runScheduled(deps: Deps): Promise<{ imports: number; importFailures: number; digests: number; escalations: number; failures: number }> {
   const t = (deps.now ?? (() => new Date()))();
   const employers = await deps.db.select().from(s.employers);
-  let imports = 0, importFailures = 0, digests = 0, escalations = 0;
+  let imports = 0, importFailures = 0, digests = 0, escalations = 0, failures = 0;
 
   for (const employer of employers) {
+    try {
     // 1. Fetch today's files first, so the digest reflects them. A failure is reported to the
     //    operator and does not stop the digest — yesterday's data is better than silence.
     if (hasImportSources(employer)) {
@@ -256,25 +289,23 @@ export async function runScheduled(deps: Deps): Promise<{ imports: number; impor
     };
     digests += (await runDailyDigest(deps.store, employer.id, t, send)).length;
 
-    const escalated = await runEscalations(deps.store, employer.id, t, employer.slaHours * HOUR);
-    if (escalated.length) {
-      const rows = await deps.db.select().from(s.gaps);
-      const gaps: Gap[] = escalated.map((e) => rows.find((x) => x.id === e.gapId)).filter((x) => x !== undefined)
-        .map((g) => ({ ...g, detectedAt: new Date(g.detectedAt), managerNotifiedAt: g.managerNotifiedAt ? new Date(g.managerNotifiedAt) : null, resolvedAt: g.resolvedAt ? new Date(g.resolvedAt) : null }));
-      const views = await gapViews(deps.db, employer.id, gaps);
-      for (const e of escalated) {
-        const view = views.find((v) => v.gap.id === e.gapId);
-        if (!view) continue;
-        const manager = await deps.store.getManager(view.gap.managerId);
-        const exp = t.getTime() + LINK_TTL_MS;
-        const token = await signPayroll({ kind: "payroll", employerId: employer.id, gapId: e.gapId, email: employer.payrollEmail, exp }, deps.linkSecret);
-        await deps.sendEmail(renderEscalation({
-          locale: employer.locale, escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours,
-          link: `${deps.webUrl.replace(/\/$/, "")}/e/${token}`, linkExpires: new Date(exp),
-        }));
-      }
+    // The core records the escalation only after this resolves (at-least-once, like the digest).
+    const sendEscalation = async (m: EscalationMessage) => {
+      const [view] = await gapViews(deps.db, employer.id, [m.gap]);
+      if (!view) throw new Error(`gap ${m.gap.id} has no view`);
+      const manager = await deps.store.getManager(m.gap.managerId);
+      const exp = t.getTime() + LINK_TTL_MS;
+      const token = await signPayroll({ kind: "payroll", employerId: employer.id, gapId: m.gap.id, email: employer.payrollEmail, exp }, deps.linkSecret);
+      await deps.sendEmail(renderEscalation({
+        locale: employer.locale, escalation: m.escalation, view, manager, employerName: employer.name, slaHours: employer.slaHours,
+        link: `${deps.webUrl.replace(/\/$/, "")}/e/${token}`, linkExpires: new Date(exp),
+      }));
+    };
+    escalations += (await runEscalations(deps.store, employer.id, t, sendEscalation)).length;
+    } catch (err) {
+      failures++;
+      console.error(JSON.stringify({ job: "daily", employerId: employer.id, message: err instanceof Error ? err.message : String(err) }));
     }
-    escalations += escalated.length;
   }
-  return { imports, importFailures, digests, escalations };
+  return { imports, importFailures, digests, escalations, failures };
 }

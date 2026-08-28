@@ -5,4 +5,4 @@ export type { DetectionInput, DetectionResult, DetectionOutcome } from "./detect
 export { runDailyDigest, resolveByManager, isoDate } from "./digest.ts";
 export type { DigestMessage, SendDigest } from "./digest.ts";
 export { computeEscalations, runEscalations, resolveByPayroll } from "./escalate.ts";
-export type { Sla } from "./escalate.ts";
+export type { EscalationMessage, SendEscalation, SlaMs } from "./escalate.ts";

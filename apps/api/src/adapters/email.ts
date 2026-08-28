@@ -127,7 +127,8 @@ ${footer([
 
 export interface EscalationEmailInput {
   locale: Locale;
-  escalation: Escalation;
+  /** The escalation being sent — not yet saved, so no id (the core records it after the send). */
+  escalation: Pick<Escalation, "escalatedAt" | "escalatedTo">;
   view: GapView;
   manager: Manager;
   employerName: string;
@@ -230,7 +231,8 @@ ${footer([esc(t(L, "imp.footer"))])}`);
 
 /** A message from the site's contact form, delivered to us. Reply goes to the sender. */
 export function renderContact(input: { to: string; name: string; email: string; employer: string; message: string; locale: Locale; receivedAt: Date }): Email {
-  const subject = `Contact form: ${input.name}${input.employer ? ` (${input.employer})` : ""}`;
+  const line = (v: string) => v.replace(/[\r\n]+/g, " "); // a header must stay one line, whatever the form was sent
+  const subject = `Contact form: ${line(input.name)}${input.employer ? ` (${line(input.employer)})` : ""}`;
   const meta = [`From: ${input.name} <${input.email}>`, input.employer ? `Employer: ${input.employer}` : "", `Language: ${input.locale}`, `Received: ${input.receivedAt.toISOString()}`].filter(Boolean);
   const html = shell("en", subject, `
 ${brand("en", badge("contact", C.strongBg, C.strongFg))}

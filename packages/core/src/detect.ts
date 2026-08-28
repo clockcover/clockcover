@@ -52,8 +52,11 @@ export interface DetectionOutcome {
 
 /**
  * Runs detection for one employer and period and persists the outcome:
- * upserts gaps (idempotent), appends `gap_detected` for new ones, and resolves
- * open gaps in the period that detection no longer reports (`record_arrived`).
+ * upserts gaps (idempotent), appends `gap_detected` for new ones, changes the type
+ * of an open gap whose record partly arrived (same id, SLA timer untouched), and
+ * resolves open gaps whose record has fully arrived (`record_arrived`, `present`).
+ * Only rows belonging to `employerId` take part — a mixed-tenant input cannot
+ * create cross-tenant gaps.
  */
 export async function runDetection(
   store: Store,
@@ -62,11 +65,24 @@ export async function runDetection(
   input: DetectionInput,
   now: Date,
 ): Promise<DetectionOutcome> {
-  const { gaps, unscheduled } = detectGaps(input, now);
+  const own = <T extends { employerId: Id }>(rows: T[]) => rows.filter((r) => r.employerId === employerId);
+  const employees = own(input.employees);
+  const records = own(input.records);
+  const { gaps, unscheduled } = detectGaps({ shifts: own(input.shifts), records, employees }, now);
+  const openBefore = await store.listOpenGaps(employerId, period);
   const created: Gap[] = [];
   const stillOpen = new Set<string>();
 
   for (const g of gaps) {
+    // Same day, different type (e.g. no_record_at_all → no_clockout): the gap is the same
+    // one, so it keeps its id and manager_notified_at instead of being closed and reopened.
+    const prior = openBefore.find((o) => o.employeeId === g.employeeId && o.gapDate === g.gapDate && o.gapType !== g.gapType);
+    const retyped = prior ? await store.retypeGap(prior.id, g.gapType) : null;
+    if (retyped) {
+      stillOpen.add(gapKey(retyped));
+      stillOpen.add(gapKey(prior!));
+      continue;
+    }
     const { gap, created: isNew } = await store.upsertGap(g);
     stillOpen.add(gapKey(gap));
     if (isNew) {
@@ -76,12 +92,17 @@ export async function runDetection(
   }
   for (const u of unscheduled) await store.upsertUnscheduledAttendance(u);
 
+  // An open gap closes only when this input actually carries the employee and a record
+  // for that day. A gap whose employee left the roster, or whose shift disappeared from
+  // a re-import, is still unexplained and stays open (core-design.md § Roster).
+  const known = new Set(employees.map((e) => e.id));
+  const hasRecord = (open: Gap) => records.some((r) => r.employeeId === open.employeeId && r.recordDate === open.gapDate);
   const resolved: Gap[] = [];
-  for (const open of await store.listOpenGaps(employerId, period)) {
-    if (stillOpen.has(gapKey(open))) continue;
+  for (const open of openBefore) {
+    if (stillOpen.has(gapKey(open)) || !known.has(open.employeeId) || !hasRecord(open)) continue;
     const gap = await store.resolveGap(open.id, "record_arrived", now, "present", null);
     resolved.push(gap);
-    await store.appendEvent({ employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "record_arrived" } });
+    await store.appendEvent({ employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "record_arrived", outcome: "present" } });
   }
   return { created, resolved };
 }

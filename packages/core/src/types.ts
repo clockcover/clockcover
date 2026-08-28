@@ -16,6 +16,9 @@ export interface Employer {
   operatorEmail: string | null;
   /** SLA in hours before an unresolved gap escalates. */
   slaHours: number;
+  /** https URLs the daily job fetches the export and roster from; null when the operator uploads. */
+  importUrl: string | null;
+  rosterUrl: string | null;
   /** Language of emails and pages for this employer's people: "en" | "he". */
   locale: Locale;
 }
@@ -41,11 +44,14 @@ export interface Employee {
 }
 
 export type ImportSource = "csv" | "excel";
+/** How the import started: a person or script uploaded the file, or the daily job fetched it. */
+export type ImportTrigger = "upload" | "url";
 
 export interface Import {
   id: Id;
   employerId: Id;
   source: ImportSource;
+  trigger: ImportTrigger;
   importedAt: Date;
   rowCount: number;
 }
@@ -128,7 +134,7 @@ export type NewEscalation = Omit<Escalation, "id">;
 
 export type EventType = "gap_detected" | "digest_sent" | "gap_resolved" | "escalated";
 
-export interface Event {
+export interface DomainEvent {
   id: Id;
   employerId: Id;
   occurredAt: Date;
@@ -137,4 +143,4 @@ export interface Event {
   managerId: Id | null;
   payload: Record<string, unknown>;
 }
-export type NewEvent = Omit<Event, "id">;
+export type NewEvent = Omit<DomainEvent, "id">;

@@ -5,44 +5,57 @@ import { eq } from "drizzle-orm";
 import type { Deps } from "./app.ts";
 import { renderMagicLink } from "./adapters/email.ts";
 import { adminEmployers, isTimezone } from "./adapters/store-d1/console-queries.ts";
+import { consumeLinkToken, takeSendSlot } from "./adapters/store-d1/throttle.ts";
 import * as s from "./adapters/store-d1/schema.ts";
-import { OPERATOR_TTL_MS, signAdmin, signOperator, verifyAdmin } from "./link.ts";
+import { OPERATOR_TTL_MS, SIGNIN_LINK_TTL_MS, signAdmin, signAdminLink, tokenHash, verifyAdmin, verifyAdminLink } from "./link.ts";
 import type { AdminClaims } from "./link.ts";
+import { LOGIN_COOLDOWN_MS, sendConsoleLink } from "./console.ts";
 
 type Vars = { claims: AdminClaims };
 
 export function adminRoutes(deps: Deps) {
   const now = deps.now ?? (() => new Date());
   const adminWeb = deps.adminUrl.replace(/\/$/, "");
-  const consoleWeb = deps.consoleUrl.replace(/\/$/, "");
   const owner = () => deps.adminEmail.trim().toLowerCase(); // read per request so a config change applies at once
   const app = new Hono<{ Variables: Vars }>();
 
   /** Emails an operator their console sign-in link. Used on create, on operator change, and on demand. */
   async function inviteOperator(employer: { id: string; name: string; operatorEmail: string | null; locale: "en" | "he" }, t: Date): Promise<boolean> {
     if (!employer.operatorEmail) return false;
-    const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
-    const token = await signOperator({ kind: "operator", employerId: employer.id, email: employer.operatorEmail, exp }, deps.linkSecret);
-    await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: employer.operatorEmail, employerName: employer.name, link: `${consoleWeb}/${token}`, expires: new Date(exp) }));
+    await sendConsoleLink(deps, employer, employer.operatorEmail, t);
     return true;
   }
 
+  // Same 202 for anyone; one link per address per minute (see console.ts).
   app.post("/login", async (c) => {
     const body = await c.req.json<{ email?: unknown; locale?: unknown }>().catch(() => ({} as { email?: unknown; locale?: unknown }));
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const locale = body.locale === "he" ? "he" : "en";
     if (!email.includes("@")) return c.json({ error: "email required" }, 400);
-    if (owner() && email === owner()) {
-      const t = now();
-      const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
-      const token = await signAdmin({ kind: "admin", email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ locale, to: email, employerName: "ClockCover", link: `${adminWeb}/${token}`, expires: new Date(exp), area: "admin" }));
+    const t = now();
+    if (owner() && email === owner() && await takeSendSlot(deps.db, `admin_login:${email}`, t, LOGIN_COOLDOWN_MS, 1)) {
+      const exp = t.getTime() + SIGNIN_LINK_TTL_MS;
+      const token = await signAdminLink({ kind: "admin_link", email, exp, t: crypto.randomUUID() }, deps.linkSecret);
+      await deps.sendEmail(renderMagicLink({ locale, to: email, employerName: "ClockCover", link: `${adminWeb}/#${token}`, expires: new Date(exp), area: "admin" }));
     }
     return c.json({ ok: true, message: "If that is the owner's address, a sign-in link is on its way." }, 202);
   });
 
+  // The emailed token, once, within 15 minutes → a 7-day admin session token.
+  app.post("/exchange", async (c) => {
+    const body = await c.req.json<{ token?: unknown }>().catch(() => ({} as { token?: unknown }));
+    const token = typeof body.token === "string" ? body.token : "";
+    const t = now();
+    const link = await verifyAdminLink(token, deps.linkSecret, t);
+    if (!link || !owner() || link.email !== owner()) return c.json({ error: "link invalid or expired" }, 401);
+    if (!(await consumeLinkToken(deps.db, await tokenHash(token), new Date(link.exp), t))) return c.json({ error: "link already used" }, 401);
+    const exp = t.getTime() + OPERATOR_TTL_MS;
+    const session = await signAdmin({ kind: "admin", email: link.email, exp }, deps.linkSecret);
+    return c.json({ token: session, sessionExpires: new Date(exp).toISOString() });
+  });
+
   app.use("/*", async (c, next) => {
-    if (c.req.path.endsWith("/login")) return next();
+    if (c.req.path.endsWith("/login") || c.req.path.endsWith("/exchange")) return next();
     const token = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
     const claims = await verifyAdmin(token, deps.linkSecret, now());
     if (!claims || !owner() || claims.email !== owner()) return c.json({ error: "sign in required" }, 401);

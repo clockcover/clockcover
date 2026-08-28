@@ -34,8 +34,29 @@ export interface AdminClaims {
   exp: number;
 }
 
+/**
+ * What the sign-in email carries (ADR-0005, amended): a short-lived, single-use token that
+ * `POST /console/exchange` or `/admin/exchange` turns into the session token above. `t` is a
+ * nonce so two links requested in the same millisecond still differ.
+ */
+export interface ConsoleLinkClaims {
+  kind: "console_link";
+  employerId: string;
+  email: string;
+  exp: number;
+  t: string;
+}
+export interface AdminLinkClaims {
+  kind: "admin_link";
+  email: string;
+  exp: number;
+  t: string;
+}
+
 export const LINK_TTL_MS = 14 * 24 * 3_600_000;
 export const OPERATOR_TTL_MS = 7 * 24 * 3_600_000;
+/** How long an emailed sign-in link can be exchanged for a session. */
+export const SIGNIN_LINK_TTL_MS = 15 * 60_000;
 
 const enc = new TextEncoder();
 
@@ -57,6 +78,8 @@ export const signLink = (claims: LinkClaims, secret: string) => sign(claims, sec
 export const signOperator = (claims: OperatorClaims, secret: string) => sign(claims, secret);
 export const signPayroll = (claims: PayrollClaims, secret: string) => sign(claims, secret);
 export const signAdmin = (claims: AdminClaims, secret: string) => sign(claims, secret);
+export const signConsoleLink = (claims: ConsoleLinkClaims, secret: string) => sign(claims, secret);
+export const signAdminLink = (claims: AdminLinkClaims, secret: string) => sign(claims, secret);
 
 /** Signature + expiry check; returns the raw claims object or null. */
 async function verify(token: string, secret: string, now: Date): Promise<Record<string, unknown> | null> {
@@ -111,4 +134,25 @@ export async function verifyAdmin(token: string, secret: string, now: Date): Pro
   const c = await verify(token, secret, now);
   if (!c || c["kind"] !== "admin" || typeof c["email"] !== "string") return null;
   return { kind: "admin", email: c["email"], exp: c["exp"] as number };
+}
+
+/** Emailed console sign-in link: claims or null. Never a session token. */
+export async function verifyConsoleLink(token: string, secret: string, now: Date): Promise<ConsoleLinkClaims | null> {
+  const c = await verify(token, secret, now);
+  if (!c || c["kind"] !== "console_link") return null;
+  if (typeof c["employerId"] !== "string" || typeof c["email"] !== "string" || typeof c["t"] !== "string") return null;
+  return { kind: "console_link", employerId: c["employerId"], email: c["email"], exp: c["exp"] as number, t: c["t"] };
+}
+
+/** Emailed admin sign-in link: claims or null. Never a session token. */
+export async function verifyAdminLink(token: string, secret: string, now: Date): Promise<AdminLinkClaims | null> {
+  const c = await verify(token, secret, now);
+  if (!c || c["kind"] !== "admin_link" || typeof c["email"] !== "string" || typeof c["t"] !== "string") return null;
+  return { kind: "admin_link", email: c["email"], exp: c["exp"] as number, t: c["t"] };
+}
+
+/** Hex SHA-256 of a token — what `used_link_tokens` stores, so the table never holds a usable token. */
+export async function tokenHash(token: string): Promise<string> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(token)));
+  return [...digest].map((b) => b.toString(16).padStart(2, "0")).join("");
 }

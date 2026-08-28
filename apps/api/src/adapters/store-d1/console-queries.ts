@@ -83,15 +83,33 @@ export interface ResolutionRow {
   plannedStart: string; plannedEnd: string; plannedHours: string; clockIn: string; clockOut: string;
 }
 
+/** The wall-clock offset of `timeZone` at instant `d`, in ms (positive east of UTC). Mirrors core's isoDate. */
+function tzOffsetMs(d: Date, timeZone: string): number {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, hourCycle: "h23", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).formatToParts(d);
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? "0");
+  const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), get("second"));
+  return asUtc - Math.floor(d.getTime() / 1000) * 1000;
+}
+
+/** The UTC instant at which local `YYYY-MM-DD` `HH:MM:SS.mmm` happens in `timeZone`. */
+export function localToUtc(date: string, time: string, timeZone: string): Date {
+  const guess = Date.parse(`${date}T${time}Z`);
+  let utc = guess - tzOffsetMs(new Date(guess), timeZone);
+  utc = guess - tzOffsetMs(new Date(utc), timeZone); // second pass settles a DST edge
+  return new Date(utc);
+}
+
 /**
- * Gaps closed by a person (manager or payroll) with resolved_at in [from, to] — the
- * corrections payroll has to carry into the attendance or payroll system. Records that
- * arrived by import are not corrections and are left out.
+ * Gaps closed by a person (manager or payroll) with resolved_at inside the local days
+ * [from, to] of the employer's timezone — the corrections the payroll accountant has to
+ * carry into the attendance or payroll system. Records that arrived by import are not
+ * corrections and are left out.
  */
-export async function resolutionsBetween(db: Db, employerId: Id, from: string, to: string): Promise<ResolutionRow[]> {
+export async function resolutionsBetween(db: Db, employerId: Id, from: string, to: string, timezone = "UTC"): Promise<ResolutionRow[]> {
   const gaps = await db.select().from(s.gaps).where(and(
     eq(s.gaps.employerId, employerId), isNotNull(s.gaps.resolvedAt),
-    gte(s.gaps.resolvedAt, `${from}T00:00:00.000Z`), lte(s.gaps.resolvedAt, `${to}T23:59:59.999Z`),
+    gte(s.gaps.resolvedAt, localToUtc(from, "00:00:00.000", timezone).toISOString()),
+    lte(s.gaps.resolvedAt, localToUtc(to, "23:59:59.999", timezone).toISOString()),
     inArray(s.gaps.resolution, ["manager_action", "payroll_action"]),
   ));
   if (gaps.length === 0) return [];
