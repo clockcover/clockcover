@@ -48,10 +48,7 @@ async function submit() {
     <div class="w-full max-w-[620px] flex flex-col gap-7">
       <header class="flex justify-between items-baseline gap-4">
         <div class="font-mono text-[13px] tracking-[0.08em] text-accent" dir="ltr">CLOCKCOVER</div>
-        <div class="flex items-baseline gap-4">
-          <span class="font-mono text-[10.5px] tracking-[0.07em] uppercase px-2 py-[3px] rounded bg-[#f7ece0] text-[#a06a2a]">{{ t("esc.badge") }}</span>
-          <LangSwitch />
-        </div>
+        <span class="font-mono text-[10.5px] tracking-[0.07em] uppercase px-2 py-[3px] rounded bg-[#f7ece0] text-[#a06a2a]">{{ t("esc.badge") }}</span>
       </header>
 
       <div v-if="error && !view" class="bg-white border border-line rounded-[10px] px-8 py-10 text-center flex flex-col gap-2.5">
@@ -104,9 +101,12 @@ async function submit() {
           </div>
         </form>
 
-        <footer class="border-t border-line pt-4 flex flex-col gap-1 font-mono text-[11.5px] text-fainter">
-          <div>{{ t("esc.footer.link", { date: dayMonthYear(view.linkExpires) }) }}</div>
-          <div>{{ t("esc.footer.only") }}</div>
+        <footer class="border-t border-line pt-4 flex justify-between items-end gap-4">
+          <div class="flex flex-col gap-1 font-mono text-[11.5px] text-fainter">
+            <div>{{ t("esc.footer.link", { date: dayMonthYear(view.linkExpires) }) }}</div>
+            <div>{{ t("esc.footer.only") }}</div>
+          </div>
+          <LangSwitch />
         </footer>
       </template>
     </div>

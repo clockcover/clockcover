@@ -56,10 +56,7 @@ const tone = { muted: "text-faint", warn: "text-warn", danger: "text-danger" } a
     <div class="w-full max-w-[620px] flex flex-col gap-7">
       <header class="flex justify-between items-baseline gap-4">
         <div class="font-mono text-[13px] tracking-[0.08em] text-accent" dir="ltr">CLOCKCOVER</div>
-        <div class="flex items-baseline gap-4">
-          <div v-if="digest" class="font-mono text-xs text-faint">{{ t("digest.header", { date: longDate(digest.digestDate) }) }}</div>
-          <LangSwitch />
-        </div>
+        <div v-if="digest" class="font-mono text-xs text-faint">{{ t("digest.header", { date: longDate(digest.digestDate) }) }}</div>
       </header>
 
       <div v-if="error && !digest" class="bg-white border border-line rounded-[10px] px-8 py-10 text-center flex flex-col gap-2.5">
@@ -135,9 +132,12 @@ const tone = { muted: "text-faint", warn: "text-warn", danger: "text-danger" } a
           </p>
         </section>
 
-        <footer class="border-t border-line pt-4 flex flex-col gap-1 font-mono text-[11.5px] text-fainter">
-          <div>{{ t("digest.footer.link", { date: dayMonthYear(digest.linkExpires) }) }}</div>
-          <div>{{ t("digest.footer.sla", { h: digest.slaHours }) }}</div>
+        <footer class="border-t border-line pt-4 flex justify-between items-end gap-4">
+          <div class="flex flex-col gap-1 font-mono text-[11.5px] text-fainter">
+            <div>{{ t("digest.footer.link", { date: dayMonthYear(digest.linkExpires) }) }}</div>
+            <div>{{ t("digest.footer.sla", { h: digest.slaHours }) }}</div>
+          </div>
+          <LangSwitch />
         </footer>
       </template>
     </div>

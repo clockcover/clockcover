@@ -61,7 +61,7 @@ a.brand { text-decoration: none; }
 .contact .hp { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
 .contact .row { display: flex; align-items: center; gap: 14px; }
 .contact .status { font-size: 13.5px; color: var(--muted); }
-.lang { font-size: 13.5px; color: var(--muted); text-decoration: none; }
+.lang { font-size: 12.5px; color: var(--muted); text-decoration: none; font-family: var(--sans); }
 .lang:hover { color: var(--accent); }
 
 /* Hebrew pages: RTL layout, a face with Hebrew glyphs. */
@@ -128,7 +128,8 @@ html[dir="rtl"] .closing-title { letter-spacing: 0; }
 .closing-title { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; max-width: 480px; text-wrap: pretty; }
 .closing-body { font-size: 15px; color: var(--muted); max-width: 480px; line-height: 1.55; text-wrap: pretty; }
 
-.foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 40px; font-size: 11.5px; color: var(--fainter); }
+.foot { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; padding-bottom: 40px; font-size: 11.5px; color: var(--fainter); }
+.foot-mid { flex: 1; text-align: center; }
 
 @media (max-width: 760px) {
   .hero { padding: 48px 0 64px; }
