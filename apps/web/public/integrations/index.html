@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClockCover — Integrations</title>
+    <meta name="description" content="What exists today, what we build on request, what we need from you, and how an integration runs." />
+    <link rel="alternate" hreflang="en" href="https://clockcover.com/integrations/" />
+    <link rel="alternate" hreflang="he" href="https://clockcover.com/he/integrations/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/" dir="ltr">CLOCKCOVER</a>
+        <nav class="menu" aria-label="Main">
+          <a href="/help/">Help</a>
+          <a href="/integrations/" aria-current="page">Integrations</a>
+          <a href="/about/">About</a>
+          <a class="lang" href="/he/integrations/" lang="he" hreflang="he">עברית</a>
+          <a class="top-link" href="/contact/">Get in touch</a>
+        </nav>
+      </header>
+
+      <article class="prose">
+        <h1>Integrations</h1>
+        <p class="lede">ClockCover is deliberately vendor-agnostic: it reads what your systems already export. Here is what exists today, what we need from you, and how an integration project runs.</p>
+
+        <h2 id="today">Available today</h2>
+        <table class="grid">
+          <thead><tr><th>Path</th><th>Direction</th><th>What you provide</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CSV upload</strong> in the console</td><td>in</td><td>The two files described in <a href="/help/">Help</a>. Nothing else.</td></tr>
+            <tr><td><strong>Scheduled fetch over https</strong></td><td>in</td><td>A fixed https address where your system publishes the export (and optionally the roster). The address is the credential — use one with a secret in it. We fetch every morning before the digests and email the operator if the fetch or the file fails.</td></tr>
+            <tr><td><strong>Script upload</strong> (API key)</td><td>in</td><td>For your own scheduler or an integrator: <code dir="ltr">POST /employers/:id/imports</code> with the CSV body and a bearer key we issue.</td></tr>
+            <tr><td><strong>Corrections export</strong></td><td>out</td><td>CSV from the console for any date range: approved hours and reported absences with notes, planned times and planned hours. Carry it into your payroll run.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="request">Built on request</h2>
+        <ul>
+          <li><strong>Excel exports</strong> (<code>.xlsx</code>) from attendance systems — a column mapping, then the same pipeline.</li>
+          <li><strong>Vendor connectors</strong> for a specific attendance system (an API or a report URL). One per system; we write it, you keep it.</li>
+          <li><strong>Email attachment intake</strong> — forward the daily export to an address and it imports itself.</li>
+          <li><strong>Corrections push</strong> into your payroll or attendance system, once we know which one and what it accepts.</li>
+        </ul>
+        <p>During <a href="/#early-access">early access</a> we build these at no charge and have them running within two weeks of receiving your sample export.</p>
+
+        <h2 id="needs">What we need from you</h2>
+        <dl class="cases">
+          <dt>A sample export</dt><dd>One real-shaped file (synthetic or anonymised names are fine) covering a few days: which columns exist, how dates and times look, how a missing entry appears (empty cell? “—”? absent row?).</dd>
+          <dt>The roster source</dt><dd>Where employee → manager lives: an HR export, the attendance system, or a spreadsheet someone maintains. And what the stable employee identifier is.</dd>
+          <dt>Access, if we fetch</dt><dd>An https URL with a secret, or read-only API credentials for the attendance system. We never need write access to anything of yours. Credentials go into an encrypted Worker secret, never into email or chat.</dd>
+          <dt>Two settings</dt><dd>Your timezone and the SLA you want (hours before a gap goes to payroll).</dd>
+          <dt>Where corrections should land</dt><dd>Which payroll or attendance system, and whether it takes a file or an API call. If unknown, the CSV export is the answer for now.</dd>
+        </dl>
+
+        <h2 id="process">How an integration runs</h2>
+        <ol>
+          <li><strong>Day 0 — sample.</strong> You send the export (and roster) sample. We confirm the column mapping back to you in writing.</li>
+          <li><strong>Days 1–10 — build.</strong> We write the adapter and test it against your sample. You see the result in the console: shifts, entries, gaps detected.</li>
+          <li><strong>Parallel run.</strong> For a week the daily import runs against live exports while your current process continues. Managers can already receive digests, or we keep them off until you say go.</li>
+          <li><strong>Day 14 at the latest — live.</strong> Digests and escalations on. The two weeks are our commitment, counted from day 0.</li>
+        </ol>
+
+        <h2 id="security">Security notes</h2>
+        <ul>
+          <li>No accounts or passwords for managers or payroll: signed, expiring links. The operator console and the admin area use emailed sign-in links.</li>
+          <li>We store normalised records only; raw files are parsed and discarded. No biometric data ever reaches us.</li>
+          <li>Everything is per employer; nothing is shared between employers.</li>
+        </ul>
+        <p class="lede">Have a system we should look at? <a href="/contact/">Tell us which one</a>.</p>
+      </article>
+
+      <footer class="mono foot">
+        <div dir="ltr">© 2026 ClockCover</div>
+        <div>no accounts · no biometrics · exports deleted after parsing</div>
+      </footer>
+    </div>
+  </body>
+</html>

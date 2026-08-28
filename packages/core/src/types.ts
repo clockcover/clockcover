@@ -40,7 +40,7 @@ export interface Employee {
   active: boolean;
 }
 
-export type ImportSource = "csv" | "excel" | "pdf";
+export type ImportSource = "csv" | "excel";
 
 export interface Import {
   id: Id;

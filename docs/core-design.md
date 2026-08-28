@@ -27,7 +27,7 @@ managers
   whatsapp_number (nullable, until WhatsApp delivery is built)
 
 imports
-  id, employer_id, source (csv|excel|pdf), trigger (upload|url), imported_at, row_count
+  id, employer_id, source (csv|excel), trigger (upload|url), imported_at, row_count
                                    -- one row per import run; the raw file itself is deleted
                                    -- after parsing (privacy.md). `source` grows with adapters.
 

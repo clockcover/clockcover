@@ -26,6 +26,8 @@
     "CONSOLE_URL": "https://console.clockcover.com",
     "ADMIN_URL": "https://admin.clockcover.com",
     "ADMIN_EMAIL": "andrew@molyuk.com",
+    "SITE_URLS": "https://clockcover.com,https://www.clockcover.com",
+    "CONTACT_EMAIL": "hello@clockcover.com",
     "SLA_HOURS": "48"
   }
 }

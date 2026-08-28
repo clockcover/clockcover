@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ClockCover — אינטגרציות</title>
+    <meta name="description" content="מה קיים היום, מה נבנה לפי בקשה, מה נדרש מכם ואיך מתנהלת אינטגרציה." />
+    <link rel="alternate" hreflang="en" href="https://clockcover.com/integrations/" />
+    <link rel="alternate" hreflang="he" href="https://clockcover.com/he/integrations/" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <a class="brand" href="/he/" dir="ltr">CLOCKCOVER</a>
+        <nav class="menu" aria-label="ראשי">
+          <a href="/he/help/">עזרה</a>
+          <a href="/he/integrations/" aria-current="page">אינטגרציות</a>
+          <a href="/he/about/">אודות</a>
+          <a class="lang" href="/integrations/" lang="en" hreflang="en">English</a>
+          <a class="top-link" href="/he/contact/">דברו איתנו</a>
+        </nav>
+      </header>
+
+      <article class="prose">
+        <h1>אינטגרציות</h1>
+        <p class="lede">ClockCover בכוונה אינו קשור לספק מסוים: הוא קורא את מה שהמערכות שלכם כבר מייצאות. הנה מה שקיים היום, מה נדרש מכם ואיך מתנהל פרויקט אינטגרציה.</p>
+
+        <h2 id="today">זמין היום</h2>
+        <table class="grid">
+          <thead><tr><th>דרך</th><th>כיוון</th><th>מה אתם מספקים</th></tr></thead>
+          <tbody>
+            <tr><td><strong>העלאת CSV</strong> בלוח הבקרה</td><td>פנימה</td><td>שני הקבצים המתוארים ב<a href="/he/help/">עזרה</a>. שום דבר אחר.</td></tr>
+            <tr><td><strong>משיכה מתוזמנת ב-https</strong></td><td>פנימה</td><td>כתובת https קבועה שבה המערכת שלכם מפרסמת את הייצוא (ואופציונלית את רשימת העובדים). הכתובת היא הסיסמה — השתמשו בכתובת עם סוד. אנחנו מושכים כל בוקר לפני התקצירים ושולחים מייל למפעיל/ה אם המשיכה או הקובץ נכשלו.</td></tr>
+            <tr><td><strong>העלאה בסקריפט</strong> (מפתח API)</td><td>פנימה</td><td>למתזמן שלכם או לאינטגרטור: <code dir="ltr">POST /employers/:id/imports</code> עם גוף CSV ומפתח שאנחנו מנפיקים.</td></tr>
+            <tr><td><strong>ייצוא תיקונים</strong></td><td>החוצה</td><td>CSV מלוח הבקרה לכל טווח תאריכים: שעות שאושרו והיעדרויות שדווחו עם הערות, זמנים מתוכננים ושעות מתוכננות. להעברה לחישוב השכר.</td></tr>
+          </tbody>
+        </table>
+
+        <h2 id="request">נבנה לפי בקשה</h2>
+        <ul>
+          <li><strong>ייצוא Excel</strong> (<code dir="ltr">.xlsx</code>) ממערכות נוכחות — מיפוי עמודות, ואז אותו צינור.</li>
+          <li><strong>מחברים לספק</strong> — למערכת נוכחות מסוימת (API או כתובת דוח). אחד לכל מערכת; אנחנו כותבים, אתם שומרים.</li>
+          <li><strong>קליטה מקובץ מצורף במייל</strong> — מעבירים את הייצוא היומי לכתובת והוא מייבא את עצמו.</li>
+          <li><strong>דחיפת תיקונים</strong> למערכת השכר או הנוכחות שלכם, ברגע שנדע איזו ומה היא מקבלת.</li>
+        </ul>
+        <p>במסגרת <a href="/he/#early-access">הגישה המוקדמת</a> אנחנו בונים את אלה ללא תשלום ומפעילים אותם בתוך שבועיים מקבלת קובץ הייצוא לדוגמה.</p>
+
+        <h2 id="needs">מה נדרש מכם</h2>
+        <dl class="cases">
+          <dt>ייצוא לדוגמה</dt><dd>קובץ אחד בצורה האמיתית (שמות סינתטיים או מוסווים בסדר גמור) לכמה ימים: אילו עמודות יש, איך נראים תאריכים וזמנים, איך נראית החתמה חסרה (תא ריק? "—"? שורה שאינה קיימת?).</dd>
+          <dt>מקור רשימת העובדים</dt><dd>איפה חי הקישור עובד/ת ← מנהל/ת: ייצוא HR, מערכת הנוכחות, או גיליון שמישהו מתחזק. ומה המזהה הקבוע של העובד/ת.</dd>
+          <dt>גישה, אם אנחנו מושכים</dt><dd>כתובת https עם סוד, או הרשאות API לקריאה בלבד למערכת הנוכחות. לעולם לא נצטרך הרשאת כתיבה לשום דבר שלכם. ההרשאות נשמרות כסוד מוצפן ב-Worker, לא במייל ולא בצ'אט.</dd>
+          <dt>שתי הגדרות</dt><dd>אזור הזמן שלכם וזמן התגובה הרצוי (שעות עד שפער עובר לשכר).</dd>
+          <dt>לאן צריכים להגיע התיקונים</dt><dd>איזו מערכת שכר או נוכחות, והאם היא מקבלת קובץ או קריאת API. אם לא ידוע — ייצוא ה-CSV הוא התשובה בשלב זה.</dd>
+        </dl>
+
+        <h2 id="process">איך מתנהלת אינטגרציה</h2>
+        <ol>
+          <li><strong>יום 0 — דוגמה.</strong> אתם שולחים את דוגמת הייצוא (והרשימה). אנחנו מאשרים לכם בכתב את מיפוי העמודות.</li>
+          <li><strong>ימים 1–10 — בנייה.</strong> אנחנו כותבים את המתאם ובודקים אותו על הדוגמה שלכם. אתם רואים את התוצאה בלוח הבקרה: משמרות, החתמות, פערים שזוהו.</li>
+          <li><strong>ריצה במקביל.</strong> במשך שבוע הייבוא היומי רץ על ייצואים אמיתיים בזמן שהתהליך הנוכחי שלכם ממשיך. המנהלים יכולים כבר לקבל תקצירים, או שנשאיר אותם כבויים עד שתגידו.</li>
+          <li><strong>יום 14 לכל המאוחר — חי.</strong> תקצירים והעברות פועלים. השבועיים הם ההתחייבות שלנו, מיום 0.</li>
+        </ol>
+
+        <h2 id="security">הערות אבטחה</h2>
+        <ul>
+          <li>בלי חשבונות וסיסמאות למנהלים ולשכר: קישורים חתומים שפגים. לוח הבקרה של המפעיל/ה ואזור הניהול משתמשים בקישורי כניסה במייל.</li>
+          <li>אנחנו שומרים רק רישומים מנורמלים; קבצים גולמיים נקראים ונמחקים. מידע ביומטרי לעולם לא מגיע אלינו.</li>
+          <li>הכול לפי מעסיק; דבר לא משותף בין מעסיקים.</li>
+        </ul>
+        <p class="lede">יש מערכת שכדאי שנבדוק? <a href="/he/contact/">ספרו לנו איזו</a>.</p>
+      </article>
+
+      <footer class="mono foot">
+        <div dir="ltr">© 2026 ClockCover</div>
+        <div>בלי חשבונות · בלי ביומטריה · קובצי הייצוא נמחקים אחרי הקריאה</div>
+      </footer>
+    </div>
+  </body>
+</html>

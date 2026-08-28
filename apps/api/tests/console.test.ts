@@ -22,7 +22,7 @@ async function setup() {
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: OPERATOR, timezone: "UTC" });
   const emails: Email[] = [];
   let now = T0;
-  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: WEB, consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
+  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: WEB, consoleUrl: CONSOLE, adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
   const app = createApp(deps);
   const login = async (email: string) => app.request("/console/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) });
   const tokenFromEmail = () => emails.at(-1)!.text.split(`${CONSOLE}/console/`)[1]!.split(/\s/)[0]!;

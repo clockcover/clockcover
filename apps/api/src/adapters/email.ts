@@ -228,6 +228,20 @@ ${footer([esc(t(L, "imp.footer"))])}`);
   return { to: input.to, subject, text, html };
 }
 
+/** A message from the site's contact form, delivered to us. Reply goes to the sender. */
+export function renderContact(input: { to: string; name: string; email: string; employer: string; message: string; locale: Locale; receivedAt: Date }): Email {
+  const subject = `Contact form: ${input.name}${input.employer ? ` (${input.employer})` : ""}`;
+  const meta = [`From: ${input.name} <${input.email}>`, input.employer ? `Employer: ${input.employer}` : "", `Language: ${input.locale}`, `Received: ${input.receivedAt.toISOString()}`].filter(Boolean);
+  const html = shell("en", subject, `
+${brand("en", badge("contact", C.strongBg, C.strongFg))}
+<div style="margin-top:24px;font-size:18px;font-weight:700">${esc(subject)}</div>
+<div style="margin-top:8px;font-family:${MONO};font-size:12px;color:${C.muted};line-height:1.6">${meta.map(esc).join("<br>")}</div>
+<pre dir="auto" style="margin-top:16px;padding:14px 16px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px;font-family:${SANS};font-size:14px;line-height:1.5;white-space:pre-wrap">${esc(input.message)}</pre>
+${footer([`Reply to <a href="mailto:${esc(input.email)}">${esc(input.email)}</a>.`])}`);
+  const text = [subject, "", ...meta, "", input.message, "", `Reply to ${input.email}`].join("\n");
+  return { to: input.to, subject, text, html };
+}
+
 export type SendEmail = (email: Email) => Promise<void>;
 
 /** Sends through Resend. Throws on non-2xx so the caller does not record a digest that was not sent. */

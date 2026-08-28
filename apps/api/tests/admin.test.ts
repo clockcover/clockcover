@@ -21,7 +21,7 @@ async function setup() {
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: "operator@example.com", timezone: "UTC" });
   const emails: Email[] = [];
   let now = T0;
-  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: ADMIN, adminEmail: OWNER, slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
+  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: ADMIN, adminEmail: OWNER, siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
   const app = createApp(deps);
   const json = (b: unknown, method = "POST") => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
   const login = async (email: string) => app.request("/admin/login", json({ email }));

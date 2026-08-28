@@ -11,7 +11,7 @@ import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts
 import { gapViews, unscheduledFor } from "./adapters/store-d1/views.ts";
 import * as s from "./adapters/store-d1/schema.ts";
 import { parseCsv, parseRoster } from "./adapters/csv.ts";
-import { renderDigest, renderEscalation, renderImportFailure } from "./adapters/email.ts";
+import { renderContact, renderDigest, renderEscalation, renderImportFailure } from "./adapters/email.ts";
 import { ImportError, hasImportSources, runImportFromUrls } from "./import-run.ts";
 import type { SendEmail } from "./adapters/email.ts";
 import { LINK_TTL_MS, signLink, signPayroll, verifyLink, verifyPayroll } from "./link.ts";
@@ -34,6 +34,9 @@ export interface Deps {
   adminUrl: string;
   /** The one address that may sign in to the admin area (ADR-0006). */
   adminEmail: string;
+  /** Public site origins allowed to POST the contact form, and where those messages go. */
+  siteUrls: string[];
+  contactEmail: string;
   /** Default SLA for employers that have not set their own (employers.sla_hours). */
   slaHours: number;
   now?: () => Date;
@@ -48,6 +51,23 @@ export function createApp(deps: Deps) {
   const app = new Hono();
 
   app.get("/health", (c) => c.json({ ok: true }));
+
+  // ---- Contact form from the public site. No auth; validated, honeypot, size-capped, emailed to us.
+  app.use("/contact", cors({ origin: deps.siteUrls, allowMethods: ["POST"], allowHeaders: ["content-type"] }));
+  app.post("/contact", async (c) => {
+    const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
+    const str = (k: string, max: number) => (typeof body[k] === "string" ? (body[k] as string).trim().slice(0, max) : "");
+    if (str("website", 10)) return c.json({ ok: true }, 202); // honeypot: bots fill it, people never see it
+    const name = str("name", 120), email = str("email", 200), employer = str("employer", 200), message = str("message", 4000);
+    const locale = body["locale"] === "he" ? "he" : "en";
+    const errors: string[] = [];
+    if (!name) errors.push("name");
+    if (!email.includes("@")) errors.push("email");
+    if (message.length < 10) errors.push("message");
+    if (errors.length) return c.json({ error: "invalid", fields: errors }, 400);
+    await deps.sendEmail(renderContact({ to: deps.contactEmail, name, email, employer, message, locale, receivedAt: now() }));
+    return c.json({ ok: true }, 202);
+  });
 
   // ---- Operator endpoints: shared secret. Different audience from managers.
   app.use("/employers/*", async (c, next) => {
