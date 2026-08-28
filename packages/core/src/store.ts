@@ -3,7 +3,7 @@
 // in-memory one. Ids are assigned by the store.
 import type {
   Digest, Employer, Escalation, Gap, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent,
-  NewGap, NewUnscheduledAttendance, Resolution,
+  NewGap, NewUnscheduledAttendance, Outcome, Resolution,
 } from "./types.ts";
 
 export interface Store {
@@ -16,7 +16,7 @@ export interface Store {
   upsertUnscheduledAttendance(u: NewUnscheduledAttendance): Promise<void>;
   /** Gaps with `resolvedAt` null, optionally limited to a date range (inclusive). */
   listOpenGaps(employerId: Id, range?: { from: IsoDate; to: IsoDate }): Promise<Gap[]>;
-  resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, note: string | null): Promise<Gap>;
+  resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, outcome: Outcome | null, note: string | null): Promise<Gap>;
   /** Sets `managerNotifiedAt` where it is still null. */
   markNotified(gapIds: Id[], at: Date): Promise<void>;
 

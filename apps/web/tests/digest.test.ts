@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dateTime, dayMonthYear, detail, groupByDay, longDate, shortDate, slaStatus } from "../src/digest.ts";
-import { tokenFromPath } from "../src/api.ts";
+import { escalationTokenFromPath, tokenFromPath } from "../src/api.ts";
 import type { DigestGap } from "../src/api.ts";
 
 const gap = (over: Partial<DigestGap> = {}): DigestGap => ({
@@ -47,4 +47,10 @@ test("token comes only from /d/<token>", () => {
   assert.equal(tokenFromPath("/"), null);
   assert.equal(tokenFromPath("/d/"), null);
   assert.equal(tokenFromPath("/d/a/b"), null);
+});
+
+test("escalation token comes only from /e/<token>", () => {
+  assert.equal(escalationTokenFromPath("/e/abc.def"), "abc.def");
+  assert.equal(escalationTokenFromPath("/d/abc.def"), null);
+  assert.equal(escalationTokenFromPath("/e/"), null);
 });

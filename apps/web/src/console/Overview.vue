@@ -31,8 +31,13 @@ onMounted(async () => {
         <div class="bg-white border border-line rounded-[10px] p-5 flex flex-col gap-1">
           <div class="font-mono text-[11.5px] tracking-[0.07em] text-faint uppercase">Escalated · {{ data.metric.windowDays }} d</div>
           <div class="text-[28px] font-bold">{{ data.metric.escalated }}</div>
-          <div class="text-[13px] text-muted">{{ data.metric.resolvedByRecord }} closed by a later import</div>
+          <div class="text-[13px] text-muted">{{ data.metric.closedByPayroll }} closed by payroll · {{ data.metric.resolvedByRecord }} closed by a later import</div>
         </div>
+      </div>
+      <div class="bg-white border border-line rounded-[10px] px-5 py-4 flex flex-wrap gap-x-8 gap-y-1 text-[13.5px]">
+        <div><span class="font-mono text-[11.5px] tracking-[0.07em] text-faint uppercase mr-2">Outcomes · {{ data.metric.windowDays }} d</span></div>
+        <div><span class="font-semibold">{{ data.metric.present }}</span> <span class="text-muted">hours approved (entry missing)</span></div>
+        <div><span class="font-semibold">{{ data.metric.absent }}</span> <span class="text-muted">absences reported</span></div>
       </div>
 
       <div class="flex flex-col gap-2.5">

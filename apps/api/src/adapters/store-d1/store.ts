@@ -5,7 +5,7 @@ import { and, eq, gte, isNull, lte } from "drizzle-orm";
 import type { BaseSQLiteDatabase } from "drizzle-orm/sqlite-core";
 import type {
   Digest, Employer, Escalation, Gap, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent, NewGap,
-  NewUnscheduledAttendance, Resolution, Store,
+  NewUnscheduledAttendance, Outcome, Resolution, Store,
 } from "@clockcover/core";
 import * as s from "./schema.ts";
 
@@ -49,7 +49,7 @@ export class SqlStore implements Store {
     if (existing) return { gap: toGap(existing), created: false };
     const row = { id: newId(), ...g, detectedAt: iso(g.detectedAt) };
     await this.db.insert(s.gaps).values(row);
-    return { gap: toGap({ ...row, managerNotifiedAt: null, resolvedAt: null, resolution: null, resolutionNote: null }), created: true };
+    return { gap: toGap({ ...row, managerNotifiedAt: null, resolvedAt: null, resolution: null, outcome: null, resolutionNote: null }), created: true };
   }
 
   async upsertUnscheduledAttendance(u: NewUnscheduledAttendance): Promise<void> {
@@ -66,9 +66,9 @@ export class SqlStore implements Store {
     return rows.map(toGap);
   }
 
-  async resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, note: string | null): Promise<Gap> {
+  async resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, outcome: Outcome | null, note: string | null): Promise<Gap> {
     await this.db.update(s.gaps)
-      .set({ resolution, resolvedAt: iso(resolvedAt), resolutionNote: note })
+      .set({ resolution, resolvedAt: iso(resolvedAt), outcome, resolutionNote: note })
       .where(eq(s.gaps.id, gapId));
     const [row] = await this.db.select().from(s.gaps).where(eq(s.gaps.id, gapId));
     if (!row) throw new Error(`gap not found: ${gapId}`);

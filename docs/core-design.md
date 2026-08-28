@@ -43,7 +43,9 @@ gaps
   id, employer_id, employee_id, gap_date, gap_type (no_clockin|no_clockout|no_record_at_all),
   manager_id,                      -- snapshot at detection time, see below
   detected_at, manager_notified_at, resolved_at,
-  resolution (manager_action|record_arrived, nullable), resolution_note
+  resolution (manager_action|record_arrived|payroll_action, nullable),
+  outcome (present|absent, nullable),   -- set with the resolution; record_arrived ⇒ present
+  resolution_note
   UNIQUE (employer_id, employee_id, gap_date, gap_type)
 
 unscheduled_attendance
@@ -162,14 +164,27 @@ import), the gap is resolved with `resolution = record_arrived`.
 
 ## Resolution
 
-A gap is resolved either by the manager (the "Mark resolved" action on
-the digest page, `POST /d/<token>/gaps/:gapId/resolve` →
-`resolveByManager(store, gapId, now, note)`, `resolution =
-manager_action`) or by a later import supplying the missing record
-(`runDetection` re-run, `resolution = record_arrived`). Both set `resolved_at`
-and append a `gap_resolved` event. `record_arrived` does **not** count as
-the manager having acted (decided 2026-08-28): the SLA metric counts
-`manager_action` only, which is why the two resolutions are kept apart.
+A gap is resolved in one of three ways, and every resolution records an
+**outcome** — `present` (the employee worked; the entry is missing and
+the hours count) or `absent` (the gap is real and needs an explanation):
+
+- **Manager**, from the digest page (`POST /d/<token>/gaps/:gapId/resolve`
+  → `resolveByManager(store, gapId, now, outcome, note)`,
+  `resolution = manager_action`). The manager picks the outcome; a note is
+  required for `absent`.
+- **A later import** supplying the missing record (`runDetection` re-run,
+  `resolution = record_arrived`, `outcome = present`).
+- **Payroll**, from the escalation email (`POST /e/<token>/handle` →
+  `resolveByPayroll(store, gapId, now, outcome, note)`,
+  `resolution = payroll_action`), for gaps whose entry will never arrive
+  — leaver, retroactive leave, broken terminal. Outcome and note are
+  both required; the note is the only trace of why.
+
+All three set `resolved_at` and append a `gap_resolved` event with the
+resolution and outcome in the payload. For the SLA metric only
+`manager_action` counts as the manager having acted (decided 2026-08-28);
+`record_arrived` and `payroll_action` count as not acted — otherwise
+payroll closing tails would flatter managers' numbers.
 
 ## Acceptance scenarios
 

@@ -24,6 +24,10 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   clock in despite being scheduled" from "no shift — gap is expected."
 - Escalate to the payroll accountant if the manager hasn't acted within
   the SLA: 48 hours, calendar time.
+- Every resolution says **what happened**: the employee was present (the
+  entry is missing, the hours count) or absent (the gap is real and
+  needs an explanation). Managers choose from the digest; payroll from
+  the escalation; a record arriving with a later import means present.
 - Work **independently of the specific vendor** attendance system —
   because the pain is role-based, not vendor-based (confirmed by the
   domain expert: "it doesn't matter which system we use").
@@ -47,5 +51,7 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - No employment-contract generator/parser.
 - No payroll calculation itself — only gap detection and routing.
 - No gap list for the payroll accountant. Individual gaps reach them
-  only as escalation emails; the operator console shows settings,
-  imports and aggregate numbers, never a queue of gaps to chase.
+  only as escalation emails — each with a link to close **that one gap**
+  when the entry will never arrive (ADR-0004 § extended). The operator
+  console shows settings, imports and aggregate numbers, never a queue
+  of gaps to chase.

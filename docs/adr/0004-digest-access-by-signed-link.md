@@ -105,6 +105,13 @@ link in the email" is what they learn). Two-way for the code: a login
 flow later would sit in front of the same two endpoints; the token
 becomes a session instead of an email link.
 
+*Extended 2026-08-28:* the same mechanism serves the payroll accountant.
+Each escalation email carries a link `/e/<token>` signed with
+`kind: "payroll"` for **one gap**, bound to `employers.payroll_email`,
+14 days; it shows the gap and lets payroll close it with an outcome and
+a required note (`POST /e/<token>/handle`). Manager, operator and payroll
+tokens are mutually exclusive by `kind`.
+
 **Revisit when:** a second employer shares one deployment (a manager
 with teams at two employers), an employer requires SSO, or the page
 grows a write that can affect pay. Any of those reopens "possession of

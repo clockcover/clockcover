@@ -71,6 +71,10 @@ The core (matching + routing) never depends on the vendor.
   `resolveByManager`. Tokens are HMAC-SHA-256 over
   `{employerId, managerId, exp}` with `LINK_SECRET`, valid 14 days.
   CORS on `/d/*` is open to `WEB_URL` only. No accounts or sessions.
+- **Payroll access** (ADR-0004 § extended): each escalation email links
+  to `/e/<token>` (one gap, `kind: "payroll"`, 14 days); `GET /e/:token`
+  shows it, `POST /e/:token/handle` closes it with `outcome` + `note`
+  (`resolution = payroll_action`). CORS as for `/d/*`.
 - **Operator console** (ADR-0005): `POST /console/login` emails a
   7-day operator token to `employers.operator_email` as a link on
   `CONSOLE_URL`; CORS on `/console/*` is open to that origin only. The

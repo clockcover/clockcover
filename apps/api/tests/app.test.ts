@@ -93,6 +93,46 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   assert.match(esc[0]!.text, /Manager:\s+Manager North/);
   assert.match(esc[0]!.text, /Notified:\s+Mon 2 Mar, 18:00 — no action recorded since/);
   assert.match(esc[0]!.html, /SLA breach/);
+  assert.ok(esc[0]!.text.includes(`${WEB}/e/`), "escalation carries the payroll handle link");
+});
+
+test("payroll handle link: shows the gap, requires a note, closes once, never escalates again", async () => {
+  const { app, deps, emails, seed, advance } = await setup();
+  await seed();
+  await runScheduled(deps);
+  advance(new Date("2026-03-05T08:00:00Z"));
+  await runScheduled(deps);
+  const esc = emails.filter((e) => e.to === "payroll@example.com");
+  const token = esc[0]!.text.split(`${WEB}/e/`)[1]!.split(/\s/)[0]!;
+
+  const page = await app.request(`/e/${token}`);
+  assert.equal(page.status, 200);
+  const body = await page.json() as { gap: Record<string, unknown>; manager: { fullName: string } };
+  assert.equal(body.manager.fullName, "Manager North");
+  assert.ok(body.gap["escalatedAt"]);
+  assert.equal(body.gap["resolvedAt"], null);
+
+  const json = (b: unknown) => ({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+  assert.equal((await app.request(`/e/${token}/handle`, json({ outcome: "absent" }))).status, 400, "note required");
+  assert.equal((await app.request(`/e/${token}/handle`, json({ note: "x" }))).status, 400, "outcome required");
+  const ok = await app.request(`/e/${token}/handle`, json({ outcome: "absent", note: "employee left the company on 1 March" }));
+  assert.equal(ok.status, 200);
+  const done = await ok.json() as Record<string, unknown>;
+  assert.equal(done["resolution"], "payroll_action");
+  assert.equal(done["outcome"], "absent");
+  assert.equal((await app.request(`/e/${token}/handle`, json({ outcome: "absent", note: "again" }))).status, 409);
+
+  // a manager token cannot be used on /e, a payroll token cannot be used on /d
+  const gapId = body.gap["id"] as string;
+  const managerToken = await signLink({ employerId: "emp-1", managerId: "x", exp: Date.now() + 60_000 }, SECRET);
+  assert.equal((await app.request(`/e/${managerToken}`)).status, 401);
+  assert.equal((await app.request(`/d/${token}`)).status, 401);
+  assert.equal((await app.request(`/d/${token}/gaps/${gapId}/resolve`, { method: "POST" })).status, 401);
+
+  advance(new Date("2026-03-06T08:00:00Z"));
+  const again = await runScheduled(deps);
+  assert.equal(again.escalations, 0);
+  assert.equal(emails.filter((e) => e.to === "payroll@example.com").length, 2, "no new escalation mail");
 });
 
 test("a failing mailer leaves no digest row behind, so the next run retries", async () => {
@@ -141,12 +181,14 @@ test("POST resolve: own gap only, once, with an optional note", async () => {
 
   assert.equal((await app.request(`/d/${south}/gaps/${gapId}/resolve`, { method: "POST" })).status, 404, "another manager's gap");
 
-  const ok = await app.request(`/d/${north}/gaps/${gapId}/resolve`, {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ note: "  badge left at home  " }),
-  });
+  const json = (b: unknown) => ({ method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
+  assert.equal((await app.request(`/d/${north}/gaps/${gapId}/resolve`, json({}))).status, 400, "outcome required");
+  assert.equal((await app.request(`/d/${north}/gaps/${gapId}/resolve`, json({ outcome: "absent" }))).status, 400, "absence needs a note");
+  const ok = await app.request(`/d/${north}/gaps/${gapId}/resolve`, json({ outcome: "present", note: "  badge left at home  " }));
   assert.equal(ok.status, 200);
   const body = await ok.json() as Record<string, unknown>;
   assert.equal(body["resolution"], "manager_action");
+  assert.equal(body["outcome"], "present");
   assert.equal(body["note"], "badge left at home");
 
   assert.equal((await app.request(`/d/${north}/gaps/${gapId}/resolve`, { method: "POST" })).status, 409, "already resolved");

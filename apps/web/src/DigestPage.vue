@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { ApiError, fetchDigest, resolveGap } from "./api.ts";
-import type { Digest, DigestGap } from "./api.ts";
-import { GAP_LABEL, dayMonthYear, detail, groupByDay, longDate, shortDate, slaStatus } from "./digest.ts";
+import type { Digest, DigestGap, Outcome } from "./api.ts";
+import { GAP_LABEL, OUTCOME_LABEL, dayMonthYear, detail, groupByDay, longDate, outcomeSummary, shortDate, slaStatus } from "./digest.ts";
 
 const props = defineProps<{ token: string }>();
 
@@ -10,8 +10,9 @@ const digest = ref<Digest | null>(null);
 const error = ref<string | null>(null);
 const resolvingId = ref<string | null>(null);
 const noteDraft = ref("");
+const outcomeDraft = ref<Outcome | null>(null);
 const busy = ref(false);
-const resolved = ref(new Map<string, string>()); // gapId → note
+const resolved = ref(new Map<string, { outcome: Outcome; note: string }>());
 const now = new Date();
 
 onMounted(async () => {
@@ -29,14 +30,15 @@ const allGaps = computed(() => digest.value?.gaps ?? []);
 const days = computed(() => groupByDay(allGaps.value));
 const allClear = computed(() => digest.value !== null && digest.value.gaps.length === 0);
 
-const startResolve = (g: DigestGap) => { resolvingId.value = g.id; noteDraft.value = ""; };
+const startResolve = (g: DigestGap) => { resolvingId.value = g.id; noteDraft.value = ""; outcomeDraft.value = null; };
+const canConfirm = computed(() => outcomeDraft.value !== null && (outcomeDraft.value === "present" || noteDraft.value.trim().length > 0));
 const cancel = () => { resolvingId.value = null; };
 async function confirm(g: DigestGap) {
-  if (!digest.value || busy.value) return;
+  if (!digest.value || busy.value || !outcomeDraft.value || !canConfirm.value) return;
   busy.value = true;
   try {
-    const r = await resolveGap(props.token, g.id, noteDraft.value);
-    resolved.value = new Map(resolved.value).set(g.id, r.note ?? "");
+    const r = await resolveGap(props.token, g.id, outcomeDraft.value, noteDraft.value);
+    resolved.value = new Map(resolved.value).set(g.id, { outcome: r.outcome, note: r.note ?? "" });
     resolvingId.value = null;
   } catch (e) {
     error.value = e instanceof ApiError && e.status === 409 ? "That gap was already resolved." : "Could not resolve the gap. Please try again.";
@@ -99,21 +101,28 @@ const tone = { muted: "text-faint", warn: "text-warn", danger: "text-danger" } a
                   </div>
 
                   <div v-if="resolved.has(g.id)" class="border-t border-line-soft pt-[11px] flex flex-col gap-[3px]">
-                    <div class="text-[13.5px] font-medium text-ok">✓ Resolved by you just now</div>
-                    <div v-if="resolved.get(g.id)" class="text-[13px] text-muted">“{{ resolved.get(g.id) }}”</div>
+                    <div class="text-[13.5px] font-medium text-ok">✓ Resolved by you just now — {{ outcomeSummary(resolved.get(g.id)!.outcome) }}</div>
+                    <div v-if="resolved.get(g.id)!.note" class="text-[13px] text-muted">“{{ resolved.get(g.id)!.note }}”</div>
                   </div>
 
                   <div v-else-if="resolvingId === g.id" class="border-t border-line-soft pt-3 flex flex-col gap-2.5">
+                    <div class="text-[13px] text-muted">What happened on {{ shortDate(g.gapDate) }}?</div>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                      <button v-for="o in (['present', 'absent'] as const)" :key="o" type="button"
+                        class="flex-1 text-left border rounded-[7px] px-3 py-2 text-[13.5px]"
+                        :class="outcomeDraft === o ? 'border-accent text-ink bg-strong/40' : 'border-field text-ink-soft hover:border-accent'"
+                        @click="outcomeDraft = o">{{ OUTCOME_LABEL[o] }}</button>
+                    </div>
                     <input
                       v-model="noteDraft"
                       maxlength="500"
-                      placeholder="Optional note — e.g. badge left at home, confirmed by phone"
+                      :placeholder="outcomeDraft === 'absent' ? 'Required — what happened? e.g. sick, called in at 07:30' : 'Optional note — e.g. badge left at home, confirmed by phone'"
                       class="border border-field rounded-[7px] px-3 py-[9px] text-[13.5px] outline-none focus:border-accent"
                       @keydown.enter.prevent="confirm(g)"
                       @keydown.esc="cancel"
                     />
                     <div class="flex gap-2">
-                      <button type="button" :disabled="busy" class="bg-accent hover:bg-accent-deep disabled:opacity-60 text-white rounded-[7px] px-4 py-2 text-[13.5px] font-medium" @click="confirm(g)">
+                      <button type="button" :disabled="busy || !canConfirm" class="bg-accent hover:bg-accent-deep disabled:opacity-60 text-white rounded-[7px] px-4 py-2 text-[13.5px] font-medium" @click="confirm(g)">
                         Resolve gap
                       </button>
                       <button type="button" class="text-muted hover:text-ink px-2.5 py-2 text-[13.5px]" @click="cancel">Cancel</button>
@@ -125,7 +134,7 @@ const tone = { muted: "text-faint", warn: "text-warn", danger: "text-danger" } a
                       {{ slaStatus(g, digest.slaHours, now).text }}
                     </div>
                     <button type="button" class="border border-field hover:border-accent hover:text-accent bg-white rounded-[7px] px-3.5 py-[7px] text-[13.5px] font-medium text-ink-soft" @click="startResolve(g)">
-                      Mark resolved
+                      Resolve
                     </button>
                   </div>
                 </article>

@@ -3,7 +3,7 @@
 // real ones (D1, Resend) — by hand, no DI framework (ADR-0003).
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { isoDate, resolveByManager, runDailyDigest, runDetection, runEscalations } from "@clockcover/core";
+import { isoDate, resolveByManager, resolveByPayroll, runDailyDigest, runDetection, runEscalations } from "@clockcover/core";
 import type { DigestMessage, Gap, Store } from "@clockcover/core";
 import { eq } from "drizzle-orm";
 import type { Db } from "./adapters/store-d1/store.ts";
@@ -13,7 +13,7 @@ import * as s from "./adapters/store-d1/schema.ts";
 import { parseCsv, parseRoster } from "./adapters/csv.ts";
 import { renderDigest, renderEscalation } from "./adapters/email.ts";
 import type { SendEmail } from "./adapters/email.ts";
-import { LINK_TTL_MS, signLink, verifyLink } from "./link.ts";
+import { LINK_TTL_MS, signLink, signPayroll, verifyLink, verifyPayroll } from "./link.ts";
 import { consoleRoutes } from "./console.ts";
 
 export interface Deps {
@@ -118,10 +118,61 @@ export function createApp(deps: Deps) {
     const [row] = await deps.db.select().from(s.gaps).where(eq(s.gaps.id, gapId));
     if (!row || row.employerId !== claims.employerId || row.managerId !== claims.managerId) return c.json({ error: "gap not found" }, 404);
     if (row.resolvedAt) return c.json({ error: "already resolved", resolution: row.resolution }, 409);
-    const body = await c.req.json<{ note?: unknown }>().catch(() => ({} as { note?: unknown }));
+    const body = await c.req.json<{ outcome?: unknown; note?: unknown }>().catch(() => ({} as { outcome?: unknown; note?: unknown }));
+    const outcome = body.outcome === "present" || body.outcome === "absent" ? body.outcome : null;
+    if (!outcome) return c.json({ error: "outcome must be 'present' (worked, entry missing) or 'absent' (did not work)" }, 400);
     const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, 500) : null;
-    const gap = await resolveByManager(deps.store, gapId, now(), note);
-    return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, note: gap.resolutionNote });
+    if (outcome === "absent" && !note) return c.json({ error: "an absence needs a note — what happened?" }, 400);
+    const gap = await resolveByManager(deps.store, gapId, now(), outcome, note);
+    return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
+  });
+
+  // ---- Payroll accountant: one escalated gap per signed link (scope.md, ADR-0004 § extended).
+  app.use("/e/*", cors({ origin: deps.webUrl, allowMethods: ["GET", "POST"], allowHeaders: ["content-type"] }));
+
+  const payrollGap = async (token: string) => {
+    const claims = await verifyPayroll(token, deps.linkSecret, now());
+    if (!claims) return null;
+    const [row] = await deps.db.select().from(s.gaps).where(eq(s.gaps.id, claims.gapId));
+    if (!row || row.employerId !== claims.employerId) return null;
+    const employer = await deps.store.getEmployer(claims.employerId);
+    if (employer.payrollEmail.toLowerCase() !== claims.email.toLowerCase()) return null;
+    return { claims, row, employer };
+  };
+  const toGap = (g: typeof s.gaps.$inferSelect): Gap => ({ ...g, detectedAt: new Date(g.detectedAt), managerNotifiedAt: g.managerNotifiedAt ? new Date(g.managerNotifiedAt) : null, resolvedAt: g.resolvedAt ? new Date(g.resolvedAt) : null });
+
+  app.get("/e/:token", async (c) => {
+    const found = await payrollGap(c.req.param("token"));
+    if (!found) return c.json({ error: "link invalid or expired" }, 401);
+    const { claims, row, employer } = found;
+    const gap = toGap(row);
+    const [view] = await gapViews(deps.db, employer.id, [gap]);
+    const manager = await deps.store.getManager(gap.managerId);
+    const [esc] = await deps.db.select().from(s.escalations).where(eq(s.escalations.gapId, gap.id));
+    return c.json({
+      employer: { name: employer.name },
+      manager: { fullName: manager.fullName },
+      gap: {
+        id: gap.id, employeeName: view!.employeeName, gapDate: gap.gapDate, gapType: gap.gapType, shift: view!.shift, record: view!.record,
+        managerNotifiedAt: gap.managerNotifiedAt?.toISOString() ?? null,
+        escalatedAt: esc?.escalatedAt ?? null,
+        resolvedAt: gap.resolvedAt?.toISOString() ?? null, resolution: gap.resolution, outcome: gap.outcome, resolutionNote: gap.resolutionNote,
+      },
+      linkExpires: new Date(claims.exp).toISOString(),
+    });
+  });
+
+  app.post("/e/:token/handle", async (c) => {
+    const found = await payrollGap(c.req.param("token"));
+    if (!found) return c.json({ error: "link invalid or expired" }, 401);
+    if (found.row.resolvedAt) return c.json({ error: "already resolved", resolution: found.row.resolution }, 409);
+    const body = await c.req.json<{ outcome?: unknown; note?: unknown }>().catch(() => ({} as { outcome?: unknown; note?: unknown }));
+    const outcome = body.outcome === "present" || body.outcome === "absent" ? body.outcome : null;
+    if (!outcome) return c.json({ error: "outcome must be 'present' or 'absent'" }, 400);
+    const note = typeof body.note === "string" ? body.note.trim().slice(0, 500) : "";
+    if (!note) return c.json({ error: "a note is required — say why the entry will never arrive" }, 400);
+    const gap = await resolveByPayroll(deps.store, found.row.id, now(), outcome, note);
+    return c.json({ id: gap.id, resolvedAt: gap.resolvedAt?.toISOString(), resolution: gap.resolution, outcome: gap.outcome, note: gap.resolutionNote });
   });
 
   app.onError((err, c) => {
@@ -162,7 +213,12 @@ export async function runScheduled(deps: Deps): Promise<{ digests: number; escal
         const view = views.find((v) => v.gap.id === e.gapId);
         if (!view) continue;
         const manager = await deps.store.getManager(view.gap.managerId);
-        await deps.sendEmail(renderEscalation({ escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours }));
+        const exp = t.getTime() + LINK_TTL_MS;
+        const token = await signPayroll({ kind: "payroll", employerId: employer.id, gapId: e.gapId, email: employer.payrollEmail, exp }, deps.linkSecret);
+        await deps.sendEmail(renderEscalation({
+          escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours,
+          link: `${deps.webUrl.replace(/\/$/, "")}/e/${token}`, linkExpires: new Date(exp),
+        }));
       }
     }
     escalations += escalated.length;

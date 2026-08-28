@@ -1,6 +1,6 @@
 // Escalation — docs/core-design.md § Routing & Escalation.
 import type { Store } from "./store.ts";
-import type { Escalation, Gap, Id } from "./types.ts";
+import type { Escalation, Gap, Id, Outcome } from "./types.ts";
 
 /** SLA window in milliseconds. Whether it is business or calendar time is an open question; the caller decides. */
 export type Sla = number;
@@ -23,4 +23,15 @@ export async function runEscalations(store: Store, employerId: Id, now: Date, sl
     out.push(escalation);
   }
   return out;
+}
+
+/**
+ * The payroll accountant closes an escalated gap that will never get its record
+ * (leaver, retroactive leave, broken terminal). Counts as "manager did not act"
+ * in the SLA metric. The note is the only trace of why — callers require it.
+ */
+export async function resolveByPayroll(store: Store, gapId: Id, now: Date, outcome: Outcome, note: string): Promise<Gap> {
+  const gap = await store.resolveGap(gapId, "payroll_action", now, outcome, note);
+  await store.appendEvent({ employerId: gap.employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "payroll_action", outcome } });
+  return gap;
 }

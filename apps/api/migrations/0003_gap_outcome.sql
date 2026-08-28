@@ -1,0 +1,1 @@
+ALTER TABLE `gaps` ADD `outcome` text;

@@ -79,7 +79,7 @@ export async function runDetection(
   const resolved: Gap[] = [];
   for (const open of await store.listOpenGaps(employerId, period)) {
     if (stillOpen.has(gapKey(open))) continue;
-    const gap = await store.resolveGap(open.id, "record_arrived", now, null);
+    const gap = await store.resolveGap(open.id, "record_arrived", now, "present", null);
     resolved.push(gap);
     await store.appendEvent({ employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "record_arrived" } });
   }

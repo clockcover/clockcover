@@ -17,7 +17,7 @@ export interface Overview {
   escalated: number;
   byManager: Array<{ managerId: Id; managerName: string; openGaps: number; oldestGapDate: string | null }>;
   /** Last `windowDays`: gaps that appeared in a digest, and how many the manager resolved within the SLA. */
-  metric: { windowDays: number; notified: number; actedWithinSla: number; resolvedByRecord: number; escalated: number };
+  metric: { windowDays: number; notified: number; actedWithinSla: number; resolvedByRecord: number; closedByPayroll: number; escalated: number; present: number; absent: number };
 }
 
 export async function overview(db: Db, employerId: Id, slaHours: number, now: Date, windowDays = 30): Promise<Overview> {
@@ -42,12 +42,15 @@ export async function overview(db: Db, employerId: Id, slaHours: number, now: Da
   const notifiedGaps = await db.select({ id: s.gaps.id, notifiedAt: s.gaps.managerNotifiedAt })
     .from(s.gaps).where(and(eq(s.gaps.employerId, employerId), gte(s.gaps.managerNotifiedAt, since)));
   const notifiedAt = new Map(notifiedGaps.map((g) => [g.id, g.notifiedAt!]));
-  let actedWithinSla = 0, resolvedByRecord = 0, escalatedInWindow = 0;
+  let actedWithinSla = 0, resolvedByRecord = 0, closedByPayroll = 0, escalatedInWindow = 0, present = 0, absent = 0;
   for (const e of events) {
     if (!e.gapId || !notifiedAt.has(e.gapId)) continue;
     if (e.type === "gap_resolved") {
-      const res = (e.payload as { resolution?: string }).resolution;
+      const { resolution: res, outcome } = e.payload as { resolution?: string; outcome?: string };
+      if (outcome === "present" || res === "record_arrived") present++;
+      else if (outcome === "absent") absent++;
       if (res === "record_arrived") resolvedByRecord++;
+      else if (res === "payroll_action") closedByPayroll++;
       else if (res === "manager_action" && new Date(e.occurredAt).getTime() - new Date(notifiedAt.get(e.gapId)!).getTime() <= slaHours * 3_600_000) actedWithinSla++;
     } else if (e.type === "escalated") escalatedInWindow++;
   }
@@ -57,7 +60,7 @@ export async function overview(db: Db, employerId: Id, slaHours: number, now: Da
     escalated: open.filter((g) => escalatedIds.has(g.id)).length,
     byManager: [...byManager].map(([managerId, v]) => ({ managerId, managerName: managers.get(managerId) ?? managerId, ...v }))
       .sort((a, b) => b.openGaps - a.openGaps || a.managerName.localeCompare(b.managerName)),
-    metric: { windowDays, notified: notifiedGaps.length, actedWithinSla, resolvedByRecord, escalated: escalatedInWindow },
+    metric: { windowDays, notified: notifiedGaps.length, actedWithinSla, resolvedByRecord, closedByPayroll, escalated: escalatedInWindow, present, absent },
   };
 }
 

@@ -132,7 +132,7 @@ test("overview: open gaps by manager and the SLA metric from the event log", asy
   const north = await signLink({ employerId: "emp-1", managerId: gap!.managerId, exp: T0.getTime() + 86_400_000 * 2 }, SECRET);
   await (await setup()).app; // (no-op; keeps the helper shape obvious)
   const app = createApp(deps);
-  assert.equal((await app.request(`/d/${north}/gaps/${gap!.id}/resolve`, { method: "POST" })).status, 200);
+  assert.equal((await app.request(`/d/${north}/gaps/${gap!.id}/resolve`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ outcome: "present" }) })).status, 200);
   advance(new Date(T0.getTime() + 50 * 3_600_000));
   await runScheduled(deps);
 
@@ -140,7 +140,7 @@ test("overview: open gaps by manager and the SLA metric from the event log", asy
   assert.equal(ov["openGaps"], 1);
   assert.equal(ov["escalated"], 1);
   assert.deepEqual(ov.byManager.map((m) => [m["managerName"], m["openGaps"]]), [["Manager North", 1]]);
-  assert.deepEqual(ov.metric, { windowDays: 30, notified: 2, actedWithinSla: 1, resolvedByRecord: 0, escalated: 1 });
+  assert.deepEqual(ov.metric, { windowDays: 30, notified: 2, actedWithinSla: 1, resolvedByRecord: 0, closedByPayroll: 0, escalated: 1, present: 1, absent: 0 });
 });
 
 test("console CORS is open to the app origin only; the digest origin is not enough", async () => {

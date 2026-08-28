@@ -67,7 +67,9 @@ export interface AttendanceRecord {
 }
 
 export type GapType = "no_clockin" | "no_clockout" | "no_record_at_all";
-export type Resolution = "manager_action" | "record_arrived";
+export type Resolution = "manager_action" | "record_arrived" | "payroll_action";
+/** What actually happened on the day: the employee worked but the entry is missing, or was absent. */
+export type Outcome = "present" | "absent";
 
 export interface Gap {
   id: Id;
@@ -81,6 +83,8 @@ export interface Gap {
   managerNotifiedAt: Date | null;
   resolvedAt: Date | null;
   resolution: Resolution | null;
+  /** Set with the resolution. `record_arrived` implies present; managers and payroll must say. */
+  outcome: Outcome | null;
   resolutionNote: string | null;
 }
 

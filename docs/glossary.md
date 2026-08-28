@@ -21,8 +21,9 @@ _Defined in_: `docs/core-design.md` (`managers` table)
 **Payroll Accountant**:
 The person responsible for payroll across the whole company. Receives only Escalations (by
 email — there is no gap list for this role), not the full stream of Gaps — the key difference from
-the manual process this replaces. Addressed via `employers.payroll_email`; there is no separate
-table. Usually also the Operator.
+the manual process this replaces. Each Escalation carries a link to close that one Gap with an
+Outcome and a note. Addressed via `employers.payroll_email`; there is no separate table. Usually
+also the Operator.
 
 **Operator**:
 The person who runs ClockCover for an Employer — uploads the roster and exports, sets timezone and
@@ -87,9 +88,17 @@ Notifying the Payroll Accountant that a Manager did not act on a Gap within the 
 _Defined in_: `docs/core-design.md` (`escalations` table, Routing & Escalation section)
 
 **Resolution**:
-How a Gap was closed — `manager_action` (the Manager acted from the Digest) or
-`record_arrived` (a later import supplied the missing Attendance Record).
+How a Gap was closed — `manager_action` (the Manager acted from the Digest), `record_arrived` (a
+later import supplied the missing Attendance Record) or `payroll_action` (the Payroll Accountant
+closed it from the Escalation because the entry will never arrive).
 _Defined in_: `docs/core-design.md` (`gaps.resolution`, Resolution section)
+
+**Outcome**:
+What actually happened on the day, recorded with every Resolution — the resolver either
+**approves the hours** (`present`: the employee worked, the clock entry is missing) or **reports
+an absence** (`absent`: the Gap is real; the note explaining it is required). A record that
+arrives later means present.
+_Defined in_: `docs/core-design.md` (`gaps.outcome`)
 
 **Event Log**:
 Append-only record of `gap_detected`, `digest_sent`, `gap_resolved`, `escalated`. The source
