@@ -107,6 +107,6 @@ const tier = (n: number) => (n <= 50 ? "Team" : n <= 200 ? "Company" : n <= 500 
         </tbody>
       </table>
     </div>
-    <p class="text-[12.5px] text-fainter text-pretty">Tier is by active employees on the roster (ADR-0006): Team ≤ 50, Company ≤ 200, Site ≤ 500. Prices are not published yet.</p>
+    <p class="text-[12.5px] text-fainter text-pretty">Tier is by active employees on the roster (ADR-0006): Team ≤ 50 (€49), Company ≤ 200 (€149), Site ≤ 500 (€349), Larger by agreement.</p>
   </section>
 </template>

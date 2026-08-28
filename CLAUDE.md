@@ -54,11 +54,10 @@ can close an escalated gap from the escalation email (`/e/<token>`).
 The daily job can fetch the export and roster from https URLs set in
 the console and emails the operator on failure; corrections export as
 CSV. ADR-0006 fixes the money model (per employer, by headcount, free
-month, access by request; price list still a draft), the site says so,
+month, access by request; prices €49/€149/€349 published), the site says so,
 and the owner onboards employers from admin.clockcover.com (list,
 create + invite operator, change operator). Open:
-export target, the first real employer's file location and layout, the
-price numbers. Synthetic data only.
+export target, the first real employer's file location and layoutSynthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.
