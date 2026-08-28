@@ -6,7 +6,8 @@
   "compatibility_date": "2026-08-01",
   "routes": [
     { "pattern": "portal.clockcover.com", "custom_domain": true }, // people from emails: /d/<token>, /e/<token>
-    { "pattern": "console.clockcover.com", "custom_domain": true } // operators: /console
+    { "pattern": "console.clockcover.com", "custom_domain": true }, // operators: /console
+    { "pattern": "admin.clockcover.com", "custom_domain": true } // the owner: all employers
   ],
   "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
 }

@@ -141,3 +141,26 @@ export function resolutionsCsv(rows: ResolutionRow[]): string {
   for (const r of rows) lines.push(CSV_COLUMNS.map(([k]) => cell(r[k])).join(","));
   return lines.join("\r\n") + "\r\n";
 }
+
+export interface AdminEmployerRow {
+  id: Id; name: string; payrollEmail: string; operatorEmail: string | null; timezone: string; slaHours: number;
+  importUrl: string | null; activeEmployees: number; managers: number; openGaps: number; escalatedOpen: number; lastImportAt: string | null;
+}
+
+/** Every employer with the numbers the owner needs: billing input (headcount) and health. */
+export async function adminEmployers(db: Db): Promise<AdminEmployerRow[]> {
+  const employers = await db.select().from(s.employers);
+  const employees = await db.select({ employerId: s.employees.employerId, active: s.employees.active }).from(s.employees);
+  const managers = await db.select({ employerId: s.managers.employerId }).from(s.managers);
+  const open = await db.select({ id: s.gaps.id, employerId: s.gaps.employerId }).from(s.gaps).where(isNull(s.gaps.resolvedAt));
+  const escalated = new Set((await db.select({ gapId: s.escalations.gapId }).from(s.escalations)).map((e) => e.gapId));
+  const imports = await db.select({ employerId: s.imports.employerId, importedAt: s.imports.importedAt }).from(s.imports);
+  return employers.map((e) => ({
+    id: e.id, name: e.name, payrollEmail: e.payrollEmail, operatorEmail: e.operatorEmail, timezone: e.timezone, slaHours: e.slaHours, importUrl: e.importUrl,
+    activeEmployees: employees.filter((x) => x.employerId === e.id && x.active).length,
+    managers: managers.filter((m) => m.employerId === e.id).length,
+    openGaps: open.filter((g) => g.employerId === e.id).length,
+    escalatedOpen: open.filter((g) => g.employerId === e.id && escalated.has(g.id)).length,
+    lastImportAt: imports.filter((i) => i.employerId === e.id).map((i) => i.importedAt).sort().at(-1) ?? null,
+  })).sort((a, b) => a.name.localeCompare(b.name));
+}

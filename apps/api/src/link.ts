@@ -27,6 +27,13 @@ export interface PayrollClaims {
   exp: number;
 }
 
+/** The owner's admin session (ADR-0006). */
+export interface AdminClaims {
+  kind: "admin";
+  email: string;
+  exp: number;
+}
+
 export const LINK_TTL_MS = 14 * 24 * 3_600_000;
 export const OPERATOR_TTL_MS = 7 * 24 * 3_600_000;
 
@@ -49,6 +56,7 @@ async function sign(claims: object, secret: string): Promise<string> {
 export const signLink = (claims: LinkClaims, secret: string) => sign(claims, secret);
 export const signOperator = (claims: OperatorClaims, secret: string) => sign(claims, secret);
 export const signPayroll = (claims: PayrollClaims, secret: string) => sign(claims, secret);
+export const signAdmin = (claims: AdminClaims, secret: string) => sign(claims, secret);
 
 /** Signature + expiry check; returns the raw claims object or null. */
 async function verify(token: string, secret: string, now: Date): Promise<Record<string, unknown> | null> {
@@ -96,4 +104,11 @@ export async function verifyPayroll(token: string, secret: string, now: Date): P
   if (!c || c["kind"] !== "payroll") return null;
   if (typeof c["employerId"] !== "string" || typeof c["gapId"] !== "string" || typeof c["email"] !== "string") return null;
   return { kind: "payroll", employerId: c["employerId"], gapId: c["gapId"], email: c["email"], exp: c["exp"] as number };
+}
+
+/** Owner admin token: claims or null. */
+export async function verifyAdmin(token: string, secret: string, now: Date): Promise<AdminClaims | null> {
+  const c = await verify(token, secret, now);
+  if (!c || c["kind"] !== "admin" || typeof c["email"] !== "string") return null;
+  return { kind: "admin", email: c["email"], exp: c["exp"] as number };
 }

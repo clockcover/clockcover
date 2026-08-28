@@ -118,15 +118,16 @@ does not persist in this WSL setup.
   from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
   (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `CONSOLE_URL`, `EMAIL_FROM`
   and `SLA_HOURS` (default for new employers; each employer's own value
-  lives in `employers.sla_hours`) are plain vars in `wrangler.jsonc`.
+  lives in `employers.sla_hours`), `ADMIN_URL` and `ADMIN_EMAIL` (the one
+  address that may sign in to the admin area) are plain vars in
+  `wrangler.jsonc`.
 - `apps/portal`: `VITE_API_URL=<api origin> VITE_CONSOLE_URL=<app origin> pnpm build && pnpm exec wrangler deploy`
   (static assets, SPA fallback so `/d/<token>` and `/console/…` resolve).
 - `apps/web`: `pnpm deploy`.
-- Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
-  employers (id, name, payroll_email, operator_email, timezone)`. From
-  there the operator signs in at `/console` and does everything else in
-  the browser (ADR-0005), including pointing the daily job at an
-  export URL; `scripts/upload.ts` remains for automation
+- New employers are created in the admin area (ADR-0006), which emails
+  the operator their console invite; the operator then does everything
+  else in the browser (ADR-0005), including pointing the daily job at an
+  export URL. `scripts/upload.ts` remains for automation
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
 Current deployment (Workers custom domains on the `clockcover.com`

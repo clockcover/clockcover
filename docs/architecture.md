@@ -95,6 +95,13 @@ The core (matching + routing) never depends on the vendor.
   Tokens carry `kind: "operator"`, so a manager's digest token is never
   accepted there and vice versa. The API-key endpoints remain for
   scripts.
+- **Owner admin area** (ADR-0006, `admin.clockcover.com`, `ADMIN_URL`):
+  `POST /admin/login` emails a 7-day `kind: "admin"` token to
+  `ADMIN_EMAIL` only; bearer to `GET /admin/me`, `GET /admin/employers`
+  (headcount, managers, operator, open/escalated gaps, last import),
+  `POST /admin/employers` (create + email the operator a console invite),
+  `PATCH /admin/employers/:id` (re-invites when the operator changes),
+  `POST /admin/employers/:id/invite`. CORS to `ADMIN_URL` only.
 - **When a new employer is known** — write a specific adapter for
   whatever they actually provide (Excel/PDF/API/etc.), without touching
   the rest of the code; add its format to `imports.source` then.
@@ -116,14 +123,15 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
                   tests run it on libsql with a fake mailer.
-apps/portal          Vue 3 + Tailwind 4 (Vite). One worker, two hosts:
-                  https://portal.clockcover.com/d/:token — the manager's
-                  digest page (ADR-0004); https://console.clockcover.com —
-                  the operator console (ADR-0005): sign-in, overview,
-                  imports, settings. View logic in src/*.ts, API clients
-                  in src/api.ts and src/console-api.ts; VITE_API_URL →
-                  https://api.clockcover.com, VITE_CONSOLE_URL → the app host.
-apps/web    Marketing website: one static HTML page + CSS served
+apps/portal       Vue 3 + Tailwind 4 (Vite). One worker, three hosts:
+                  https://portal.clockcover.com — /d/:token the manager's
+                  digest page (ADR-0004), /e/:token the payroll page;
+                  https://console.clockcover.com — the operator console
+                  (ADR-0005); https://admin.clockcover.com — the owner's
+                  employer list and onboarding (ADR-0006). View logic in
+                  src/*.ts, API clients in src/*-api.ts; VITE_API_URL →
+                  https://api.clockcover.com, VITE_CONSOLE_URL → console.
+apps/web          Marketing website: one static HTML page + CSS served
                   as Worker assets. No framework, no build, no data,
                   no dependency on core — a one-page site does not
                   justify one.

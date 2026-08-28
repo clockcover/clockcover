@@ -46,6 +46,14 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - **Export of corrections**: a CSV of gaps closed by a manager or by
   payroll in a period — approved hours and reported absences with notes
   — for carrying into the attendance or payroll system.
+- **Money** (ADR-0006): one subscription per employer, tiered by the
+  number of active employees on the roster; managers, digests and gaps
+  unlimited; 30 days free on the employer's own files; access by
+  request. The site says so; prices are published once confirmed.
+- **Owner's admin area** (`admin.clockcover.com`, ADR-0006): the list of
+  all employers with headcount, operator and last import; create an
+  employer and invite its operator; change an operator. Signed in by
+  magic link to the owner's address.
 
 ## Non-goals
 
@@ -61,9 +69,10 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - No push of corrections into the attendance or payroll system by API
   yet: the target system and its interface are unknown. Corrections
   leave as CSV until a real employer names the system.
-- No self-serve sign-up and no pricing yet: one employer per deployment,
-  seeded by the operator (ADR-0003). Both are open decisions in
-  `open-questions.md`.
+- No self-serve sign-up: employers are onboarded by request (ADR-0006)
+  from the owner's admin area; the operator then signs in through the
+  console. No payment provider or invoicing yet — the first invoices are
+  manual.
 - No gap list for the payroll accountant. Individual gaps reach them
   only as escalation emails — each with a link to close **that one gap**
   when the entry will never arrive (ADR-0004 § extended). The operator
