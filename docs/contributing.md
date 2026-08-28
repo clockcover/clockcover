@@ -120,7 +120,8 @@ does not persist in this WSL setup.
 - Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
   employers (id, name, payroll_email, operator_email, timezone)`. From
   there the operator signs in at `/console` and does everything else in
-  the browser (ADR-0005); `scripts/upload.ts` remains for automation
+  the browser (ADR-0005), including pointing the daily job at an
+  export URL; `scripts/upload.ts` remains for automation
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
 Current deployment (Workers custom domains on the `clockcover.com`

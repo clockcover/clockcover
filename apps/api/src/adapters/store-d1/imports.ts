@@ -49,7 +49,7 @@ export interface SavedImport {
  * date — a re-import of the same day replaces the earlier values). Returns what the
  * matching engine needs for the dates covered.
  */
-export async function saveImport(db: Db, employerId: Id, parsed: ParsedCsv, now: Date): Promise<SavedImport> {
+export async function saveImport(db: Db, employerId: Id, parsed: ParsedCsv, now: Date, trigger: "upload" | "url" = "upload"): Promise<SavedImport> {
   const employees = await db.select().from(s.employees).where(and(eq(s.employees.employerId, employerId), eq(s.employees.active, true)));
   const byExt = new Map(employees.map((e) => [e.externalId, e]));
   const unknown = new Set<string>();
@@ -60,7 +60,7 @@ export async function saveImport(db: Db, employerId: Id, parsed: ParsedCsv, now:
   };
 
   const importId = newId();
-  await db.insert(s.imports).values({ id: importId, employerId, source: "csv", importedAt: now.toISOString(), rowCount: parsed.shifts.length + parsed.records.length });
+  await db.insert(s.imports).values({ id: importId, employerId, source: "csv", trigger, importedAt: now.toISOString(), rowCount: parsed.shifts.length + parsed.records.length });
 
   for (const sh of parsed.shifts) {
     const e = resolve(sh.employeeExternalId);

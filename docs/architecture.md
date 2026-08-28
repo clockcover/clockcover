@@ -54,6 +54,12 @@ The core (matching + routing) never depends on the vendor.
   row with planned times is a shift, with clock times a record, or
   both). No adapter interface yet — it is extracted when the second
   adapter is written (ADR-0003).
+- **Sources:** both files arrive either as an upload (console or
+  `scripts/upload.ts`) or, when `employers.import_url` / `roster_url`
+  are set, fetched daily by the cron before the digest
+  (`core-design.md` § Scheduled import). A local folder cannot be
+  reached from Workers; for that, the operator's own scheduler runs
+  `scripts/upload.ts`.
 - **Roster:** employees and their managers come from a second CSV
   (`employee_id,employee_name,manager_id,manager_name,manager_email`),
   upserted by external id. Re-uploading it is how a reassignment is
@@ -81,7 +87,10 @@ The core (matching + routing) never depends on the vendor.
   browser keeps
   it in `sessionStorage` and sends it as a bearer to
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
-  `POST /console/imports`, `GET /console/imports`, `GET /console/overview`.
+  `POST /console/imports`, `GET /console/imports`,
+  `POST /console/imports/run` (fetch the configured URLs now),
+  `GET /console/resolutions.csv?from&to` (corrections export),
+  `GET /console/overview`.
   Tokens carry `kind: "operator"`, so a manager's digest token is never
   accepted there and vice versa. The API-key endpoints remain for
   scripts.

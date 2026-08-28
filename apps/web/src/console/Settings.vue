@@ -13,6 +13,8 @@ const form = reactive({
   operatorEmail: props.employer.operatorEmail ?? "",
   timezone: props.employer.timezone,
   slaHours: props.employer.slaHours,
+  importUrl: props.employer.importUrl ?? "",
+  rosterUrl: props.employer.rosterUrl ?? "",
 });
 const saved = ref(false);
 const error = ref<string | null>(null);
@@ -40,6 +42,14 @@ const field = "border border-field rounded-[7px] px-3 py-[9px] text-[14px] outli
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <label class="flex flex-col gap-1 text-[13px] text-muted">Timezone (IANA)<input v-model="form.timezone" :class="field" placeholder="Europe/Berlin" required /></label>
       <label class="flex flex-col gap-1 text-[13px] text-muted">SLA, hours before escalation<input v-model="form.slaHours" type="number" min="1" max="336" :class="field" required /></label>
+    </div>
+    <div class="border-t border-line-soft pt-4 flex flex-col gap-4">
+      <div class="flex flex-col gap-1">
+        <div class="text-[14px] font-semibold">Daily import from a URL</div>
+        <p class="text-[12.5px] text-muted text-pretty">If your attendance system publishes its export at a fixed https address, put it here: every morning ClockCover fetches it before sending digests, and emails you if the fetch or the file fails. Leave empty to upload files by hand. The URL itself is the credential — use one with a secret in it.</p>
+      </div>
+      <label class="flex flex-col gap-1 text-[13px] text-muted">Shifts &amp; clock entries export (CSV, https)<input v-model="form.importUrl" type="url" :class="field" placeholder="https://…/export.csv" /></label>
+      <label class="flex flex-col gap-1 text-[13px] text-muted">Roster (CSV, https) — optional<input v-model="form.rosterUrl" type="url" :class="field" placeholder="https://…/roster.csv" /></label>
     </div>
     <p class="text-[12.5px] text-fainter text-pretty">"Today" for digests follows the timezone; the daily job runs at 08:00 UTC. Changing the operator email signs the old address out. Your session lasts until {{ dayMonthYear(employer.sessionExpires) }}.</p>
     <div class="flex items-center gap-3">

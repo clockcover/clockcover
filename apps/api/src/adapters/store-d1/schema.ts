@@ -14,6 +14,10 @@ export const employers = sqliteTable("employers", {
   timezone: text("timezone").notNull().default("UTC"),
   operatorEmail: text("operator_email"),
   slaHours: integer("sla_hours").notNull().default(48),
+  /** Where the daily job fetches the shift/attendance export (CSV over HTTPS); null = uploads only. */
+  importUrl: text("import_url"),
+  /** Where the daily job fetches the roster (CSV over HTTPS); null = uploads only. */
+  rosterUrl: text("roster_url"),
 });
 
 export const managers = sqliteTable(
@@ -46,6 +50,8 @@ export const imports = sqliteTable("imports", {
   id: id(),
   employerId: employerId(),
   source: text("source", { enum: ["csv", "excel", "pdf"] }).notNull(),
+  /** How the run started: an upload (console or script) or the daily fetch from import_url. */
+  trigger: text("trigger", { enum: ["upload", "url"] }).notNull().default("upload"),
   importedAt: instant("imported_at").notNull(),
   rowCount: integer("row_count").notNull(),
 });

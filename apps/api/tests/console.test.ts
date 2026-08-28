@@ -113,9 +113,10 @@ test("imports through the console: history and outcome", async () => {
   assert.equal(imp["gapsCreated"], 2);
   const bad = await api("/imports", { method: "POST", body: "employee_id,date\nE-001,nope" });
   assert.equal(bad.status, 400);
-  const history = await (await api("/imports")).json() as { imports: Array<{ rowCount: number }> };
+  const history = await (await api("/imports")).json() as { imports: Array<{ rowCount: number; trigger: string }> };
   assert.equal(history.imports.length, 1);
   assert.equal(history.imports[0]!.rowCount, 6);
+  assert.equal(history.imports[0]!.trigger, "upload");
 });
 
 test("overview: open gaps by manager and the SLA metric from the event log", async () => {

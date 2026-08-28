@@ -205,6 +205,26 @@ ${footer([
   return { to: input.to, subject, text, html };
 }
 
+export function renderImportFailure(input: { to: string; employerName: string; step: "roster" | "import"; message: string; details: string[]; consoleUrl: string }): Email {
+  const subject = `ClockCover: today's ${input.step} import failed — ${input.employerName}`;
+  const list = input.details.slice(0, 20);
+  const more = input.details.length > 20 ? `… and ${input.details.length - 20} more` : "";
+  const html = shell(subject, `
+${brand(badge("import failed", C.breachBg, C.breachFg))}
+<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">The scheduled ${input.step} import did not run</div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(input.message)}. Today's digests were sent from the data already in ClockCover.</div>
+${list.length ? `<pre style="margin-top:16px;padding:14px 16px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px;font-family:${MONO};font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(list.join("\n"))}${more ? `\n${esc(more)}` : ""}</pre>` : ""}
+<div style="margin-top:24px"><a href="${esc(input.consoleUrl)}/console/imports" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Open imports</a></div>
+${footer(["Fix the file at its URL and press “Run import now” in the console, or upload the file by hand. The next scheduled run will try again anyway."])}`);
+  const text = [
+    `The scheduled ${input.step} import did not run: ${input.message}.`,
+    ...(list.length ? ["", ...list, more].filter(Boolean) : []),
+    "",
+    `Today's digests were sent from the data already in ClockCover. Fix the file and press “Run import now” at ${input.consoleUrl}/console/imports, or upload it by hand.`,
+  ].join("\n");
+  return { to: input.to, subject, text, html };
+}
+
 export type SendEmail = (email: Email) => Promise<void>;
 
 /** Sends through Resend. Throws on non-2xx so the caller does not record a digest that was not sent. */

@@ -38,6 +38,14 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   who runs ClockCover at an employer: sign in by emailed link, upload
   the roster and the exports, edit employer settings (timezone, SLA,
   emails), read the "manager acted within SLA" metric.
+- **Imports without a person**: if the attendance system publishes its
+  export at a fixed https URL, the daily job fetches it (and optionally
+  the roster) before sending digests; a failed fetch or a bad file is
+  emailed to the operator. "Run import now" in the console fetches on
+  demand. Uploads by hand keep working.
+- **Export of corrections**: a CSV of gaps closed by a manager or by
+  payroll in a period — approved hours and reported absences with notes
+  — for carrying into the attendance or payroll system.
 
 ## Non-goals
 
@@ -50,6 +58,12 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   employer gives explicit consent — see `privacy.md`.
 - No employment-contract generator/parser.
 - No payroll calculation itself — only gap detection and routing.
+- No push of corrections into the attendance or payroll system by API
+  yet: the target system and its interface are unknown. Corrections
+  leave as CSV until a real employer names the system.
+- No self-serve sign-up and no pricing yet: one employer per deployment,
+  seeded by the operator (ADR-0003). Both are open decisions in
+  `open-questions.md`.
 - No gap list for the payroll accountant. Individual gaps reach them
   only as escalation emails — each with a link to close **that one gap**
   when the entry will never arrive (ADR-0004 § extended). The operator
