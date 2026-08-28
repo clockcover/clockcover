@@ -1,5 +1,7 @@
-// Static marketing site served as Worker assets. The one line of code (src/index.ts) sends
-// Hebrew-speaking browsers from the bare root to /he/; everything else is plain assets.
+// Static marketing site served as Worker assets. The one behaviour in code (src/index.ts) sends
+// Hebrew-speaking browsers from the bare root to /he/ and remembers an explicit `?lang=` choice
+// in a cookie; every request passes through it so the switch works from any page. Security
+// headers live in public/_headers, applied by the assets binding.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clockcover-web",
@@ -9,5 +11,5 @@
     { "pattern": "clockcover.com", "custom_domain": true },
     { "pattern": "www.clockcover.com", "custom_domain": true }
   ],
-  "assets": { "directory": "./public", "not_found_handling": "404-page", "binding": "ASSETS", "run_worker_first": ["/"] }
+  "assets": { "directory": "./public", "not_found_handling": "404-page", "binding": "ASSETS", "run_worker_first": true }
 }

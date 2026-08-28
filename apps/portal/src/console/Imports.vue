@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { defaultRange, downloadCorrections, listImports, runImportNow, uploadImport, uploadRoster } from "../console-api.ts";
 import type { ImportOutcome, ImportRun, ImportSummary } from "../console-api.ts";
-import { dateTime, t } from "../i18n.ts";
+import { apiError, dateTime, t } from "../i18n.ts";
 
 const history = ref<ImportRun[]>([]);
 const rosterResult = ref<string | null>(null);
@@ -26,26 +26,26 @@ async function onRoster(ev: Event) {
   const csv = await readFile(ev); if (!csv) return;
   busy.value = true; error.value = null; rosterResult.value = null;
   try { rosterResult.value = t("c.imp.roster.done", { n: (await uploadRoster(csv)).employees }); }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function onImport(ev: Event) {
   const csv = await readFile(ev); if (!csv) return;
   busy.value = true; error.value = null; importResult.value = null;
   try { importResult.value = await uploadImport(csv); await refresh(); }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function runNow() {
   busy.value = true; error.value = null; runResult.value = null;
   try { runResult.value = await runImportNow(); await refresh(); }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function exportCsv() {
   exportError.value = null;
   try { await downloadCorrections(range.value.from, range.value.to); }
-  catch (e) { exportError.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { exportError.value = apiError(e); }
 }
 const ROSTER_COLS = "employee_id, employee_name, manager_id, manager_name, manager_email";
 const EXPORT_COLS = "employee_id, date, planned_start, planned_end, clock_in, clock_out";

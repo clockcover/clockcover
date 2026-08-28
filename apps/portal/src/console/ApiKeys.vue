@@ -2,7 +2,7 @@
 import { onMounted, ref } from "vue";
 import { createApiKey, listApiKeys, revokeApiKey } from "../console-api.ts";
 import type { ApiKey } from "../console-api.ts";
-import { dateTime, t } from "../i18n.ts";
+import { apiError, dateTime, t } from "../i18n.ts";
 
 const keys = ref<ApiKey[]>([]);
 const name = ref("");
@@ -10,20 +10,20 @@ const fresh = ref<{ key: string; prefix: string } | null>(null);
 const error = ref<string | null>(null);
 const busy = ref(false);
 
-async function refresh() { try { keys.value = (await listApiKeys()).keys; } catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); } }
+async function refresh() { try { keys.value = (await listApiKeys()).keys; } catch (e) { error.value = apiError(e, "error.load"); } }
 onMounted(refresh);
 
 async function create() {
   if (!name.value.trim() || busy.value) return;
   busy.value = true; error.value = null;
   try { const r = await createApiKey(name.value.trim()); fresh.value = { key: r.key, prefix: r.prefix }; name.value = ""; await refresh(); }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function revoke(k: ApiKey) {
   busy.value = true; error.value = null;
   try { await revokeApiKey(k.id); if (fresh.value?.prefix === k.prefix) fresh.value = null; await refresh(); }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 </script>
@@ -35,7 +35,7 @@ async function revoke(k: ApiKey) {
       <p class="text-[13px] text-muted text-pretty">{{ t("c.keys.lead") }}</p>
     </div>
     <form class="flex gap-2" @submit.prevent="create">
-      <input v-model="name" maxlength="80" :placeholder="t('c.keys.name')" class="flex-1 border border-field rounded-[7px] px-3 py-[8px] text-[13.5px] outline-none focus:border-accent" />
+      <input v-model="name" maxlength="80" :aria-label="t('c.keys.name.label')" :placeholder="t('c.keys.name')" class="flex-1 border border-field rounded-[7px] px-3 py-[8px] text-[13.5px] outline-none focus:border-accent" />
       <button type="submit" :disabled="busy || !name.trim()" class="bg-accent hover:bg-accent-deep disabled:opacity-60 text-white rounded-[7px] px-4 py-2 text-[13.5px] font-medium">{{ t("c.keys.create") }}</button>
     </form>
     <div v-if="fresh" class="border border-accent rounded-[7px] p-3 flex flex-col gap-1.5 bg-strong/30">

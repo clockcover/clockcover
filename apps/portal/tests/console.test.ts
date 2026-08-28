@@ -9,14 +9,18 @@ test("console routes", () => {
   assert.deepEqual(consoleRoute("/console/overview"), { page: "overview" });
   assert.deepEqual(consoleRoute("/console/imports"), { page: "imports" });
   assert.deepEqual(consoleRoute("/console/settings"), { page: "settings" });
-  assert.deepEqual(consoleRoute("/console/abc.def"), { page: "landing", token: "abc.def" });
+  assert.deepEqual(consoleRoute("/console", "", "#abc.def"), { page: "landing", token: "abc.def" }, "emailed link: token in the fragment");
+  assert.deepEqual(consoleRoute("/", "console.clockcover.com", "#abc.def"), { page: "landing", token: "abc.def" });
+  assert.equal(consoleRoute("/console/abc.def"), null, "a token in the path is not a route any more");
+  assert.deepEqual(consoleRoute("/console", "", "#"), { page: "signin" });
   assert.equal(consoleRoute("/d/abc"), null);
   assert.deepEqual(consoleRoute("/", "console.clockcover.com"), { page: "signin" }, "console host: root is the sign-in");
   assert.equal(consoleRoute("/", "portal.clockcover.com"), null, "digest host: root is not the console");
   assert.equal(consoleRoute("/console/a/b"), null);
   // own host: no prefix in the address, the old prefixed links still work
   assert.deepEqual(consoleRoute("/overview", "console.clockcover.com"), { page: "overview" });
-  assert.deepEqual(consoleRoute("/abc.def", "console.clockcover.com"), { page: "landing", token: "abc.def" });
+  assert.deepEqual(consoleRoute("/", "console.clockcover.com", "#abc.def"), { page: "landing", token: "abc.def" });
+  assert.equal(consoleRoute("/abc.def", "console.clockcover.com"), null, "the token travels in the fragment, not the path");
   assert.deepEqual(consoleRoute("/console/overview", "console.clockcover.com"), { page: "overview" });
   assert.equal(consoleRoute("/overview", "portal.clockcover.com"), null);
   assert.equal(consolePath("overview", "console.clockcover.com"), "/overview");
@@ -40,10 +44,12 @@ test("admin routes: own host root, /admin paths, never the console's", () => {
   assert.equal(adminRoute("/", "console.clockcover.com"), null);
   assert.deepEqual(adminRoute("/admin"), { page: "signin" });
   assert.deepEqual(adminRoute("/admin/employers"), { page: "employers" });
-  assert.deepEqual(adminRoute("/admin/tok.en"), { page: "landing", token: "tok.en" });
+  assert.deepEqual(adminRoute("/admin", "", "#tok.en"), { page: "landing", token: "tok.en" });
+  assert.equal(adminRoute("/admin/tok.en"), null);
   assert.equal(adminRoute("/console/overview"), null);
   assert.deepEqual(adminRoute("/employers", "admin.clockcover.com"), { page: "employers" });
-  assert.deepEqual(adminRoute("/tok.en", "admin.clockcover.com"), { page: "landing", token: "tok.en" });
+  assert.deepEqual(adminRoute("/", "admin.clockcover.com", "#tok.en"), { page: "landing", token: "tok.en" });
+  assert.equal(adminRoute("/tok.en", "admin.clockcover.com"), null);
   assert.deepEqual(adminRoute("/admin/employers", "admin.clockcover.com"), { page: "employers" });
   assert.equal(adminPath("employers", "admin.clockcover.com"), "/employers");
   assert.equal(adminPath("signin", "localhost"), "/admin");

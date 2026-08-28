@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { ApiError } from "../api.ts";
-import { consolePath, consoleRoute, me, session } from "../console-api.ts";
+import { consolePath, consoleRoute, exchangeLink, me, session } from "../console-api.ts";
 import type { ConsoleRoute, EmployerSettings } from "../console-api.ts";
 import { setLocale, t } from "../i18n.ts";
 import LangSwitch from "../LangSwitch.vue";
@@ -11,9 +11,10 @@ import Imports from "./Imports.vue";
 import Settings from "./Settings.vue";
 import ApiKeys from "./ApiKeys.vue";
 
-const route = ref<ConsoleRoute>(consoleRoute(window.location.pathname, window.location.hostname) ?? { page: "signin" });
+const route = ref<ConsoleRoute>(consoleRoute(window.location.pathname, window.location.hostname, window.location.hash) ?? { page: "signin" });
 const employer = ref<EmployerSettings | null>(null);
 const notice = ref<string | null>(null);
+const loading = ref(true);
 
 function go(page: "overview" | "imports" | "settings" | "signin") {
   window.history.replaceState(null, "", consolePath(page, window.location.hostname));
@@ -32,9 +33,14 @@ async function load() {
 }
 
 onMounted(async () => {
-  if (route.value.page === "landing") { session.set(route.value.token); go("overview"); }
+  if (route.value.page === "landing") {
+    // The emailed token is single-use and short-lived; exchange it for the session and drop it from the URL.
+    try { session.set((await exchangeLink(route.value.token)).token); go("overview"); }
+    catch { notice.value = t("c.signin.expired"); go("signin"); return; }
+  }
   if (route.value.page !== "signin") await load();
   else if (session.get()) { await load(); if (employer.value) go("overview"); }
+  loading.value = false;
 });
 
 function signOut() { session.clear(); employer.value = null; notice.value = t("c.signedOut"); go("signin"); }
@@ -54,7 +60,8 @@ const tabs = [["overview", "c.tab.overview"], ["imports", "c.tab.imports"], ["se
         </div>
       </header>
 
-      <SignIn v-if="route.page === 'signin' || !employer" :notice="notice" />
+      <div v-if="loading" class="text-[15px] text-muted">{{ t("loading") }}</div>
+      <SignIn v-else-if="route.page === 'signin' || !employer" :notice="notice" />
 
       <template v-else>
         <nav class="flex gap-1 border-b border-line">

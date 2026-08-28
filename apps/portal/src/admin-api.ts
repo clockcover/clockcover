@@ -35,6 +35,8 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
 const json = (b: unknown, method = "POST") => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
 
 export const requestAdminLink = (email: string, locale: "en" | "he") => call<{ ok: true; message: string }>("/login", json({ email, locale }), false);
+/** Turns the single-use token from the emailed link into the 7-day session token. */
+export const exchangeAdminLink = (token: string) => call<{ token: string; sessionExpires: string }>("/exchange", json({ token }), false);
 export const adminMe = () => call<{ email: string; sessionExpires: string }>("/me");
 export const listEmployers = () => call<{ employers: AdminEmployer[] }>("/employers");
 export const createEmployer = (e: NewEmployer) => call<{ id: string; invited: boolean }>("/employers", json(e));
@@ -46,16 +48,17 @@ export type AdminRoute = { page: "signin" } | { page: "landing"; token: string }
 export const isAdminHost = (hostname: string) => /^admin\./.test(hostname);
 
 /**
- * On the admin host the pages sit at the root: `/`, `/<token>`, `/employers`.
- * Elsewhere they need the `/admin` prefix; the prefix is still accepted on the admin host for old links.
+ * On the admin host the pages sit at the root: `/`, `/employers`.
+ * Elsewhere they need the `/admin` prefix; the prefix is still accepted on the admin host.
+ * The emailed link is the sign-in page with the token in the fragment (`/#<token>`).
  */
-export function adminRoute(pathname: string, hostname = ""): AdminRoute | null {
+export function adminRoute(pathname: string, hostname = "", hash = ""): AdminRoute | null {
   const m = (isAdminHost(hostname) ? /^(?:\/admin)?(?:\/([^/]+))?\/?$/ : /^\/admin(?:\/([^/]+))?\/?$/).exec(pathname);
   if (!m) return null;
   const seg = m[1] ? decodeURIComponent(m[1]) : "";
-  if (seg === "") return { page: "signin" };
+  if (seg === "") return hash.length > 1 ? { page: "landing", token: hash.slice(1) } : { page: "signin" };
   if (seg === "employers") return { page: "employers" };
-  return { page: "landing", token: seg };
+  return null;
 }
 
 /** The address to show for an admin page: no prefix on the admin host, `/admin/...` elsewhere. */

@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { ApiError, fetchEscalation, handleEscalation } from "./api.ts";
 import type { EscalationView, Outcome } from "./api.ts";
 import { dateTime, dayMonthYear, detail, gapLabel, outcomeLabel, outcomeSummary, shortDate } from "./digest.ts";
-import { setLocale, t } from "./i18n.ts";
+import { apiError, setLocale, t } from "./i18n.ts";
 import LangSwitch from "./LangSwitch.vue";
 
 const props = defineProps<{ token: string }>();
@@ -36,7 +36,7 @@ async function submit() {
     const r = await handleEscalation(props.token, outcome.value, note.value);
     done.value = { outcome: r.outcome, note: r.note ?? "" };
   } catch (e) {
-    error.value = e instanceof ApiError && e.status === 409 ? t("esc.already") : e instanceof Error ? e.message : t("esc.failed");
+    error.value = e instanceof ApiError && e.status === 409 ? t("esc.already") : apiError(e, "esc.failed");
   } finally {
     busy.value = false;
   }
@@ -92,9 +92,9 @@ async function submit() {
             <button v-for="o in (['present', 'absent'] as const)" :key="o" type="button"
               class="flex-1 text-start border rounded-[7px] px-3 py-2 text-[13.5px]"
               :class="outcome === o ? 'border-accent text-ink bg-strong/40' : 'border-field text-ink-soft hover:border-accent'"
-              @click="outcome = o">{{ outcomeLabel(o) }}</button>
+              :aria-pressed="outcome === o" @click="outcome = o">{{ outcomeLabel(o) }}</button>
           </div>
-          <input v-model="note" maxlength="500" required :placeholder="t('esc.note')" class="border border-field rounded-[7px] px-3 py-[9px] text-[13.5px] outline-none focus:border-accent" />
+          <input v-model="note" maxlength="500" required :aria-label="t('esc.note.label')" :placeholder="t('esc.note')" class="border border-field rounded-[7px] px-3 py-[9px] text-[13.5px] outline-none focus:border-accent" />
           <div class="flex items-center gap-3">
             <button type="submit" :disabled="!canSubmit" class="bg-accent hover:bg-accent-deep disabled:opacity-60 text-white rounded-[7px] px-4 py-2 text-[13.5px] font-medium">{{ t("esc.close") }}</button>
             <span v-if="error" class="text-[13.5px] text-danger">{{ error }}</span>

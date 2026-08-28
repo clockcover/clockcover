@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref } from "vue";
 import { createEmployer, listEmployers, resendInvite, updateEmployer } from "../admin-api.ts";
 import type { AdminEmployer } from "../admin-api.ts";
-import { dateTime, locale, t } from "../i18n.ts";
+import { apiError, dateTime, locale, t } from "../i18n.ts";
 
 const employers = ref<AdminEmployer[]>([]);
 const error = ref<string | null>(null);
@@ -14,7 +14,7 @@ const editingOperator = ref<{ id: string; email: string } | null>(null);
 
 async function refresh() {
   try { employers.value = (await listEmployers()).employers; }
-  catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  catch (e) { error.value = apiError(e, "error.load"); }
 }
 onMounted(refresh);
 
@@ -25,7 +25,7 @@ async function create() {
     notice.value = r.invited ? t("a.created", { email: form.operatorEmail }) : t("saved");
     creating.value = false; Object.assign(form, { name: "", payrollEmail: "", operatorEmail: "" });
     await refresh();
-  } catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  } catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function saveOperator() {
@@ -36,17 +36,17 @@ async function saveOperator() {
     notice.value = r.invited ? t("a.opChanged", { email: editingOperator.value.email }) : t("saved");
     editingOperator.value = null;
     await refresh();
-  } catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  } catch (e) { error.value = apiError(e); }
   finally { busy.value = false; }
 }
 async function invite(e: AdminEmployer) {
   busy.value = true; error.value = null; notice.value = null;
   try { await resendInvite(e.id); notice.value = t("a.inviteSent", { email: e.operatorEmail ?? "" }); }
-  catch (err) { error.value = err instanceof Error ? err.message : t("error.load"); }
+  catch (err) { error.value = apiError(err); }
   finally { busy.value = false; }
 }
 const field = "border border-field rounded-[7px] px-3 py-[8px] text-[13.5px] outline-none focus:border-accent w-full";
-const tier = (n: number) => (n <= 50 ? "Team" : n <= 200 ? "Company" : n <= 500 ? "Site" : "Larger");
+const tier = (n: number) => t(n <= 50 ? "tier.team" : n <= 200 ? "tier.company" : n <= 500 ? "tier.site" : "tier.larger");
 </script>
 
 <template>
@@ -85,7 +85,7 @@ const tier = (n: number) => (n <= 50 ? "Team" : n <= 200 ? "Company" : n <= 500 
             <td class="px-4 py-3">
               <template v-if="editingOperator?.id === e.id">
                 <form class="flex gap-2" @submit.prevent="saveOperator">
-                  <input v-model="editingOperator.email" type="email" required dir="ltr" class="border border-field rounded-[7px] px-2 py-1 text-[13px] outline-none focus:border-accent" />
+                  <input v-model="editingOperator.email" type="email" required :aria-label="t('a.f.operator.short')" dir="ltr" class="border border-field rounded-[7px] px-2 py-1 text-[13px] outline-none focus:border-accent" />
                   <button type="submit" :disabled="busy" class="text-accent font-medium">{{ t("save") }}</button>
                   <button type="button" class="text-muted" @click="editingOperator = null">{{ t("cancel") }}</button>
                 </form>

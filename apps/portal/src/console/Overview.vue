@@ -2,13 +2,13 @@
 import { onMounted, ref } from "vue";
 import { overview, pct } from "../console-api.ts";
 import type { EmployerSettings, Overview } from "../console-api.ts";
-import { shortDate, t } from "../i18n.ts";
+import { apiError, shortDate, t } from "../i18n.ts";
 
 defineProps<{ employer: EmployerSettings }>();
 const data = ref<Overview | null>(null);
 const error = ref<string | null>(null);
 onMounted(async () => {
-  try { data.value = await overview(); } catch (e) { error.value = e instanceof Error ? e.message : t("error.load"); }
+  try { data.value = await overview(); } catch (e) { error.value = apiError(e, "error.load"); }
 });
 </script>
 
