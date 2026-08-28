@@ -25,9 +25,9 @@ export interface Deps {
   apiKey: string;
   /** HMAC key for manager digest links (ADR-0004). */
   linkSecret: string;
-  /** Origin of the manager digest page (apps/web on the digest host) — digest links and CORS for /d/*. */
+  /** Origin of the manager digest page (apps/portal on the digest host) — digest links and CORS for /d/*. */
   webUrl: string;
-  /** Origin of the operator console (apps/web on the app host) — magic links and CORS for /console/*. */
+  /** Origin of the operator console (apps/portal on the app host) — magic links and CORS for /console/*. */
   consoleUrl: string;
   /** Default SLA for employers that have not set their own (employers.sla_hours). */
   slaHours: number;
@@ -78,11 +78,11 @@ export function createApp(deps: Deps) {
     });
   });
 
-  // ---- Operator console (ADR-0005). Bearer token; called from apps/web.
+  // ---- Operator console (ADR-0005). Bearer token; called from apps/portal.
   app.use("/console/*", cors({ origin: deps.consoleUrl, allowMethods: ["GET", "POST", "PATCH"], allowHeaders: ["content-type", "authorization"] }));
   app.route("/console", consoleRoutes(deps));
 
-  // ---- Manager endpoints: signed link in the path (ADR-0004). Called from apps/web.
+  // ---- Manager endpoints: signed link in the path (ADR-0004). Called from apps/portal.
   app.use("/d/*", cors({ origin: deps.webUrl, allowMethods: ["GET", "POST"], allowHeaders: ["content-type"] }));
 
   const withClaims = async (token: string) => verifyLink(token, deps.linkSecret, now());

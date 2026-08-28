@@ -45,7 +45,7 @@ packages/core     domain types, matching, routing/escalation, the Store
 apps/api          Hono. Routes, the cron entry point, and every adapter:
                   src/adapters/{store-d1, csv, email}. Wires adapters
                   into core by hand (no DI framework).
-apps/web          Vue 3 + Tailwind 4. Digest page, resolve action.
+apps/portal          Vue 3 + Tailwind 4. Digest page, resolve action.
 ```
 
 The "core is infra-agnostic" boundary is enforced by an import check
@@ -123,7 +123,7 @@ is exactly why they are fixed now, while all data is synthetic.
 
 How a manager reaches their digest (signed token link vs. login) is a
 security surface and a UX pattern managers will learn — a one-way door.
-It gets ADR-0004 before `apps/web` is started; nothing in `core`
+It gets ADR-0004 before `apps/portal` is started; nothing in `core`
 depends on the answer.
 
 **Revisit when:** a second `Store` implementation, a second

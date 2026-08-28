@@ -105,8 +105,8 @@ export type ConsoleRoute =
   | { page: "landing"; token: string }
   | { page: "overview" | "imports" | "settings" };
 
-/** The console lives on its own host (app.…); the digest page on digest.…  Same worker, two doors. */
-export const isConsoleHost = (hostname: string) => /^app\./.test(hostname);
+/** The console lives on console.…; the pages people reach from emails on portal.…  Same worker, two doors. */
+export const isConsoleHost = (hostname: string) => /^console\./.test(hostname);
 
 /** `/console`, `/console/<token>`, `/console/overview|imports|settings`; on the console host `/` is the sign-in too. */
 export function consoleRoute(pathname: string, hostname = ""): ConsoleRoute | null {

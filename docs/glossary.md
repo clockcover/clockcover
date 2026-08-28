@@ -32,7 +32,7 @@ configures, the Payroll Accountant receives Escalations. One Operator per Employ
 (`employers.operator_email`), signed in through the **Console** by emailed link (ADR-0005).
 
 **Console**:
-The Operator's area of `apps/web`, on its own host (`app.clockcover.com`): Sign in, Imports,
+The Operator's area of `apps/portal`, on its own host (`console.clockcover.com`): Sign in, Imports,
 Settings, Overview. Not a list of Gaps.
 
 **Employer**:

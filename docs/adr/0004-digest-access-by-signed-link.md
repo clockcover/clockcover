@@ -16,7 +16,7 @@ superseded_by:
 The digest email tells a manager which of their team's clock entries are
 missing. To act on it they need a page that shows the same list and lets
 them mark a gap resolved (`resolveByManager` in `packages/core`). How
-they reach that page is the last open question before `apps/web` can be
+they reach that page is the last open question before `apps/portal` can be
 built (ADR-0003 § Deferred).
 
 What we know about the users:
@@ -94,7 +94,7 @@ issued tokens.
   with employee names, `POST /d/:token/gaps/:gapId/resolve`. The digest
   email adapter gets `webUrl` and puts the link in the body — the field
   already exists in `EmailConfig` for this.
-- `apps/web`: one route, `/d/:token`, that calls the two endpoints. No
+- `apps/portal`: one route, `/d/:token`, that calls the two endpoints. No
   auth state, no router guards.
 - `packages/core`: **nothing.** Access is an adapter concern; the core
   keeps taking `managerId` as an argument.

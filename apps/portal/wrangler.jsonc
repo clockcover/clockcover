@@ -1,0 +1,12 @@
+// The portal (manager digest, payroll escalation page, operator console) as static Worker assets. `/d/<token>` is handled client-side,
+// so every unknown path serves index.html. Build first: VITE_API_URL=<api origin> pnpm build
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "clockcover-portal",
+  "compatibility_date": "2026-08-01",
+  "routes": [
+    { "pattern": "portal.clockcover.com", "custom_domain": true }, // people from emails: /d/<token>, /e/<token>
+    { "pattern": "console.clockcover.com", "custom_domain": true } // operators: /console
+  ],
+  "assets": { "directory": "./dist", "not_found_handling": "single-page-application" }
+}

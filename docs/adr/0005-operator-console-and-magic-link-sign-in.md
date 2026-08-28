@@ -1,5 +1,5 @@
 ---
-title: "ADR-0005: An operator console in apps/web, signed in by emailed magic link"
+title: "ADR-0005: An operator console in apps/portal, signed in by emailed magic link"
 type: adr
 status: accepted
 updated: 2026-08-28
@@ -7,7 +7,7 @@ tags: [scope, security, frontend, backend]
 superseded_by:
 ---
 
-# ADR-0005: An operator console in apps/web, signed in by emailed magic link
+# ADR-0005: An operator console in apps/portal, signed in by emailed magic link
 
 **Date:** 2026-08-28
 
@@ -40,8 +40,8 @@ What has to be decided:
 ### Scope
 
 **An operator console is part of the MVP**, as a second area of
-`apps/web` served on its own host — `app.clockcover.com` — while the
-manager's digest page keeps `digest.clockcover.com`. One worker, two
+`apps/portal` served on its own host — `console.clockcover.com` — while the
+manager's digest page keeps `portal.clockcover.com`. One worker, two
 doors: each audience sees a hostname that names what it gets. It has
 four screens and nothing else:
 
@@ -100,7 +100,7 @@ rows.
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
   `POST /console/imports`, `GET /console/imports`, `GET /console/overview`.
   The API-key endpoints stay for scripts.
-- `apps/web`: on the console host, `/` and `/console` (sign-in),
+- `apps/portal`: on the console host, `/` and `/console` (sign-in),
   `/console/<token>` (landing, stores the token, redirects),
   `/console/{overview,imports,settings}`. `CONSOLE_URL` (api) and
   `VITE_CONSOLE_URL` (web) name that host; `WEB_URL` stays the digest host.
@@ -139,7 +139,7 @@ pay-relevant data.
    static secret typed into a browser, never expiring, indistinguishable
    between the script and the person.
 4. **Session cookie after the magic link** — rejected: cross-origin
-   cookies between `digest.clockcover.com` and `api.clockcover.com` need
+   cookies between `portal.clockcover.com` and `api.clockcover.com` need
    `SameSite=None` and CSRF defences; a bearer token in `sessionStorage`
    is simpler and dies with the tab.
 5. **Separate `apps/console`** — rejected: same stack, same auth
