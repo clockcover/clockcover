@@ -228,6 +228,14 @@ before pushing (`git pull --rebase`, or set `pull.rebase = true`); merge
 PRs by squash (see § CI), never with a merge commit. One PR = one
 logical change, since it lands as one commit.
 
+Claude Code's Bash sandbox is on for this project (`sandbox` in
+`.claude/settings.json`, rules in `docs/privacy.md`). On Linux and WSL2
+it needs `bwrap` and `socat` installed (`sudo apt install bubblewrap
+socat`); with them missing Bash refuses to run rather than running
+unsandboxed. Network egress from Bash is limited to GitHub, the npm
+registry and the Cloudflare API — add a domain to
+`sandbox.network.allowedDomains` when a new tool needs one.
+
 Git hooks are managed by husky and installed automatically by
 `pnpm install` (the `prepare` script). `.husky/commit-msg` runs
 `no-ai-coauthor` then commitlint; `.husky/pre-commit` runs

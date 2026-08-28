@@ -19,6 +19,48 @@
       "Read(./.claude/settings.local.json)"
     ]
   },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": true,
+    "filesystem": {
+      "denyRead": [
+        "./apps/api/.dev.vars",
+        "./.claude/settings.local.json",
+        "./data/real",
+        "~/.ssh",
+        "~/.config/gh",
+        "~/.netrc"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "*.github.com",
+        "registry.npmjs.org",
+        "*.npmjs.org",
+        "api.cloudflare.com",
+        "*.cloudflare.com"
+      ]
+    },
+    "credentials": {
+      "envVars": [
+        {
+          "name": "CLOUDFLARE_API_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GITHUB_TOKEN",
+          "mode": "deny"
+        }
+      ]
+    }
+  },
   "hooks": {
     "PreToolUse": [
       {

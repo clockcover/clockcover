@@ -58,15 +58,20 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
 - The same guard on `Write`/`Edit` denies writing credential-shaped
   values into tracked files; `pre-commit` and CI repeat that check.
 
-These are pattern checks, not a sandbox. Claude Code's sandbox
-(`sandbox.credentials` — OS-level masking of env vars and denial of
-files, plus network egress control) is the non-heuristic layer. It is
-**still off**. The trigger this file used to name — "before the first
-real secret lands in `.dev.vars`, i.e. before the first `wrangler
-deploy`" — has passed: the Worker is deployed and real secrets exist
-locally. Turning the sandbox on is a pending decision for the owner;
-until then the guards above are the only layer, and this paragraph
-says so rather than pretending otherwise. If a secret is in a file that
+These are pattern checks, not a sandbox. Claude Code's sandbox is the
+non-heuristic layer and it is **on** (`sandbox` in
+`.claude/settings.json`, since 2026-08-28): Bash runs in a bubblewrap
+namespace where `apps/api/.dev.vars`, `.claude/settings.local.json`,
+`data/real/`, `~/.ssh`, `~/.config/gh` and `~/.netrc` do not exist
+(`filesystem.denyRead`; `~/.aws` is left to `permissions.deny` because
+on WSL it is a symlink onto the Windows drive, which bubblewrap cannot
+mask), `CLOUDFLARE_API_TOKEN`/`GH_TOKEN` are
+withheld from the environment, and network egress is limited to GitHub,
+the npm registry and the Cloudflare API. `failIfUnavailable` is set:
+when `bwrap` or `socat` is missing, Bash refuses to run rather than
+silently running unsandboxed. A test keeps the deny list above and the
+one in `permissions.deny` covering the same places.
+If a secret is in a file that
 is otherwise legitimately read (a config with a pasted key), nothing
 here stops it — so config files reference `${VARS}` and never hold
 values. One explicit exception: `ADMIN_EMAIL` in `apps/api/wrangler.jsonc`

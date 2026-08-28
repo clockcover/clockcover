@@ -82,3 +82,22 @@ test(".gitignore excludes data/real/ and the wrangler secret paths docs/privacy.
   assert.match(gi, /^\.dev\.vars$/m);
   assert.match(gi, /^\.wrangler\/$/m);
 });
+
+test("the sandbox is on and its denyRead list covers what privacy.md names", () => {
+  const settings = JSON.parse(read(".claude/settings.json")) as {
+    permissions: { deny: string[] };
+    sandbox: { enabled: boolean; failIfUnavailable: boolean; filesystem: { denyRead: string[] } };
+  };
+  assert.equal(settings.sandbox.enabled, true, "privacy.md says the sandbox is on");
+  assert.equal(settings.sandbox.failIfUnavailable, true, "privacy.md says Bash refuses to run unsandboxed");
+  // The places privacy.md § "What Claude Code must not read" names for the sandbox.
+  const named = ["apps/api/.dev.vars", ".claude/settings.local.json", "data/real", "~/.ssh", "~/.config/gh", "~/.netrc"];
+  const denied = settings.sandbox.filesystem.denyRead.map((d) => d.replace(/^\.\//, "").replace(/\/$/, ""));
+  for (const p of named) assert.ok(denied.includes(p), `sandbox.filesystem.denyRead covers ${p}`);
+  const privacy = read("docs/privacy.md");
+  for (const p of named) assert.ok(privacy.includes(p.replace(/^apps\/api\//, "")), `privacy.md names ${p}`);
+  for (const d of denied) {
+    const key = d.split("/").pop()!;
+    assert.ok(settings.permissions.deny.some((r) => r.includes(key)), `permissions.deny also covers ${d}`);
+  }
+});
