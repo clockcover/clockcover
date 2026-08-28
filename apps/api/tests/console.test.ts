@@ -150,3 +150,25 @@ test("console CORS is open to the app origin only; the digest origin is not enou
   assert.equal((await pre(CONSOLE)).headers.get("access-control-allow-origin"), CONSOLE);
   assert.notEqual((await pre(WEB)).headers.get("access-control-allow-origin"), WEB);
 });
+
+test("locale: settings switch to Hebrew; the next digest is Hebrew and right-to-left", async () => {
+  const { login, tokenFromEmail, authed, deps, emails } = await setup();
+  await login(OPERATOR);
+  const api = authed(tokenFromEmail());
+  const patch = (body: unknown) => api("/employer", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
+  assert.equal((await patch({ locale: "fr" })).status, 400);
+  const me = await (await patch({ locale: "he" })).json() as Record<string, unknown>;
+  assert.equal(me["locale"], "he");
+  await api("/roster", { method: "POST", body: fixture("roster.csv") });
+  await api("/imports", { method: "POST", body: fixture("day-1.csv") });
+  emails.length = 0;
+  await runScheduled(deps);
+  const digest = emails[0]!;
+  assert.match(digest.subject, /^2 פערי החתמה בצוות שלך — יום ב׳ 2 מרץ$/);
+  assert.match(digest.html, /<html lang="he" dir="rtl">/);
+  assert.match(digest.text, /בוקר טוב Manager,/);
+  assert.match(digest.text, /אין רישום כלל/);
+  emails.length = 0;
+  await login(OPERATOR);
+  assert.match(emails[0]!.subject, /^כניסה ללוח הבקרה של ClockCover — Example Logistics$/, "sign-in mail follows the employer locale");
+});

@@ -56,7 +56,9 @@ the console and emails the operator on failure; corrections export as
 CSV. ADR-0006 fixes the money model (per employer, by headcount, free
 month, access by request; prices €49/€149/€349 published), the site says so,
 and the owner onboards employers from admin.clockcover.com (list,
-create + invite operator, change operator). Open:
+create + invite operator, change operator). Everything a person reads
+— emails, pages, site — exists in English and Hebrew (RTL), chosen per
+employer. Open:
 export target, the first real employer's file location and layoutSynthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.

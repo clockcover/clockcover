@@ -21,6 +21,7 @@ export interface UnscheduledDay { employeeName: string; recordDate: string; cloc
 export interface Digest {
   manager: { fullName: string };
   employer: { name: string };
+  locale: "en" | "he";
   digestDate: string;
   slaHours: number;
   linkExpires: string;
@@ -34,6 +35,7 @@ export interface Resolved { id: string; resolvedAt: string; resolution: string; 
 export interface EscalationView {
   employer: { name: string };
   manager: { fullName: string };
+  locale: "en" | "he";
   gap: DigestGap & {
     escalatedAt: string | null;
     resolvedAt: string | null;

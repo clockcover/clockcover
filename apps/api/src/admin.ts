@@ -19,23 +19,24 @@ export function adminRoutes(deps: Deps) {
   const app = new Hono<{ Variables: Vars }>();
 
   /** Emails an operator their console sign-in link. Used on create, on operator change, and on demand. */
-  async function inviteOperator(employer: { id: string; name: string; operatorEmail: string | null }, t: Date): Promise<boolean> {
+  async function inviteOperator(employer: { id: string; name: string; operatorEmail: string | null; locale: "en" | "he" }, t: Date): Promise<boolean> {
     if (!employer.operatorEmail) return false;
     const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
     const token = await signOperator({ kind: "operator", employerId: employer.id, email: employer.operatorEmail, exp }, deps.linkSecret);
-    await deps.sendEmail(renderMagicLink({ to: employer.operatorEmail, employerName: employer.name, link: `${consoleWeb}/console/${token}`, expires: new Date(exp) }));
+    await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: employer.operatorEmail, employerName: employer.name, link: `${consoleWeb}/console/${token}`, expires: new Date(exp) }));
     return true;
   }
 
   app.post("/login", async (c) => {
-    const body = await c.req.json<{ email?: unknown }>().catch(() => ({} as { email?: unknown }));
+    const body = await c.req.json<{ email?: unknown; locale?: unknown }>().catch(() => ({} as { email?: unknown; locale?: unknown }));
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const locale = body.locale === "he" ? "he" : "en";
     if (!email.includes("@")) return c.json({ error: "email required" }, 400);
     if (owner() && email === owner()) {
       const t = now();
       const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
       const token = await signAdmin({ kind: "admin", email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ to: email, employerName: "ClockCover", link: `${adminWeb}/admin/${token}`, expires: new Date(exp), area: "admin" }));
+      await deps.sendEmail(renderMagicLink({ locale, to: email, employerName: "ClockCover", link: `${adminWeb}/admin/${token}`, expires: new Date(exp), area: "admin" }));
     }
     return c.json({ ok: true, message: "If that is the owner's address, a sign-in link is on its way." }, 202);
   });
@@ -57,12 +58,13 @@ export function adminRoutes(deps: Deps) {
     const body = await c.req.json<Record<string, unknown>>().catch(() => ({} as Record<string, unknown>));
     const str = (k: string) => (typeof body[k] === "string" ? (body[k] as string).trim() : undefined);
     const errors: string[] = [];
-    const out: { name?: string; payrollEmail?: string; operatorEmail?: string; timezone?: string } = {};
+    const out: { name?: string; payrollEmail?: string; operatorEmail?: string; timezone?: string; locale?: "en" | "he" } = {};
     const name = str("name"); if (name !== undefined) { if (name) out.name = name; else errors.push("name is empty"); }
     for (const k of ["payrollEmail", "operatorEmail"] as const) {
       const v = str(k); if (v !== undefined) { if (v.includes("@")) out[k] = v.toLowerCase(); else errors.push(`${k} is not an email`); }
     }
     const tz = str("timezone"); if (tz !== undefined) { if (isTimezone(tz)) out.timezone = tz; else errors.push("timezone is not an IANA zone name"); }
+    const loc = str("locale"); if (loc !== undefined) { if (loc === "en" || loc === "he") out.locale = loc; else errors.push("locale must be en or he"); }
     return { out, errors };
   };
 
@@ -70,7 +72,7 @@ export function adminRoutes(deps: Deps) {
     const { out, errors } = await readEmployerBody(c);
     for (const k of ["name", "payrollEmail", "operatorEmail"] as const) if (out[k] === undefined && !errors.some((e) => e.startsWith(k))) errors.push(`${k} is required`);
     if (errors.length) return c.json({ error: "invalid employer", details: errors }, 400);
-    const row = { id: crypto.randomUUID(), name: out.name!, payrollEmail: out.payrollEmail!, operatorEmail: out.operatorEmail!, timezone: out.timezone ?? "UTC" };
+    const row = { id: crypto.randomUUID(), name: out.name!, payrollEmail: out.payrollEmail!, operatorEmail: out.operatorEmail!, timezone: out.timezone ?? "UTC", locale: out.locale ?? "en" as const };
     await deps.db.insert(s.employers).values(row);
     const invited = await inviteOperator(row, now());
     return c.json({ id: row.id, invited }, 201);

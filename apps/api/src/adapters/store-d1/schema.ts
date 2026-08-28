@@ -18,6 +18,8 @@ export const employers = sqliteTable("employers", {
   importUrl: text("import_url"),
   /** Where the daily job fetches the roster (CSV over HTTPS); null = uploads only. */
   rosterUrl: text("roster_url"),
+  /** Language of every email and page for this employer's people. */
+  locale: text("locale", { enum: ["en", "he"] }).notNull().default("en"),
 });
 
 export const managers = sqliteTable(

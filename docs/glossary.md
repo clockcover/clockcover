@@ -36,6 +36,11 @@ Whoever runs ClockCover as a business — creates Employers, invites their Opera
 Employer's headcount, open Gaps and last Import at `admin.clockcover.com` (ADR-0006). One address
 (`ADMIN_EMAIL`), signed in by emailed link.
 
+**Locale**:
+The language an Employer's people read — `en` or `he` — stored on the Employer and applied to every
+email and page; Hebrew is right-to-left. Canonical Hebrew terms: Gap = פער, Digest = תקציר,
+Escalation = העברה לשכר, Outcome = אישור שעות / דיווח היעדרות, Console = לוח הבקרה.
+
 **Console**:
 The Operator's area of `apps/portal`, on its own host (`console.clockcover.com`): Sign in, Imports,
 Settings, Overview. Not a list of Gaps.

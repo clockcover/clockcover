@@ -110,6 +110,7 @@ export function createApp(deps: Deps) {
     return c.json({
       manager: { fullName: manager.fullName },
       employer: { name: employer.name },
+      locale: employer.locale,
       digestDate: isoDate(t, employer.timezone),
       slaHours: employer.slaHours,
       linkExpires: new Date(claims.exp).toISOString(),
@@ -164,6 +165,7 @@ export function createApp(deps: Deps) {
     return c.json({
       employer: { name: employer.name },
       manager: { fullName: manager.fullName },
+      locale: employer.locale,
       gap: {
         id: gap.id, employeeName: view!.employeeName, gapDate: gap.gapDate, gapType: gap.gapType, shift: view!.shift, record: view!.record,
         managerNotifiedAt: gap.managerNotifiedAt?.toISOString() ?? null,
@@ -214,7 +216,7 @@ export async function runScheduled(deps: Deps): Promise<{ imports: number; impor
         const e = err instanceof ImportError ? err : new ImportError("import", err instanceof Error ? err.message : String(err));
         console.error(JSON.stringify({ job: "import", employerId: employer.id, step: e.step, message: e.message }));
         if (employer.operatorEmail) {
-          await deps.sendEmail(renderImportFailure({ to: employer.operatorEmail, employerName: employer.name, step: e.step, message: e.message, details: e.details, consoleUrl: deps.consoleUrl.replace(/\/$/, "") }));
+          await deps.sendEmail(renderImportFailure({ locale: employer.locale, to: employer.operatorEmail, employerName: employer.name, step: e.step, message: e.message, details: e.details, consoleUrl: deps.consoleUrl.replace(/\/$/, "") }));
         }
       }
     }
@@ -223,7 +225,7 @@ export async function runScheduled(deps: Deps): Promise<{ imports: number; impor
       const exp = t.getTime() + LINK_TTL_MS;
       const token = await signLink({ employerId: employer.id, managerId: m.manager.id, exp }, deps.linkSecret);
       await deps.sendEmail(renderDigest({
-        manager: m.manager, employerName: employer.name,
+        locale: employer.locale, manager: m.manager, employerName: employer.name,
         gaps: await gapViews(deps.db, employer.id, m.gaps),
         digestDate: isoDate(t, employer.timezone), slaHours: employer.slaHours,
         link: `${deps.webUrl.replace(/\/$/, "")}/d/${token}`, linkExpires: new Date(exp),
@@ -244,7 +246,7 @@ export async function runScheduled(deps: Deps): Promise<{ imports: number; impor
         const exp = t.getTime() + LINK_TTL_MS;
         const token = await signPayroll({ kind: "payroll", employerId: employer.id, gapId: e.gapId, email: employer.payrollEmail, exp }, deps.linkSecret);
         await deps.sendEmail(renderEscalation({
-          escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours,
+          locale: employer.locale, escalation: e, view, manager, employerName: employer.name, slaHours: employer.slaHours,
           link: `${deps.webUrl.replace(/\/$/, "")}/e/${token}`, linkExpires: new Date(exp),
         }));
       }

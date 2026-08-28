@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { dateTime, dayMonthYear, detail, groupByDay, longDate, shortDate, slaStatus } from "../src/digest.ts";
+import { setLocale, tr } from "../src/i18n.ts";
 import { escalationTokenFromPath, tokenFromPath } from "../src/api.ts";
 import type { DigestGap } from "../src/api.ts";
 
@@ -53,4 +54,14 @@ test("escalation token comes only from /e/<token>", () => {
   assert.equal(escalationTokenFromPath("/e/abc.def"), "abc.def");
   assert.equal(escalationTokenFromPath("/d/abc.def"), null);
   assert.equal(escalationTokenFromPath("/e/"), null);
+});
+
+test("Hebrew copy and dates", () => {
+  assert.equal(shortDate("2026-08-27", "he"), "יום ה׳ 27 אוג׳");
+  assert.equal(tr("he", "digest.open", { n: 2, noun: tr("he", "digest.gaps") }), "2 פערים פתוחים בצוות שלך");
+  setLocale("he", false);
+  assert.equal(detail(gap({ gapType: "no_record_at_all", record: null })), "משמרת 07:00–15:00 · אין רישום נוכחות");
+  assert.deepEqual(slaStatus(gap({ escalated: true }), 48, new Date()).text, "הועבר לחשב/ת השכר — זמן התגובה עבר");
+  setLocale("en", false);
+  assert.equal(detail(gap()), "shift 07:00–15:00 · clocked in 06:52 · no clock-out");
 });

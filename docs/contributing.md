@@ -104,7 +104,11 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   `src/console-api.ts`) with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
   which CI runs; there is no vue-tsc because it does not support
   TypeScript 7 yet.
-- `apps/web` has no tests or build: it is two static files.
+- `apps/web` has no tests or build: static files — `/` (English) and
+  `/he/` (Hebrew, RTL), kept in step by hand.
+- Copy for emails is in `apps/api/src/i18n.ts`, for pages in
+  `apps/portal/src/i18n.ts`; both are `en`/`he` dictionaries with the same
+  keys. New user-facing text goes there, never inline.
 
 ## Deploy
 

@@ -12,6 +12,7 @@ export interface EmployerSettings {
   /** Daily fetch sources (https CSV); null = uploads only. */
   importUrl: string | null;
   rosterUrl: string | null;
+  locale: "en" | "he";
   sessionExpires: string;
 }
 
@@ -66,7 +67,7 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
 export const requestLink = (email: string) =>
   call<{ ok: true; message: string }>("/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) }, false);
 export const me = () => call<EmployerSettings>("/me");
-export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "payrollEmail" | "operatorEmail" | "timezone" | "slaHours" | "importUrl" | "rosterUrl">>) =>
+export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "payrollEmail" | "operatorEmail" | "timezone" | "slaHours" | "importUrl" | "rosterUrl" | "locale">>) =>
   call<EmployerSettings>("/employer", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
 export const uploadRoster = (csv: string) => call<{ employees: number }>("/roster", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });
 export const uploadImport = (csv: string) => call<ImportOutcome>("/imports", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });

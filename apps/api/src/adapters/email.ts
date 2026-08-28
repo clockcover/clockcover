@@ -1,9 +1,10 @@
-// Email adapter — plain functions, no interface (ADR-0003). Renders the digest and
-// escalation emails (design: "Digest Email" / "Escalation Email" artboards) as HTML
-// with a plain-text twin, and posts them to Resend's HTTP API (Workers cannot speak
-// SMTP). The provider is a two-way door: only this file knows about it.
-import type { Escalation, Gap, GapType, Manager } from "@clockcover/core";
-import { dateTime, dayMonthYear, longDate, shortDate } from "../format.ts";
+// Email adapter — plain functions, no interface (ADR-0003). Renders the digest,
+// escalation, sign-in and import-failure emails in the employer's language (en/he,
+// Hebrew right-to-left) as HTML with a plain-text twin, and posts them to Resend's
+// HTTP API (Workers cannot speak SMTP). The provider is a two-way door: only this
+// file knows about it.
+import type { Escalation, Gap, Locale, Manager } from "@clockcover/core";
+import { GAP_LABEL, dateTime, dayMonthYear, isRtl, longDate, shortDate, t } from "../i18n.ts";
 
 export interface EmailConfig {
   apiKey: string;
@@ -11,12 +12,6 @@ export interface EmailConfig {
 }
 
 export interface Email { to: string; subject: string; text: string; html: string }
-
-export const GAP_LABEL: Record<GapType, string> = {
-  no_clockin: "No clock-in",
-  no_clockout: "No clock-out",
-  no_record_at_all: "No record",
-};
 
 /** What the templates need about one gap beyond the row itself. */
 export interface GapView {
@@ -26,7 +21,55 @@ export interface GapView {
   record: { clockIn: string | null; clockOut: string | null } | null;
 }
 
+// Email clients do not understand oklch; these are the design tokens as hex.
+const C = {
+  bg: "#ecedf1", card: "#ffffff", border: "#e0e1e7", rule: "#ececf0",
+  text: "#2b2c33", body: "#4c4e59", muted: "#6d6f7c", faint: "#8b8d99", fainter: "#9a9ca7",
+  accent: "#5b67a8", badgeBg: "#ededf0", badgeFg: "#5d5f6b", strongBg: "#e3e7f7", strongFg: "#4e5ba0",
+  breachBg: "#f7ece0", breachFg: "#a06a2a", panel: "#f7f7f9",
+};
+const SANS = "'Schibsted Grotesk','Heebo',Helvetica,Arial,sans-serif";
+const MONO = "'Fragment Mono',Menlo,Consolas,monospace";
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+
+function shell(locale: Locale, subject: string, body: string): string {
+  const dir = isRtl(locale) ? "rtl" : "ltr";
+  const align = isRtl(locale) ? "right" : "left";
+  return `<!doctype html><html lang="${locale}" dir="${dir}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
+<body style="margin:0;background:${C.bg};font-family:${SANS};color:${C.text};text-align:${align}" dir="${dir}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:40px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="${dir}" style="max-width:600px;background:${C.card};border:1px solid ${C.border};border-radius:10px"><tr><td style="padding:36px 40px;text-align:${align}">
+${body}
+</td></tr></table>
+</td></tr></table>
+</body></html>`;
+}
+
+const brand = (locale: Locale, right: string) =>
+  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" dir="${isRtl(locale) ? "rtl" : "ltr"}"><tr>
+<td style="font-family:${MONO};font-size:13px;letter-spacing:0.08em;color:${C.accent}" dir="ltr">CLOCKCOVER</td>
+<td align="${isRtl(locale) ? "left" : "right"}">${right}</td></tr></table>`;
+
+const badge = (label: string, bg: string, fg: string) =>
+  `<span style="font-family:${MONO};font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:${bg};color:${fg};white-space:nowrap">${esc(label)}</span>`;
+
+const footer = (lines: string[]) =>
+  `<div style="border-top:1px solid ${C.rule};padding-top:16px;margin-top:24px;font-size:12.5px;line-height:1.5;color:${C.fainter}">${lines.map((l) => `<div>${l}</div>`).join("")}</div>`;
+
+const button = (href: string, label: string) =>
+  `<div style="margin-top:24px"><a href="${esc(href)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">${esc(label)}</a></div>`;
+
+export function gapDetail(v: GapView, locale: Locale): string {
+  const shift = v.shift ? t(locale, "esc.detail.shift", { start: v.shift.plannedStart, end: v.shift.plannedEnd }) : t(locale, "esc.detail.noShift");
+  const rec = !v.record || v.gap.gapType === "no_record_at_all" ? t(locale, "esc.detail.noRecord")
+    : v.gap.gapType === "no_clockin" ? t(locale, "esc.detail.noClockin", { out: v.record.clockOut ?? "?" })
+    : t(locale, "esc.detail.noClockout", { in: v.record.clockIn ?? "?" });
+  return `${shift} · ${rec}`;
+}
+
 export interface DigestEmailInput {
+  locale: Locale;
   manager: Manager;
   employerName: string;
   gaps: GapView[];
@@ -37,94 +80,53 @@ export interface DigestEmailInput {
   linkExpires: Date;
 }
 
-// Email clients do not understand oklch; these are the design tokens as hex.
-const C = {
-  bg: "#ecedf1", card: "#ffffff", border: "#e0e1e7", rule: "#ececf0",
-  text: "#2b2c33", body: "#4c4e59", muted: "#6d6f7c", faint: "#8b8d99", fainter: "#9a9ca7",
-  accent: "#5b67a8", badgeBg: "#ededf0", badgeFg: "#5d5f6b", strongBg: "#e3e7f7", strongFg: "#4e5ba0",
-  breachBg: "#f7ece0", breachFg: "#a06a2a", panel: "#f7f7f9",
-};
-const SANS = "'Schibsted Grotesk',Helvetica,Arial,sans-serif";
-const MONO = "'Fragment Mono',Menlo,Consolas,monospace";
-
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-
-function shell(subject: string, body: string): string {
-  return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(subject)}</title></head>
-<body style="margin:0;background:${C.bg};font-family:${SANS};color:${C.text}">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${C.bg}"><tr><td align="center" style="padding:40px 16px">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${C.card};border:1px solid ${C.border};border-radius:10px"><tr><td style="padding:36px 40px">
-${body}
-</td></tr></table>
-</td></tr></table>
-</body></html>`;
-}
-
-const brand = (right: string) =>
-  `<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-<td style="font-family:${MONO};font-size:13px;letter-spacing:0.08em;color:${C.accent}">CLOCKCOVER</td>
-<td align="right">${right}</td></tr></table>`;
-
-const badge = (label: string, bg: string, fg: string) =>
-  `<span style="font-family:${MONO};font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;padding:3px 8px;border-radius:4px;background:${bg};color:${fg};white-space:nowrap">${esc(label)}</span>`;
-
-const footer = (lines: string[]) =>
-  `<div style="border-top:1px solid ${C.rule};padding-top:16px;margin-top:24px;font-size:12.5px;line-height:1.5;color:${C.fainter}">${lines.map((l) => `<div>${l}</div>`).join("")}</div>`;
-
-function gapDetail(v: GapView): string {
-  const shift = v.shift ? `shift ${v.shift.plannedStart}–${v.shift.plannedEnd}` : "no scheduled shift";
-  const rec = !v.record ? "no attendance record"
-    : v.gap.gapType === "no_clockin" ? `clocked out ${v.record.clockOut ?? "?"} · no clock-in`
-    : v.gap.gapType === "no_clockout" ? `clocked in ${v.record.clockIn ?? "?"} · no clock-out`
-    : "no attendance record";
-  return `${shift} · ${rec}`;
-}
-
 export function renderDigest(input: DigestEmailInput): Email {
-  const { manager, gaps, slaHours, link } = input;
+  const { locale: L, manager, gaps, slaHours, link } = input;
   const n = gaps.length;
-  const noun = n === 1 ? "clock gap" : "clock gaps";
+  const noun = t(L, n === 1 ? "digest.gap" : "digest.gaps");
   const sorted = gaps.slice().sort((a, b) => b.gap.gapDate.localeCompare(a.gap.gapDate) || a.employeeName.localeCompare(b.employeeName));
   const firstName = manager.fullName.split(" ")[0] ?? manager.fullName;
-  const subject = `${n} ${noun} on your team — ${shortDate(input.digestDate)}`;
+  const subject = t(L, "digest.subject", { n, noun, date: shortDate(input.digestDate, L) });
+  const lead = t(L, "digest.lead", { n, verb: t(L, n === 1 ? "digest.is" : "digest.are"), sla: slaHours }).replace(/\s{2,}/g, " ");
 
   const rows = sorted.map((v) => {
     const strong = v.gap.gapType === "no_record_at_all";
     return `<tr>
 <td style="padding:12px 0;border-bottom:1px solid ${C.rule};font-size:14.5px;font-weight:600">${esc(v.employeeName)}</td>
-<td style="padding:12px 14px;border-bottom:1px solid ${C.rule};font-family:${MONO};font-size:12px;color:${C.muted};white-space:nowrap">${shortDate(v.gap.gapDate)}</td>
-<td align="right" style="padding:12px 0;border-bottom:1px solid ${C.rule}">${badge(GAP_LABEL[v.gap.gapType], strong ? C.strongBg : C.badgeBg, strong ? C.strongFg : C.badgeFg)}</td>
+<td style="padding:12px 14px;border-bottom:1px solid ${C.rule};font-family:${MONO};font-size:12px;color:${C.muted};white-space:nowrap">${shortDate(v.gap.gapDate, L)}</td>
+<td align="${isRtl(L) ? "left" : "right"}" style="padding:12px 0;border-bottom:1px solid ${C.rule}">${badge(GAP_LABEL[L][v.gap.gapType], strong ? C.strongBg : C.badgeBg, strong ? C.strongFg : C.badgeFg)}</td>
 </tr>`;
   }).join("");
 
-  const html = shell(subject, `
-${brand(`<span style="font-family:${MONO};font-size:12px;color:${C.faint}">${longDate(input.digestDate)}</span>`)}
-<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">Good morning ${esc(firstName)} —</div>
-<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${n} of your team's scheduled shifts ${n === 1 ? "is" : "are"} missing clock entries. Each one escalates to payroll if it isn't resolved within ${slaHours} hours.</div>
+  const html = shell(L, subject, `
+${brand(L, `<span style="font-family:${MONO};font-size:12px;color:${C.faint}">${longDate(input.digestDate, L)}</span>`)}
+<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">${esc(t(L, "digest.greeting", { name: firstName }))}</div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(lead)}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;border-top:1px solid ${C.rule}">${rows}</table>
-<div style="margin-top:24px"><a href="${esc(link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Review and resolve</a></div>
+${button(link, t(L, "digest.cta"))}
 ${footer([
-  `This link is signed for you and expires ${dayMonthYear(input.linkExpires)}. No account or password needed.`,
-  `You're receiving this because you're the manager of record for these employees at ${esc(input.employerName)}.`,
+  esc(t(L, "digest.footer.link", { date: dayMonthYear(input.linkExpires, L) })),
+  esc(t(L, "digest.footer.why", { employer: input.employerName })),
 ])}`);
 
   const text = [
-    `Good morning ${firstName} —`,
+    t(L, "digest.greeting", { name: firstName }),
     "",
-    `${n} of your team's scheduled shifts ${n === 1 ? "is" : "are"} missing clock entries. Each one escalates to payroll if it isn't resolved within ${slaHours} hours.`,
+    lead,
     "",
-    ...sorted.map((v) => `  ${shortDate(v.gap.gapDate)}  ${v.employeeName}  —  ${GAP_LABEL[v.gap.gapType].toLowerCase()}`),
+    ...sorted.map((v) => `  ${shortDate(v.gap.gapDate, L)}  ${v.employeeName}  —  ${GAP_LABEL[L][v.gap.gapType].toLowerCase()}`),
     "",
-    `Review and resolve: ${link}`,
+    `${t(L, "digest.cta")}: ${link}`,
     "",
-    `This link is signed for you and expires ${dayMonthYear(input.linkExpires)}. No account or password needed.`,
-    `You're receiving this because you're the manager of record for these employees at ${input.employerName}.`,
+    t(L, "digest.footer.link", { date: dayMonthYear(input.linkExpires, L) }),
+    t(L, "digest.footer.why", { employer: input.employerName }),
   ].join("\n");
 
   return { to: manager.email, subject, text, html };
 }
 
 export interface EscalationEmailInput {
+  locale: Locale;
   escalation: Escalation;
   view: GapView;
   manager: Manager;
@@ -136,92 +138,92 @@ export interface EscalationEmailInput {
 }
 
 export function renderEscalation(input: EscalationEmailInput): Email {
-  const { escalation, view, manager, slaHours } = input;
+  const { locale: L, escalation, view, manager, slaHours } = input;
   const g = view.gap;
-  const subject = `Escalation — gap unresolved after ${slaHours} h (${view.employeeName}, ${shortDate(g.gapDate)})`;
-  const notified = g.managerNotifiedAt ? `${dateTime(g.managerNotifiedAt)} — no action recorded since` : "never";
+  const subject = t(L, "esc.subject", { sla: slaHours, employee: view.employeeName, date: shortDate(g.gapDate, L) });
+  const notified = g.managerNotifiedAt ? t(L, "esc.notified.noAction", { when: dateTime(g.managerNotifiedAt, L) }) : t(L, "esc.notified.none");
+  const gapLine = `${GAP_LABEL[L][g.gapType]} · ${shortDate(g.gapDate, L)} · ${gapDetail(view, L)}`;
   const row = (k: string, v: string) =>
-    `<tr><td style="padding:4px 20px 4px 0;font-family:${MONO};font-size:12px;color:${C.faint};vertical-align:top;white-space:nowrap">${k}</td><td style="padding:4px 0;font-size:14px">${v}</td></tr>`;
+    `<tr><td style="padding:4px ${isRtl(L) ? "0 4px 20px" : "20px 4px 0"};font-family:${MONO};font-size:12px;color:${C.faint};vertical-align:top;white-space:nowrap">${esc(k)}</td><td style="padding:4px 0;font-size:14px">${v}</td></tr>`;
 
-  const html = shell(subject, `
-${brand(badge("SLA breach", C.breachBg, C.breachFg))}
-<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">A gap passed its SLA without manager action</div>
-<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(manager.fullName)} was notified and did not act within ${slaHours} hours. This gap is now yours to follow up.</div>
+  const html = shell(L, subject, `
+${brand(L, badge(t(L, "esc.badge"), C.breachBg, C.breachFg))}
+<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">${esc(t(L, "esc.title"))}</div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(t(L, "esc.lead", { manager: manager.fullName, sla: slaHours }))}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:24px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px"><tr><td style="padding:14px 20px">
 <table role="presentation" cellpadding="0" cellspacing="0">
-${row("Employee", `<span style="font-weight:600">${esc(view.employeeName)}</span>`)}
-${row("Gap", `${esc(GAP_LABEL[g.gapType])} · ${shortDate(g.gapDate)} · ${esc(gapDetail(view))}`)}
-${row("Manager", esc(manager.fullName))}
-${row("Notified", esc(notified))}
-${row("Escalated", esc(dateTime(escalation.escalatedAt)))}
+${row(t(L, "esc.employee"), `<span style="font-weight:600">${esc(view.employeeName)}</span>`)}
+${row(t(L, "esc.gap"), esc(gapLine))}
+${row(t(L, "esc.manager"), esc(manager.fullName))}
+${row(t(L, "esc.notified"), esc(notified))}
+${row(t(L, "esc.escalated"), esc(dateTime(escalation.escalatedAt, L)))}
 </table></td></tr></table>
-<div style="margin-top:24px"><a href="${esc(input.link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Mark handled</a></div>
-<div style="margin-top:10px;font-size:13px;line-height:1.5;color:${C.muted}">Use it when the clock entry will never arrive (leaver, retroactive leave, broken terminal). If the entry is coming with the next export, do nothing — the gap closes itself.</div>
+${button(input.link, t(L, "esc.cta"))}
+<div style="margin-top:10px;font-size:13px;line-height:1.5;color:${C.muted}">${esc(t(L, "esc.cta.help"))}</div>
 ${footer([
-  `This link closes only this gap, needs a note, and expires ${dayMonthYear(input.linkExpires)}.`,
-  "You receive only escalations — gaps managers resolve on time never reach you.",
-  `This is the only notice for this gap. Sent to ${esc(escalation.escalatedTo)} for ${esc(input.employerName)}.`,
+  esc(t(L, "esc.footer.link", { date: dayMonthYear(input.linkExpires, L) })),
+  esc(t(L, "esc.footer.only")),
+  esc(t(L, "esc.footer.sent", { to: escalation.escalatedTo, employer: input.employerName })),
 ])}`);
 
   const text = [
-    "A gap passed its SLA without manager action.",
+    t(L, "esc.title") + ".",
     "",
-    `${manager.fullName} was notified and did not act within ${slaHours} hours. This gap is now yours to follow up.`,
+    t(L, "esc.lead", { manager: manager.fullName, sla: slaHours }),
     "",
-    `  Employee:  ${view.employeeName}`,
-    `  Gap:       ${GAP_LABEL[g.gapType]} · ${shortDate(g.gapDate)} · ${gapDetail(view)}`,
-    `  Manager:   ${manager.fullName}`,
-    `  Notified:  ${notified}`,
-    `  Escalated: ${dateTime(escalation.escalatedAt)}`,
+    `  ${t(L, "esc.employee")}:  ${view.employeeName}`,
+    `  ${t(L, "esc.gap")}:  ${gapLine}`,
+    `  ${t(L, "esc.manager")}:  ${manager.fullName}`,
+    `  ${t(L, "esc.notified")}:  ${notified}`,
+    `  ${t(L, "esc.escalated")}:  ${dateTime(escalation.escalatedAt, L)}`,
     "",
-    `Mark handled (when the entry will never arrive): ${input.link}`,
-    `This link closes only this gap, needs a note, and expires ${dayMonthYear(input.linkExpires)}.`,
+    `${t(L, "esc.cta")}: ${input.link}`,
+    t(L, "esc.footer.link", { date: dayMonthYear(input.linkExpires, L) }),
     "",
-    "You receive only escalations — gaps managers resolve on time never reach you.",
-    `This is the only notice for this gap. Sent to ${escalation.escalatedTo} for ${input.employerName}.`,
+    t(L, "esc.footer.only"),
+    t(L, "esc.footer.sent", { to: escalation.escalatedTo, employer: input.employerName }),
   ].join("\n");
 
   return { to: escalation.escalatedTo, subject, text, html };
 }
 
-export function renderMagicLink(input: { to: string; employerName: string; link: string; expires: Date; area?: "console" | "admin" }): Email {
+export function renderMagicLink(input: { locale: Locale; to: string; employerName: string; link: string; expires: Date; area?: "console" | "admin" }): Email {
+  const L = input.locale;
   const area = input.area ?? "console";
-  const subject = area === "admin" ? "Sign in to ClockCover admin" : `Sign in to the ClockCover console — ${input.employerName}`;
-  const html = shell(subject, `
-${brand("")}
-<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">Your sign-in link</div>
-<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${area === "admin" ? "Open the admin area: every employer, its operator, headcount and health." : `Open the console for ${esc(input.employerName)}: imports, settings and the SLA overview.`}</div>
-<div style="margin-top:24px"><a href="${esc(input.link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">${area === "admin" ? "Open admin" : "Open the console"}</a></div>
+  const subject = area === "admin" ? t(L, "magic.subject.admin") : t(L, "magic.subject.console", { employer: input.employerName });
+  const lead = area === "admin" ? t(L, "magic.lead.admin") : t(L, "magic.lead.console", { employer: input.employerName });
+  const html = shell(L, subject, `
+${brand(L, "")}
+<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">${esc(t(L, "magic.title"))}</div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(lead)}</div>
+${button(input.link, t(L, area === "admin" ? "magic.cta.admin" : "magic.cta.console"))}
 ${footer([
-  `This link signs you in for 7 days (until ${dayMonthYear(input.expires)}) and works only for ${esc(input.to)}.`,
-  "If you did not ask for it, ignore this email — nothing happens without the link.",
+  esc(t(L, "magic.footer.valid", { date: dayMonthYear(input.expires, L), to: input.to })),
+  esc(t(L, "magic.footer.ignore")),
 ])}`);
-  const text = [
-    area === "admin" ? "Your sign-in link for ClockCover admin:" : `Your sign-in link for the ClockCover console (${input.employerName}):`,
-    "",
-    input.link,
-    "",
-    `Valid for 7 days (until ${dayMonthYear(input.expires)}), only for ${input.to}. If you did not ask for it, ignore this email.`,
-  ].join("\n");
+  const text = [subject + ":", "", input.link, "", t(L, "magic.footer.valid", { date: dayMonthYear(input.expires, L), to: input.to }), t(L, "magic.footer.ignore")].join("\n");
   return { to: input.to, subject, text, html };
 }
 
-export function renderImportFailure(input: { to: string; employerName: string; step: "roster" | "import"; message: string; details: string[]; consoleUrl: string }): Email {
-  const subject = `ClockCover: today's ${input.step} import failed — ${input.employerName}`;
+export function renderImportFailure(input: { locale: Locale; to: string; employerName: string; step: "roster" | "import"; message: string; details: string[]; consoleUrl: string }): Email {
+  const L = input.locale;
+  const step = t(L, input.step === "roster" ? "step.roster" : "step.import");
+  const subject = t(L, "imp.subject", { step, employer: input.employerName });
   const list = input.details.slice(0, 20);
-  const more = input.details.length > 20 ? `… and ${input.details.length - 20} more` : "";
-  const html = shell(subject, `
-${brand(badge("import failed", C.breachBg, C.breachFg))}
-<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">The scheduled ${input.step} import did not run</div>
-<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(input.message)}. Today's digests were sent from the data already in ClockCover.</div>
-${list.length ? `<pre style="margin-top:16px;padding:14px 16px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px;font-family:${MONO};font-size:12px;line-height:1.5;white-space:pre-wrap">${esc(list.join("\n"))}${more ? `\n${esc(more)}` : ""}</pre>` : ""}
-<div style="margin-top:24px"><a href="${esc(input.consoleUrl)}/console/imports" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Open imports</a></div>
-${footer(["Fix the file at its URL and press “Run import now” in the console, or upload the file by hand. The next scheduled run will try again anyway."])}`);
+  const more = input.details.length > 20 ? t(L, "imp.more", { n: input.details.length - 20 }) : "";
+  const html = shell(L, subject, `
+${brand(L, badge(t(L, "imp.badge"), C.breachBg, C.breachFg))}
+<div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">${esc(t(L, "imp.title", { step }))}</div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${esc(t(L, "imp.lead", { message: input.message }))}</div>
+${list.length ? `<pre dir="ltr" style="margin-top:16px;padding:14px 16px;background:${C.panel};border:1px solid ${C.rule};border-radius:8px;font-family:${MONO};font-size:12px;line-height:1.5;white-space:pre-wrap;text-align:left">${esc(list.join("\n"))}${more ? `\n${esc(more)}` : ""}</pre>` : ""}
+${button(`${input.consoleUrl}/console/imports`, t(L, "imp.cta"))}
+${footer([esc(t(L, "imp.footer"))])}`);
   const text = [
-    `The scheduled ${input.step} import did not run: ${input.message}.`,
+    t(L, "imp.title", { step }) + ": " + input.message + ".",
     ...(list.length ? ["", ...list, more].filter(Boolean) : []),
     "",
-    `Today's digests were sent from the data already in ClockCover. Fix the file and press “Run import now” at ${input.consoleUrl}/console/imports, or upload it by hand.`,
+    t(L, "imp.footer"),
+    `${input.consoleUrl}/console/imports`,
   ].join("\n");
   return { to: input.to, subject, text, html };
 }

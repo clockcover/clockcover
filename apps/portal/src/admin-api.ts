@@ -3,10 +3,10 @@ import { ApiError } from "./api.ts";
 
 export interface AdminEmployer {
   id: string; name: string; payrollEmail: string; operatorEmail: string | null; timezone: string; slaHours: number;
-  importUrl: string | null; activeEmployees: number; managers: number; openGaps: number; escalatedOpen: number; lastImportAt: string | null;
+  importUrl: string | null; locale: string; activeEmployees: number; managers: number; openGaps: number; escalatedOpen: number; lastImportAt: string | null;
 }
 
-export interface NewEmployer { name: string; payrollEmail: string; operatorEmail: string; timezone: string }
+export interface NewEmployer { name: string; payrollEmail: string; operatorEmail: string; timezone: string; locale: "en" | "he" }
 
 const KEY = "clockcover.admin.token";
 const base = (import.meta.env?.VITE_API_URL as string | undefined)?.replace(/\/$/, "") ?? "";
@@ -34,7 +34,7 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
 
 const json = (b: unknown, method = "POST") => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
 
-export const requestAdminLink = (email: string) => call<{ ok: true; message: string }>("/login", json({ email }), false);
+export const requestAdminLink = (email: string, locale: "en" | "he") => call<{ ok: true; message: string }>("/login", json({ email, locale }), false);
 export const adminMe = () => call<{ email: string; sessionExpires: string }>("/me");
 export const listEmployers = () => call<{ employers: AdminEmployer[] }>("/employers");
 export const createEmployer = (e: NewEmployer) => call<{ id: string; invited: boolean }>("/employers", json(e));
