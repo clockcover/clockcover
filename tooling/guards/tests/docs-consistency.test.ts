@@ -49,6 +49,15 @@ test("the set of guards is the same in git-hook.ts, settings.json hooks, CLAUDE.
   assert.deepEqual([...fromContributing].sort(), all, "docs/contributing.md guard table");
 });
 
+test("every Claude hook runs from the project root and fails closed", () => {
+  const settings = JSON.parse(read(".claude/settings.json")) as { hooks: Record<string, Array<{ hooks: Array<{ command: string }> }>> };
+  const commands = Object.values(settings.hooks).flat().flatMap((h) => h.hooks.map((x) => x.command));
+  assert.ok(commands.length > 0);
+  for (const cmd of commands) {
+    assert.match(cmd, /^cd "\$CLAUDE_PROJECT_DIR" && node \.claude\/hooks\/[a-z-]+\.ts \|\| exit 2$/, `hook must cd to the project root and block on failure: ${cmd}`);
+  }
+});
+
 test("packages/core has the boundary test the docs say enforces the infra-agnostic core", () => {
   const t = read("packages/core/tests/boundary.test.ts");
   for (const banned of ["cloudflare:", "hono", "drizzle-orm", "apps"]) assert.match(t, new RegExp(banned), `boundary test must ban ${banned}`);

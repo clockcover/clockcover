@@ -28,8 +28,9 @@ export function writtenText(input: HookInput): string {
   return input.tool_input.content ?? input.tool_input.new_string ?? "";
 }
 
-/** Repo-relative path of the file a Write/Edit targets (hooks run with cwd = project root). */
+/** Repo-relative path of the file a Write/Edit targets. settings.json `cd`s into $CLAUDE_PROJECT_DIR first; fall back to cwd for direct runs. */
 export function targetPath(input: HookInput): string {
   const p = input.tool_input.file_path ?? "";
-  return isAbsolute(p) ? relative(process.cwd(), p) : p;
+  const root = process.env["CLAUDE_PROJECT_DIR"] || process.cwd();
+  return isAbsolute(p) ? relative(root, p) : p;
 }
