@@ -91,8 +91,12 @@ keying by shift, not by day.
 
 **Roster.** `employees` and `managers` are upserted by
 `(employer_id, external_id)` from a roster CSV (`architecture.md`
-§ Ingestion). `employees.active` is set true on every upsert; there is
-no deactivation path yet.
+§ Ingestion). The file is the whole truth about who is tracked: an
+employee missing from the latest roster is set `active = false` — no new
+gaps, not counted toward headcount (ADR-0006), rows for them in an
+export are skipped and reported; their open gaps stay open until a
+manager or payroll closes them. Listing them again reactivates.
+Managers are never deactivated (gaps snapshot them).
 
 **No `status` column on `attendance_records`.** Whether a record is
 complete is derived from `clock_in`/`clock_out` being null; a shift with
