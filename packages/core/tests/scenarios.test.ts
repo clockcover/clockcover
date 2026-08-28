@@ -144,7 +144,7 @@ test("not notified yet → never escalates, however old", async () => {
   assert.equal(escalations.length, 0);
 });
 
-test("digest date follows the employer's timezone (decided 2026-08-28)", async () => {
+test("13. digest date follows the employer's timezone (decided 2026-08-28)", async () => {
   const late = at("2026-03-02T23:30:00Z"); // already 3 March in Berlin
   assert.equal(isoDate(late), "2026-03-02");
   assert.equal(isoDate(late, "Europe/Berlin"), "2026-03-03");
@@ -155,7 +155,7 @@ test("digest date follows the employer's timezone (decided 2026-08-28)", async (
   assert.equal(digest?.digestDate, "2026-03-03");
 });
 
-test("payroll closes an escalated gap with a note; nothing escalates again", async () => {
+test("14. payroll closes an escalated gap with a note; nothing escalates again", async () => {
   const { store, sent } = setup();
   await detect(store, { shifts: [shift(ada)], records: [], employees: [ada] });
   await runDailyDigest(store, employer.id, T0, send(sent));

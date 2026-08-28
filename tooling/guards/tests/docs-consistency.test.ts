@@ -58,6 +58,15 @@ test("every Claude hook runs from the project root and fails closed", () => {
   }
 });
 
+test("every acceptance scenario row in core-design.md has a core test with the same number", () => {
+  const rows = [...read("docs/core-design.md").matchAll(/^\| (\d+)\s+\|/gm)].map((m) => Number(m[1]));
+  assert.ok(rows.length >= 12, "scenario table missing");
+  const tests = read("packages/core/tests/scenarios.test.ts");
+  for (const n of rows) {
+    assert.match(tests, new RegExp(`^test\\("${n}\\. `, "m"), `scenario ${n} has no test named "${n}. …" in scenarios.test.ts`);
+  }
+});
+
 test("packages/core has the boundary test the docs say enforces the infra-agnostic core", () => {
   const t = read("packages/core/tests/boundary.test.ts");
   for (const banned of ["cloudflare:", "hono", "drizzle-orm", "apps"]) assert.match(t, new RegExp(banned), `boundary test must ban ${banned}`);

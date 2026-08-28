@@ -40,7 +40,9 @@ Node ≥ 23.6 executes `.ts` directly, no build step — see `engines`):
   `INDEX.md` rows and statuses; `CLAUDE.md` Status date < 90 days; the
   guard set is identical across `git-hook.ts`, `.claude/hooks`,
   `settings.json`, `CLAUDE.md` and the table above; `.gitignore` covers
-  `data/real/`, `.dev.vars`, `.wrangler/`.
+  `data/real/`, `.dev.vars`, `.wrangler/`; hook commands run from the
+  project root and fail closed; every acceptance-scenario row in
+  `core-design.md` has a core test with the same number.
 
 ### Rules for guards
 
@@ -91,9 +93,12 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   to `fixtures/`).
 - `apps/api/tests/` — CSV parsing, the SQL `Store` and import writers
   against libsql in memory with the real `migrations/` applied (same
-  SQLite dialect as D1), and the Hono app + scheduled job with a fake
-  mailer. `pnpm db:generate` (drizzle-kit) regenerates migrations from
-  `src/adapters/store-d1/schema.ts`; wrangler applies them.
+  SQLite dialect as D1), the Hono app + scheduled job with a fake mailer
+  and a fake `fetch` (scheduled imports), the operator console, the
+  signed links. `pnpm db:generate` (drizzle-kit) regenerates migrations
+  from `src/adapters/store-d1/schema.ts`; wrangler applies them. CI runs
+  `drizzle-kit generate` and fails if it produces a file — a schema
+  change without its migration never reaches `main`.
   `wrangler deploy --dry-run` checks the Worker bundles.
 - `apps/web/tests/` — view logic (`src/digest.ts`, `src/api.ts`,
   `src/console-api.ts`) with node:test. The `.vue` templates are checked by `pnpm build` (Vite),

@@ -204,8 +204,9 @@ payroll closing tails would flatter managers' numbers.
 
 "Done" for the matching engine and routing means every scenario below
 runs green against synthetic fixtures (`packages/core/fixtures`); the
-tests are `packages/core/tests/scenarios.test.ts`, same numbering. Add a
-row before changing behaviour, not after.
+tests are `packages/core/tests/scenarios.test.ts`, same numbering, and
+`docs-consistency.test.ts` fails if a row has no test with its number.
+Add a row before changing behaviour, not after.
 
 | #  | Given                                                      | Expect                                                                                               |
 | -- | ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -221,3 +222,5 @@ row before changing behaviour, not after.
 | 10 | `runDailyDigest` run twice on one day                      | one `digests` row per manager, one `digest_sent` event, second run sends nothing                     |
 | 11 | Gap notified, SLA elapsed, unresolved                      | one escalation, one `escalated` event; third run adds nothing                                        |
 | 12 | Gap notified, resolved before SLA                          | no escalation                                                                                        |
+| 13 | Employer timezone east of UTC, job runs late UTC evening   | `digest_date` is the employer's local date, not the UTC date                                         |
+| 14 | Escalated gap, payroll closes it with a note               | `resolution = payroll_action`, `outcome` set, no further escalation, `gap_resolved` event            |

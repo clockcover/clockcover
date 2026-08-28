@@ -67,14 +67,15 @@ The core (matching + routing) never depends on the vendor.
 - **Endpoints** (`apps/api`): operator endpoints behind one API key —
   `POST /employers/:id/roster`, `POST /employers/:id/imports` (runs
   detection for the dates in the file) — and `GET /health`. The cron
-  trigger (08:00 UTC) runs digests then escalations for every employer.
+  trigger (08:00 UTC) runs, per employer: scheduled import from the
+  configured URLs, digests, then escalations.
 - **Manager access** (ADR-0004): the digest email carries a signed,
   expiring link scoped to that manager (`<WEB_URL>/d/<token>`).
   `GET /d/:token` returns that manager's open gaps with employee names,
   shift and clock times, notification time and escalation state, plus
   their team's unscheduled attendance for the last 14 days;
-  `POST /d/:token/gaps/:gapId/resolve` (optional `note`) runs
-  `resolveByManager`. Tokens are HMAC-SHA-256 over
+  `POST /d/:token/gaps/:gapId/resolve` (`outcome` present|absent; `note`
+  required for absent) runs `resolveByManager`. Tokens are HMAC-SHA-256 over
   `{employerId, managerId, exp}` with `LINK_SECRET`, valid 14 days.
   CORS on `/d/*` is open to `WEB_URL` only. No accounts or sessions.
 - **Payroll access** (ADR-0004 § extended): each escalation email links

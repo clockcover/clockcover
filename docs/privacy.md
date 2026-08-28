@@ -14,6 +14,11 @@
   parsing, keep only normalized records.
 - TTL and encryption at rest for anything touching real employees, once
   we get there.
+- **Import URLs are credentials.** `employers.import_url` / `roster_url`
+  are meant to be secret addresses (a token in the path or query); they
+  are stored in D1 as plain text and shown in the console Settings to
+  the signed-in operator only. Files fetched from them are parsed and
+  discarded like uploads — nothing raw is kept.
 
 ## What Claude Code must not read
 
