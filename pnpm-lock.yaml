@@ -61,7 +61,7 @@ importers:
         specifier: ^4.125.0
         version: 4.125.0(@cloudflare/workers-types@5.20260823.1)
 
-  apps/site:
+  apps/marketing:
     devDependencies:
       wrangler:
         specifier: ^4.125.0
