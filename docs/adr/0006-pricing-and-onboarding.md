@@ -50,11 +50,11 @@ What we know about the buyer:
 
 List — confirmed by the owner on 2026-08-28 and published on the site:
 
-| Tier | Active employees | Monthly |
+| Tier | Active employees | Monthly (USD) |
 |---|---|---|
-| Team | up to 50 | €49 |
-| Company | up to 200 | €149 |
-| Site | up to 500 | €349 |
+| Team | up to 50 | $49 |
+| Company | up to 200 | $149 |
+| Site | up to 500 | $349 |
 | Larger | over 500 | by agreement (and the trigger for self-hosting) |
 
 The numbers were chosen to be low enough not to need procurement at a
