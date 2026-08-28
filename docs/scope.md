@@ -50,6 +50,12 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   number of active employees on the roster; managers, digests and gaps
   unlimited; 30 days free on the employer's own files; access by
   request. The site shows the tiers and prices.
+- **Two languages, Hebrew and English.** Every email and every page a
+  person sees follows the employer's language (`employers.locale`, set
+  by the owner at creation and by the operator in Settings); Hebrew is
+  right-to-left. The site is served at `/` (English) and `/he/`
+  (Hebrew). Pages carry a switch for the reader; the employer's choice
+  is the default.
 - **Owner's admin area** (`admin.clockcover.com`, ADR-0006): the list of
   all employers with headcount, operator and last import; create an
   employer and invite its operator; change an operator. Signed in by

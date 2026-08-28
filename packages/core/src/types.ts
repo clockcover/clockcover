@@ -16,7 +16,11 @@ export interface Employer {
   operatorEmail: string | null;
   /** SLA in hours before an unresolved gap escalates. */
   slaHours: number;
+  /** Language of emails and pages for this employer's people: "en" | "he". */
+  locale: Locale;
 }
+
+export type Locale = "en" | "he";
 
 export interface Manager {
   id: Id;

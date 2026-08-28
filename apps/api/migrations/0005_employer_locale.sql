@@ -1,0 +1,1 @@
+ALTER TABLE `employers` ADD `locale` text DEFAULT 'en' NOT NULL;

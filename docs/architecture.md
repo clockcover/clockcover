@@ -137,6 +137,15 @@ apps/web          Marketing website: one static HTML page + CSS served
                   justify one.
 ```
 
+**Languages.** Copy lives in two dictionaries — `apps/api/src/i18n.ts`
+(emails, dates) and `apps/portal/src/i18n.ts` (pages) — keyed the same
+way in `en` and `he`; the employer's `locale` selects one, `he` renders
+right-to-left (`dir="rtl"` on emails and `<html>`), and the Heebo face
+supplies Hebrew glyphs next to Schibsted Grotesk. The site is two static
+pages, `/` and `/he/`, cross-linked with `hreflang`. Dates are formatted
+by hand in both languages (weekday, day, month) so emails and pages
+agree. Adding a language is a third column in the two dictionaries.
+
 The visual design of the emails, the digest page and the site is the
 "ClockCover notification system" project in Claude Design; the code
 mirrors its artboards (fonts Schibsted Grotesk / Fragment Mono, the

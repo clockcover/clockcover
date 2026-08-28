@@ -62,7 +62,7 @@ test("a failing fetch or a bad file emails the operator with the reason; digests
   assert.equal(r.importFailures, 1);
   assert.equal(r.digests, 1, "yesterday's data still produces today's digest");
   const failure = emails.find((e) => e.to === OPERATOR)!;
-  assert.match(failure.subject, /import import failed/);
+  assert.match(failure.subject, /today's export import failed/);
   assert.match(failure.text, /HTTP 500 from files\.example\.com/);
   assert.ok(failure.text.includes(`${CONSOLE}/console/imports`));
 

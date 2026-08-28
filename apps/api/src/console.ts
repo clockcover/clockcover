@@ -31,7 +31,7 @@ export function consoleRoutes(deps: Deps) {
       const t = now();
       const exp = Math.floor((t.getTime() + OPERATOR_TTL_MS) / 60_000) * 60_000;
       const token = await signOperator({ kind: "operator", employerId: employer.id, email, exp }, deps.linkSecret);
-      await deps.sendEmail(renderMagicLink({ to: email, employerName: employer.name, link: `${web}/console/${token}`, expires: new Date(exp) }));
+      await deps.sendEmail(renderMagicLink({ locale: employer.locale, to: email, employerName: employer.name, link: `${web}/console/${token}`, expires: new Date(exp) }));
     }
     return c.json({ ok: true, message: "If that address runs a ClockCover employer, a sign-in link is on its way." }, 202);
   });
@@ -50,7 +50,7 @@ export function consoleRoutes(deps: Deps) {
 
   const employerView = (e: typeof s.employers.$inferSelect, exp: number) => ({
     id: e.id, name: e.name, payrollEmail: e.payrollEmail, operatorEmail: e.operatorEmail, timezone: e.timezone, slaHours: e.slaHours,
-    importUrl: e.importUrl, rosterUrl: e.rosterUrl,
+    importUrl: e.importUrl, rosterUrl: e.rosterUrl, locale: e.locale,
     sessionExpires: new Date(exp).toISOString(),
   });
 
@@ -74,6 +74,7 @@ export function consoleRoutes(deps: Deps) {
         if ("error" in r) errors.push(`${k} ${r.error}`); else patch[k] = r.url;
       }
     }
+    const loc = str("locale"); if (loc !== undefined) { if (loc === "en" || loc === "he") patch.locale = loc; else errors.push("locale must be en or he"); }
     if (body["slaHours"] !== undefined) {
       const n = Number(body["slaHours"]);
       if (Number.isInteger(n) && n >= 1 && n <= 24 * 14) patch.slaHours = n; else errors.push("slaHours must be a whole number of hours, 1–336");

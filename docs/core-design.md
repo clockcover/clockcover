@@ -16,7 +16,8 @@ employers
   operator_email,                  -- who may sign in to the console (ADR-0005)
   timezone,                        -- IANA name; defines "today" for digests and the SLA
   sla_hours,                       -- 48 by default; the console edits it
-  import_url, roster_url           -- nullable https URLs the daily job fetches CSVs from
+  import_url, roster_url,          -- nullable https URLs the daily job fetches CSVs from
+  locale (en|he)                   -- language of emails and pages; Hebrew is RTL
 
 employees
   id, employer_id, external_id, full_name, manager_id (FK → managers), active

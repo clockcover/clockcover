@@ -82,17 +82,18 @@ test("create an employer → operator receives a console invite; validation; cha
   assert.equal(bad.status, 400);
   assert.equal((await bad.json() as { details: string[] }).details.length, 4, "name empty, payroll not email, timezone invalid, operator required");
 
-  const created = await api("/employers", json({ name: "Second Employer", payrollEmail: "pay2@example.com", operatorEmail: "Op2@Example.com", timezone: "Asia/Jerusalem" }));
+  const created = await api("/employers", json({ name: "Second Employer", payrollEmail: "pay2@example.com", operatorEmail: "Op2@Example.com", timezone: "Asia/Jerusalem", locale: "he" }));
   assert.equal(created.status, 201);
   const { id, invited } = await created.json() as { id: string; invited: boolean };
   assert.equal(invited, true);
   assert.equal(emails.length, 1);
   assert.equal(emails[0]!.to, "op2@example.com");
-  assert.match(emails[0]!.subject, /console — Second Employer$/);
+  assert.match(emails[0]!.subject, /^כניסה ללוח הבקרה של ClockCover — Second Employer$/, "invite in the employer's language");
   assert.ok(emails[0]!.text.includes(`${CONSOLE}/console/`), "invite is a console link, not an admin link");
   const [row] = await db.select().from(s.employers).where((await import("drizzle-orm")).eq(s.employers.id, id));
   assert.equal(row!.timezone, "Asia/Jerusalem");
   assert.equal(row!.slaHours, 48);
+  assert.equal(row!.locale, "he");
 
   emails.length = 0;
   assert.equal((await api(`/employers/${id}`, json({ name: "Second Employer Ltd" }, "PATCH"))).status, 200);
