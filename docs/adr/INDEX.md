@@ -7,5 +7,6 @@
 | [0003](0003-package-boundaries-and-schema-invariants.md)      | One core package, one Store port, and the schema invariants the core relies on   | accepted |
 | [0004](0004-digest-access-by-signed-link.md)                  | Managers reach their digest through a signed, expiring link — no accounts        | accepted |
 | [0005](0005-operator-console-and-magic-link-sign-in.md)       | An operator console in apps/portal, signed in by emailed magic link                 | accepted |
+| [0006](0006-pricing-and-onboarding.md)                        | Per-employer subscription by headcount; onboarding by request, not self-serve    | accepted |
 
 New ADR: copy `template.md`, number it the next integer, add a row here.

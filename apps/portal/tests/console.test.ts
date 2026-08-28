@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { consoleRoute, defaultRange, pct } from "../src/console-api.ts";
+import { adminRoute } from "../src/admin-api.ts";
 
 test("console routes", () => {
   assert.deepEqual(consoleRoute("/console"), { page: "signin" });
@@ -23,4 +24,13 @@ test("metric percentage", () => {
 
 test("default export range is the last 30 days", () => {
   assert.deepEqual(defaultRange(new Date("2026-08-28T10:00:00Z")), { from: "2026-07-29", to: "2026-08-28" });
+});
+
+test("admin routes: own host root, /admin paths, never the console's", () => {
+  assert.deepEqual(adminRoute("/", "admin.clockcover.com"), { page: "signin" });
+  assert.equal(adminRoute("/", "console.clockcover.com"), null);
+  assert.deepEqual(adminRoute("/admin"), { page: "signin" });
+  assert.deepEqual(adminRoute("/admin/employers"), { page: "employers" });
+  assert.deepEqual(adminRoute("/admin/tok.en"), { page: "landing", token: "tok.en" });
+  assert.equal(adminRoute("/console/overview"), null);
 });

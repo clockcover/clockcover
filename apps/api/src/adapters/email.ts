@@ -184,19 +184,20 @@ ${footer([
   return { to: escalation.escalatedTo, subject, text, html };
 }
 
-export function renderMagicLink(input: { to: string; employerName: string; link: string; expires: Date }): Email {
-  const subject = `Sign in to the ClockCover console — ${input.employerName}`;
+export function renderMagicLink(input: { to: string; employerName: string; link: string; expires: Date; area?: "console" | "admin" }): Email {
+  const area = input.area ?? "console";
+  const subject = area === "admin" ? "Sign in to ClockCover admin" : `Sign in to the ClockCover console — ${input.employerName}`;
   const html = shell(subject, `
 ${brand("")}
 <div style="margin-top:24px;font-size:22px;font-weight:700;letter-spacing:-0.01em">Your sign-in link</div>
-<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">Open the console for ${esc(input.employerName)}: imports, settings and the SLA overview.</div>
-<div style="margin-top:24px"><a href="${esc(input.link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Open the console</a></div>
+<div style="margin-top:8px;font-size:15px;line-height:1.5;color:${C.body}">${area === "admin" ? "Open the admin area: every employer, its operator, headcount and health." : `Open the console for ${esc(input.employerName)}: imports, settings and the SLA overview.`}</div>
+<div style="margin-top:24px"><a href="${esc(input.link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">${area === "admin" ? "Open admin" : "Open the console"}</a></div>
 ${footer([
   `This link signs you in for 7 days (until ${dayMonthYear(input.expires)}) and works only for ${esc(input.to)}.`,
   "If you did not ask for it, ignore this email — nothing happens without the link.",
 ])}`);
   const text = [
-    `Your sign-in link for the ClockCover console (${input.employerName}):`,
+    area === "admin" ? "Your sign-in link for ClockCover admin:" : `Your sign-in link for the ClockCover console (${input.employerName}):`,
     "",
     input.link,
     "",

@@ -28,6 +28,10 @@ the behaviour itself is specified in `core-design.md`.
 - **Employee types.** No per-type logic. Everyone in the roster is
   expected to clock; staff who should not be tracked are left out of the
   roster.
+- **Sign-up and pricing** (2026-08-28, ADR-0006). Per-employer
+  subscription tiered by active headcount; 30 days free; onboarding by
+  request from the owner's admin area, no self-serve until the second
+  paying employer.
 - **Channel.** Email only for now. WhatsApp remains a non-goal at launch
   (`scope.md`); a second channel is the ADR-0003 trigger for extracting a
   notification interface.
@@ -43,7 +47,7 @@ the behaviour itself is specified in `core-design.md`.
   built). Decides whether the daily fetch is enough.
 - **Where corrections go**: which attendance or payroll system, and
   whether it has an import API. Until known, corrections leave as CSV.
-- **Sign-up and pricing** (one decision, one-way door): who may create
-  an employer, whether self-serve, and what is charged. Today one
-  employer per deployment, seeded by hand. A proposal is in the chat
-  log of 2026-08-28; it needs the owner's decision and an ADR.
+- **Price list**: ADR-0006 fixes the model (per employer, by headcount,
+  free month, by request) and holds a draft list; the numbers are
+  confirmed in the first customer conversations before they go on the
+  site.

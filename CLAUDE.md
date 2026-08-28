@@ -32,7 +32,7 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-Last confirmed: 2026-08-28. Docs, ADR-0001..0005, the repo harness
+Last confirmed: 2026-08-28. Docs, ADR-0001..0006, the repo harness
 (guards, hooks, CI — see `docs/contributing.md`), `packages/core` (all
 12 acceptance scenarios green), `apps/api` (Hono; D1 `Store` via
 Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
@@ -53,8 +53,12 @@ managers keep portal.clockcover.com. Every resolution is either
 can close an escalated gap from the escalation email (`/e/<token>`).
 The daily job can fetch the export and roster from https URLs set in
 the console and emails the operator on failure; corrections export as
-CSV. Open: sign-up and pricing, export target, the first real
-employer's file location and layout. Synthetic data only.
+CSV. ADR-0006 fixes the money model (per employer, by headcount, free
+month, access by request; price list still a draft), the site says so,
+and the owner onboards employers from admin.clockcover.com (list,
+create + invite operator, change operator). Open:
+export target, the first real employer's file location and layout, the
+price numbers. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

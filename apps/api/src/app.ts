@@ -16,6 +16,7 @@ import { ImportError, hasImportSources, runImportFromUrls } from "./import-run.t
 import type { SendEmail } from "./adapters/email.ts";
 import { LINK_TTL_MS, signLink, signPayroll, verifyLink, verifyPayroll } from "./link.ts";
 import { consoleRoutes } from "./console.ts";
+import { adminRoutes } from "./admin.ts";
 
 export interface Deps {
   db: Db;
@@ -29,6 +30,10 @@ export interface Deps {
   webUrl: string;
   /** Origin of the operator console (apps/portal on the app host) — magic links and CORS for /console/*. */
   consoleUrl: string;
+  /** Origin of the owner\'s admin area (apps/portal on the admin host) — magic links and CORS for /admin/*. */
+  adminUrl: string;
+  /** The one address that may sign in to the admin area (ADR-0006). */
+  adminEmail: string;
   /** Default SLA for employers that have not set their own (employers.sla_hours). */
   slaHours: number;
   now?: () => Date;
@@ -81,6 +86,10 @@ export function createApp(deps: Deps) {
   // ---- Operator console (ADR-0005). Bearer token; called from apps/portal.
   app.use("/console/*", cors({ origin: deps.consoleUrl, allowMethods: ["GET", "POST", "PATCH"], allowHeaders: ["content-type", "authorization"] }));
   app.route("/console", consoleRoutes(deps));
+
+  // ---- Owner admin area (ADR-0006). Bearer token, kind=admin.
+  app.use("/admin/*", cors({ origin: deps.adminUrl, allowMethods: ["GET", "POST", "PATCH"], allowHeaders: ["content-type", "authorization"] }));
+  app.route("/admin", adminRoutes(deps));
 
   // ---- Manager endpoints: signed link in the path (ADR-0004). Called from apps/portal.
   app.use("/d/*", cors({ origin: deps.webUrl, allowMethods: ["GET", "POST"], allowHeaders: ["content-type"] }));

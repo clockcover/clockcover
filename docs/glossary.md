@@ -31,6 +31,11 @@ SLA, reads the metric. In practice the Payroll Accountant, but a distinct role: 
 configures, the Payroll Accountant receives Escalations. One Operator per Employer
 (`employers.operator_email`), signed in through the **Console** by emailed link (ADR-0005).
 
+**Owner** / **Admin area**:
+Whoever runs ClockCover as a business — creates Employers, invites their Operators, sees every
+Employer's headcount, open Gaps and last Import at `admin.clockcover.com` (ADR-0006). One address
+(`ADMIN_EMAIL`), signed in by emailed link.
+
 **Console**:
 The Operator's area of `apps/portal`, on its own host (`console.clockcover.com`): Sign in, Imports,
 Settings, Overview. Not a list of Gaps.

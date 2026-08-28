@@ -14,6 +14,8 @@ interface Env {
   EMAIL_FROM: string;
   WEB_URL: string;
   CONSOLE_URL: string;
+  ADMIN_URL: string;
+  ADMIN_EMAIL: string;
   SLA_HOURS: string;
 }
 
@@ -27,6 +29,8 @@ function deps(env: Env): Deps {
     linkSecret: env.LINK_SECRET,
     webUrl: env.WEB_URL,
     consoleUrl: env.CONSOLE_URL,
+    adminUrl: env.ADMIN_URL,
+    adminEmail: env.ADMIN_EMAIL,
     slaHours: Number(env.SLA_HOURS) || 48,
   };
 }

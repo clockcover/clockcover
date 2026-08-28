@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { escalationTokenFromPath, tokenFromPath } from "./api.ts";
 import { consoleRoute } from "./console-api.ts";
+import { adminRoute } from "./admin-api.ts";
+import AdminApp from "./admin/AdminApp.vue";
 import DigestPage from "./DigestPage.vue";
 import EscalationPage from "./EscalationPage.vue";
 import ConsoleApp from "./console/ConsoleApp.vue";
@@ -8,13 +10,15 @@ import ConsoleApp from "./console/ConsoleApp.vue";
 const { pathname, hostname } = window.location;
 const token = tokenFromPath(pathname);
 const escalationToken = escalationTokenFromPath(pathname);
-const isConsole = consoleRoute(pathname, hostname) !== null;
+const isAdmin = adminRoute(pathname, hostname) !== null;
+const isConsole = !isAdmin && consoleRoute(pathname, hostname) !== null;
 const consoleUrl = (import.meta.env?.VITE_CONSOLE_URL as string | undefined) ?? "/console";
 </script>
 
 <template>
   <DigestPage v-if="token" :token="token" />
   <EscalationPage v-else-if="escalationToken" :token="escalationToken" />
+  <AdminApp v-else-if="isAdmin" />
   <ConsoleApp v-else-if="isConsole" />
   <main v-else class="min-h-screen flex items-center justify-center px-5">
     <div class="max-w-md text-center flex flex-col gap-3">
