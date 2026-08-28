@@ -48,13 +48,13 @@ What we know about the buyer:
 - Cancellation any time; data export (roster, corrections CSV) is
   always available so leaving is not hostage-taking.
 
-List — confirmed by the owner on 2026-08-28 and published on the site:
+List — set by the owner on 2026-08-28 (first $49/$149/$349, lowered the same day to $20/$50/$100) and published on the site:
 
 | Tier | Active employees | Monthly (USD) |
 |---|---|---|
-| Team | up to 50 | $49 |
-| Company | up to 200 | $149 |
-| Site | up to 500 | $349 |
+| Team | up to 50 | $20 |
+| Company | up to 200 | $50 |
+| Site | up to 500 | $100 |
 | Larger | over 500 | by agreement (and the trigger for self-hosting) |
 
 The numbers were chosen to be low enough not to need procurement at a
