@@ -27,6 +27,12 @@ jobs:
       - run: pnpm lint:md
       - run: pnpm test
       - run: pnpm build
+      - name: Migrations match the Drizzle schema
+        run: |
+          pnpm --filter @clockcover/api exec drizzle-kit generate --name ci_drift_check
+          if [ -n "$(git status --porcelain apps/api/migrations)" ]; then
+            echo "::error::apps/api schema changed without a migration — run pnpm db:generate"; git status --porcelain apps/api/migrations; exit 1
+          fi
       - name: Scan every tracked file with synthetic-only and no-secrets
         run: pnpm guards:scan
       - name: commitlint (PR commits)
