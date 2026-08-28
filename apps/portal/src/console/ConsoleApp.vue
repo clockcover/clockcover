@@ -49,7 +49,6 @@ const tabs = [["overview", "c.tab.overview"], ["imports", "c.tab.imports"], ["se
         <div class="font-mono text-[13px] tracking-[0.08em] text-accent"><span dir="ltr">CLOCKCOVER</span> <span class="text-faint">· {{ t("brand.console") }}</span></div>
         <div class="flex items-baseline gap-4 text-[13.5px]">
           <span v-if="employer" class="text-muted">{{ employer.name }}</span>
-          <LangSwitch />
           <button v-if="employer" type="button" class="text-faint hover:text-ink" @click="signOut">{{ t("signOut") }}</button>
         </div>
       </header>
@@ -65,6 +64,10 @@ const tabs = [["overview", "c.tab.overview"], ["imports", "c.tab.imports"], ["se
         <Imports v-else-if="route.page === 'imports'" />
         <Settings v-else-if="route.page === 'settings'" :employer="employer" @saved="onSaved" />
       </template>
+      <footer class="mt-auto border-t border-line pt-4 flex justify-between items-baseline font-mono text-[11.5px] text-fainter">
+        <span dir="ltr">© 2026 ClockCover</span>
+        <LangSwitch />
+      </footer>
     </div>
   </main>
 </template>

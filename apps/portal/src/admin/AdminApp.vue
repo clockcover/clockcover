@@ -48,7 +48,6 @@ function signOut() { adminSession.clear(); me.value = null; notice.value = t("c.
         <div class="font-mono text-[13px] tracking-[0.08em] text-accent"><span dir="ltr">CLOCKCOVER</span> <span class="text-faint">· {{ t("brand.admin") }}</span></div>
         <div class="flex items-baseline gap-4 text-[13.5px]">
           <span v-if="me" class="text-muted" dir="ltr">{{ me.email }}</span>
-          <LangSwitch />
           <button v-if="me" type="button" class="text-faint hover:text-ink" @click="signOut">{{ t("signOut") }}</button>
         </div>
       </header>
@@ -67,6 +66,10 @@ function signOut() { adminSession.clear(); me.value = null; notice.value = t("c.
       </section>
 
       <Employers v-else />
+      <footer class="mt-auto border-t border-line pt-4 flex justify-between items-baseline font-mono text-[11.5px] text-fainter">
+        <span dir="ltr">© 2026 ClockCover</span>
+        <LangSwitch />
+      </footer>
     </div>
   </main>
 </template>
