@@ -34,8 +34,8 @@ export function check(text: string): string[] {
 // model's context) without writing any file. `node --env-file=.env` loads the
 // file into the process, not the transcript, so `--env-file=` does not count.
 const PROTECTED_PATH = /(?:^|[\s/'":]|(?<!--env-file)=)(?:\.env(?!\.(?:example|sample|template)\b)(?:\.[\w.-]+)?|\.dev\.vars|[\w.-]*\.pem|[\w.-]*\.key|id_rsa\S*|id_ed25519\S*|~?\/?\.(?:ssh|aws|netrc|config\/gh)(?:\/\S*)?|\.wrangler\/\S*|data\/real\/\S*|\.claude\/settings\.local\.json)(?=$|[\s'";|&)])/;
-const READER = /^(?:\S+=\S+\s+)*(?:sudo\s+)?(?:cat|less|more|head|tail|grep|rg|sed|awk|bat|cut|sort|uniq|strings|xxd|hexdump|base64|cp|scp|rsync|source|\.|jq|yq|python3?|node|git\s+(?:show|diff|cat-file))\b/;
-const ENV_DUMP = /^(?:\S+=\S+\s+)*(?:env|printenv|export\s+-p|set)\s*(?:$|[|;&>])|\becho\b.*\$\{?\w*(?:TOKEN|SECRET|KEY|PASSWORD|PASSWD)\w*\}?/i;
+const READER = /^(?:[A-Za-z_]\w*=\S*\s+)*(?:sudo\s+)?(?:cat|less|more|head|tail|grep|rg|sed|awk|bat|cut|sort|uniq|strings|xxd|hexdump|base64|cp|scp|rsync|source|\.|jq|yq|python3?|node|git\s+(?:show|diff|cat-file))\b/;
+const ENV_DUMP = /^(?:[A-Za-z_]\w*=\S*\s+)*(?:env|printenv|export\s+-p|set)\s*(?:$|[|;&>])|\becho\b.*\$\{?\w*(?:TOKEN|SECRET|KEY|PASSWORD|PASSWD)\w*\}?/i;
 
 export function checkCommand(command: string): string[] {
   const out: string[] = [];
