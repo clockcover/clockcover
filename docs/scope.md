@@ -49,7 +49,7 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - **Money** (ADR-0006): one subscription per employer, tiered by the
   number of active employees on the roster; managers, digests and gaps
   unlimited; 30 days free on the employer's own files; access by
-  request. The site says so; prices are published once confirmed.
+  request. The site shows the tiers and prices.
 - **Owner's admin area** (`admin.clockcover.com`, ADR-0006): the list of
   all employers with headcount, operator and last import; create an
   employer and invite its operator; change an operator. Signed in by

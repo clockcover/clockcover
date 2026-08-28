@@ -48,7 +48,7 @@ What we know about the buyer:
 - Cancellation any time; data export (roster, corrections CSV) is
   always available so leaving is not hostage-taking.
 
-Initial list — **a draft to confirm before it appears anywhere public**:
+List — confirmed by the owner on 2026-08-28 and published on the site:
 
 | Tier | Active employees | Monthly |
 |---|---|---|
@@ -57,11 +57,11 @@ Initial list — **a draft to confirm before it appears anywhere public**:
 | Site | up to 500 | €349 |
 | Larger | over 500 | by agreement (and the trigger for self-hosting) |
 
-The numbers are placeholders chosen to be low enough not to need
-procurement at a 50-person employer and high enough that one avoided
-payroll correction per month pays for the tier. They will move after the
-first three conversations; the *shape* (per employer, by headcount, no
-per-manager fee, free month) is the decision.
+The numbers were chosen to be low enough not to need procurement at a
+50-person employer and high enough that one avoided payroll correction
+per month pays for the tier. They may still move after the first
+conversations; the *shape* (per employer, by headcount, no per-manager
+fee, free month) is the harder decision.
 
 ### Onboarding: by request, not self-serve
 
@@ -85,10 +85,9 @@ per-manager fee, free month) is the decision.
 
 ### What the site says
 
-The marketing page states the model in words, not numbers, until the
-list above is confirmed: per employer, by headcount, managers unlimited,
-30 days free on your own files, access by request. Prices are added as
-one line when confirmed.
+The marketing page shows the four tiers with their prices and states
+the model: per employer, by headcount, managers unlimited, 30 days free
+on your own files, access by request.
 
 **Reversibility:** one-way door for the shape (customers remember "per
 employer, by headcount"); two-way for the numbers while there are no
