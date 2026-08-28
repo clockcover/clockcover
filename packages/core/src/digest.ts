@@ -1,6 +1,6 @@
 // Routing — docs/core-design.md § Routing & Escalation.
 import type { Store } from "./store.ts";
-import type { Digest, Gap, Id, IsoDate, Manager } from "./types.ts";
+import type { Digest, Gap, Id, IsoDate, Manager, Outcome } from "./types.ts";
 
 export interface DigestMessage {
   manager: Manager;
@@ -44,9 +44,12 @@ export async function runDailyDigest(store: Store, employerId: Id, now: Date, se
   return sent;
 }
 
-/** A manager acted on a gap from their digest. */
-export async function resolveByManager(store: Store, gapId: Id, now: Date, note: string | null = null): Promise<Gap> {
-  const gap = await store.resolveGap(gapId, "manager_action", now, note);
-  await store.appendEvent({ employerId: gap.employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "manager_action" } });
+/**
+ * A manager acted on a gap from their digest and said what happened: the employee was
+ * present (entry missing, hours count) or absent (the gap is real; callers require a note).
+ */
+export async function resolveByManager(store: Store, gapId: Id, now: Date, outcome: Outcome, note: string | null = null): Promise<Gap> {
+  const gap = await store.resolveGap(gapId, "manager_action", now, outcome, note);
+  await store.appendEvent({ employerId: gap.employerId, occurredAt: now, type: "gap_resolved", gapId: gap.id, managerId: gap.managerId, payload: { resolution: "manager_action", outcome } });
   return gap;
 }

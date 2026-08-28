@@ -2,7 +2,7 @@
 import type { Store } from "../store.ts";
 import type {
   Digest, Employer, Escalation, Event, Gap, Id, IsoDate, Manager, NewDigest, NewEscalation, NewEvent,
-  NewGap, NewUnscheduledAttendance, Resolution, UnscheduledAttendance,
+  NewGap, NewUnscheduledAttendance, Outcome, Resolution, UnscheduledAttendance,
 } from "../types.ts";
 
 export class MemoryStore implements Store {
@@ -33,7 +33,7 @@ export class MemoryStore implements Store {
       (x) => x.employerId === g.employerId && x.employeeId === g.employeeId && x.gapDate === g.gapDate && x.gapType === g.gapType,
     );
     if (existing) return { gap: existing, created: false };
-    const gap: Gap = { ...g, id: this.id("gap"), managerNotifiedAt: null, resolvedAt: null, resolution: null, resolutionNote: null };
+    const gap: Gap = { ...g, id: this.id("gap"), managerNotifiedAt: null, resolvedAt: null, resolution: null, outcome: null, resolutionNote: null };
     this.gaps.push(gap);
     return { gap, created: true };
   }
@@ -46,9 +46,9 @@ export class MemoryStore implements Store {
       (g) => g.employerId === employerId && g.resolvedAt === null && (!range || (g.gapDate >= range.from && g.gapDate <= range.to)),
     );
   }
-  async resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, note: string | null) {
+  async resolveGap(gapId: Id, resolution: Resolution, resolvedAt: Date, outcome: Outcome | null, note: string | null) {
     const gap = this.gaps.find((g) => g.id === gapId) ?? fail(`gap ${gapId}`);
-    Object.assign(gap, { resolution, resolvedAt, resolutionNote: note });
+    Object.assign(gap, { resolution, resolvedAt, outcome, resolutionNote: note });
     return gap;
   }
   async markNotified(gapIds: Id[], at: Date) {

@@ -48,8 +48,10 @@ answers (2026-08-28) are in `docs/open-questions.md` and applied:
 employer timezone, 48 h calendar SLA, `record_arrived` does not count,
 no split shifts. The **operator console** (ADR-0005: magic-link
 sign-in, imports, settings, overview) lives at app.clockcover.com;
-managers keep digest.clockcover.com. Next: the first real employer's
-export layout. Synthetic data only.
+managers keep digest.clockcover.com. Every resolution is either
+"approve the hours" (present) or "report an absence" (absent); payroll
+can close an escalated gap from the escalation email (`/e/<token>`).
+Next: the first real employer's export layout. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

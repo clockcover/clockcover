@@ -130,6 +130,9 @@ export interface EscalationEmailInput {
   manager: Manager;
   employerName: string;
   slaHours: number;
+  /** Signed link to close this gap as handled by payroll. */
+  link: string;
+  linkExpires: Date;
 }
 
 export function renderEscalation(input: EscalationEmailInput): Email {
@@ -152,7 +155,10 @@ ${row("Manager", esc(manager.fullName))}
 ${row("Notified", esc(notified))}
 ${row("Escalated", esc(dateTime(escalation.escalatedAt)))}
 </table></td></tr></table>
+<div style="margin-top:24px"><a href="${esc(input.link)}" style="display:inline-block;background:${C.accent};color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:12px 24px;border-radius:8px">Mark handled</a></div>
+<div style="margin-top:10px;font-size:13px;line-height:1.5;color:${C.muted}">Use it when the clock entry will never arrive (leaver, retroactive leave, broken terminal). If the entry is coming with the next export, do nothing — the gap closes itself.</div>
 ${footer([
+  `This link closes only this gap, needs a note, and expires ${dayMonthYear(input.linkExpires)}.`,
   "You receive only escalations — gaps managers resolve on time never reach you.",
   `This is the only notice for this gap. Sent to ${esc(escalation.escalatedTo)} for ${esc(input.employerName)}.`,
 ])}`);
@@ -167,6 +173,9 @@ ${footer([
     `  Manager:   ${manager.fullName}`,
     `  Notified:  ${notified}`,
     `  Escalated: ${dateTime(escalation.escalatedAt)}`,
+    "",
+    `Mark handled (when the entry will never arrive): ${input.link}`,
+    `This link closes only this gap, needs a note, and expires ${dayMonthYear(input.linkExpires)}.`,
     "",
     "You receive only escalations — gaps managers resolve on time never reach you.",
     `This is the only notice for this gap. Sent to ${escalation.escalatedTo} for ${input.employerName}.`,

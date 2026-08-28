@@ -90,7 +90,8 @@ export const gaps = sqliteTable(
     detectedAt: instant("detected_at").notNull(),
     managerNotifiedAt: instant("manager_notified_at"),
     resolvedAt: instant("resolved_at"),
-    resolution: text("resolution", { enum: ["manager_action", "record_arrived"] }),
+    resolution: text("resolution", { enum: ["manager_action", "record_arrived", "payroll_action"] }),
+    outcome: text("outcome", { enum: ["present", "absent"] }),
     resolutionNote: text("resolution_note"),
   },
   (t) => [

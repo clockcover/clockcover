@@ -109,6 +109,11 @@ them so the SLA metric can count only manager actions if the domain
 expert wants that. Recorded here because it changes what
 "acted within SLA" means — see revisit trigger.
 
+*Amended 2026-08-28:* a third value, `payroll_action` (the payroll
+accountant closes an escalated gap whose entry will never arrive), and
+an `outcome` column (`present` | `absent`) set with every resolution.
+`payroll_action` counts as "manager did not act" in the metric.
+
 **Reversibility:** the layout and "one port" choices are two-way doors
 (splitting a package or extracting an interface later is mechanical).
 The schema invariants are one-way doors once real data exists — which
@@ -155,6 +160,6 @@ not a package" choice. (The domain expert answered on 2026-08-28:
 3. **Compute the SLA metric from `gaps` timestamps alone, no events
    table** — rejected: `gaps` holds current state, not history; a
    re-notified or reopened gap loses the timeline the metric needs.
-4. **Route by the employee's _current_ manager at digest time** —
+4. **Route by the employee's *current* manager at digest time** —
    rejected: makes the SLA timer move with org changes and leaves
    `escalations` unable to say who was actually late.

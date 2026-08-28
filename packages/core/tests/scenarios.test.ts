@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { detectGaps, runDetection } from "../src/detect.ts";
 import { isoDate, runDailyDigest, resolveByManager } from "../src/digest.ts";
-import { runEscalations } from "../src/escalate.ts";
+import { resolveByPayroll, runEscalations } from "../src/escalate.ts";
 import type { DigestMessage } from "../src/digest.ts";
 import { MemoryStore } from "../src/testing/memory-store.ts";
 import { DAY, HOURS, at, employees, employer, managers, period, record, shift } from "../fixtures/synthetic.ts";
@@ -73,6 +73,7 @@ test("7. corrected import supplies the record → resolved record_arrived, gap_r
   const { resolved } = await detect(store, { shifts: [shift(ada)], records: [record(ada, "08:00", "16:00")], employees: [ada] }, later);
   assert.equal(resolved.length, 1);
   assert.equal(resolved[0]?.resolution, "record_arrived");
+  assert.equal(resolved[0]?.outcome, "present", "a record that arrives means the employee was there");
   assert.equal(resolved[0]?.resolvedAt, later);
   assert.deepEqual(store.events.map((e) => e.type), ["gap_detected", "gap_resolved"]);
   assert.equal(await store.listOpenGaps(employer.id).then((g) => g.length), 0);
@@ -128,8 +129,9 @@ test("12. notified, resolved by manager before SLA → no escalation", async () 
   const { store, sent } = setup();
   await detect(store, { shifts: [shift(ada)], records: [], employees: [ada] });
   await runDailyDigest(store, employer.id, T0, send(sent));
-  const gap = await resolveByManager(store, store.gaps[0]!.id, new Date(T0.getTime() + HOURS), "spoke to employee");
+  const gap = await resolveByManager(store, store.gaps[0]!.id, new Date(T0.getTime() + HOURS), "present", "forgot to clock; confirmed by phone");
   assert.equal(gap.resolution, "manager_action");
+  assert.equal(gap.outcome, "present");
   const escalations = await runEscalations(store, employer.id, new Date(T0.getTime() + SLA + HOURS), SLA);
   assert.equal(escalations.length, 0);
   assert.deepEqual(store.events.map((e) => e.type), ["gap_detected", "digest_sent", "gap_resolved"]);
@@ -151,4 +153,19 @@ test("digest date follows the employer's timezone (decided 2026-08-28)", async (
   await runDetection(store, employer.id, period, { shifts: [shift(ada)], records: [], employees: [ada] }, late);
   const [digest] = await runDailyDigest(store, employer.id, late, async () => {});
   assert.equal(digest?.digestDate, "2026-03-03");
+});
+
+test("payroll closes an escalated gap with a note; nothing escalates again", async () => {
+  const { store, sent } = setup();
+  await detect(store, { shifts: [shift(ada)], records: [], employees: [ada] });
+  await runDailyDigest(store, employer.id, T0, send(sent));
+  const breach = new Date(T0.getTime() + SLA + HOURS);
+  const [esc] = await runEscalations(store, employer.id, breach, SLA);
+  const gap = await resolveByPayroll(store, esc!.gapId, new Date(breach.getTime() + HOURS), "absent", "employee left on 1 March");
+  assert.equal(gap.resolution, "payroll_action");
+  assert.equal(gap.outcome, "absent");
+  assert.equal(gap.resolutionNote, "employee left on 1 March");
+  assert.equal((await store.listOpenGaps(employer.id)).length, 0);
+  assert.equal((await runEscalations(store, employer.id, new Date(breach.getTime() + 2 * HOURS), SLA)).length, 0);
+  assert.deepEqual(store.events.map((e) => e.type), ["gap_detected", "digest_sent", "escalated", "gap_resolved"]);
 });

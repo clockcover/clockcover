@@ -95,7 +95,7 @@ test("11+12. escalation after SLA, once; none when resolved by manager", async (
   await importCsv("day-1.csv");
   await runDailyDigest(store, EMPLOYER, T0, send);
   const [first] = await store.listOpenGaps(EMPLOYER);
-  await resolveByManager(store, first!.id, later(1), "called them");
+  await resolveByManager(store, first!.id, later(1), "present", "called them");
   const escalated = await runEscalations(store, EMPLOYER, later(50), SLA);
   assert.equal(escalated.length, 1);
   assert.equal(escalated[0]?.escalatedTo, "payroll@example.com");

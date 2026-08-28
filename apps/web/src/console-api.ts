@@ -28,7 +28,7 @@ export interface Overview {
   openGaps: number;
   escalated: number;
   byManager: Array<{ managerId: string; managerName: string; openGaps: number; oldestGapDate: string | null }>;
-  metric: { windowDays: number; notified: number; actedWithinSla: number; resolvedByRecord: number; escalated: number };
+  metric: { windowDays: number; notified: number; actedWithinSla: number; resolvedByRecord: number; closedByPayroll: number; escalated: number; present: number; absent: number };
 }
 
 const KEY = "clockcover.console.token";

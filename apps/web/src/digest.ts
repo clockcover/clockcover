@@ -1,6 +1,6 @@
 // View logic for the digest page, kept out of the component so it is testable
 // with node:test. Wording follows the "Manager Digest Page" artboard.
-import type { DigestGap, GapType } from "./api.ts";
+import type { DigestGap, GapType, Outcome } from "./api.ts";
 
 export const GAP_LABEL: Record<GapType, string> = {
   no_clockin: "No clock-in",
@@ -63,3 +63,9 @@ export function groupByDay<T extends { gapDate: string; employeeName: string }>(
   }
   return [...days].map(([day, list]) => ({ day, gaps: list }));
 }
+
+export const OUTCOME_LABEL: Record<Outcome, string> = {
+  present: "Approve the hours — was at work, clock entry missing",
+  absent: "Report an absence — was not at work, explain below",
+};
+export const outcomeSummary = (o: Outcome) => (o === "present" ? "hours approved" : "absence reported");
