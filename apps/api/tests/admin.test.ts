@@ -8,6 +8,7 @@ import type { Deps } from "../src/app.ts";
 import { SqlStore } from "../src/adapters/store-d1/store.ts";
 import type { Email } from "../src/adapters/email.ts";
 import { signOperator } from "../src/link.ts";
+import { createApiKey } from "../src/api-keys.ts";
 import * as s from "../src/adapters/store-d1/schema.ts";
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url).pathname, "utf8");
@@ -21,7 +22,7 @@ async function setup() {
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: "operator@example.com", timezone: "UTC" });
   const emails: Email[] = [];
   let now = T0;
-  const deps: Deps = { db, store: new SqlStore(db), apiKey: "k", linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: ADMIN, adminEmail: OWNER, siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
+  const deps: Deps = { db, store: new SqlStore(db), linkSecret: SECRET, webUrl: "https://digest.example.com", consoleUrl: CONSOLE, adminUrl: ADMIN, adminEmail: OWNER, siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48, sendEmail: async (e) => { emails.push(e); }, now: () => now };
   const app = createApp(deps);
   const json = (b: unknown, method = "POST") => ({ method, headers: { "content-type": "application/json" }, body: JSON.stringify(b) });
   const login = async (email: string) => app.request("/admin/login", json({ email }));
@@ -54,9 +55,10 @@ test("admin endpoints refuse no token, operator tokens, and a changed ADMIN_EMAI
 });
 
 test("employer list carries headcount, operator, open gaps, last import", async () => {
-  const { app, login, tokenFromEmail, authed, json } = await setup();
-  await app.request("/employers/emp-1/roster", { method: "POST", headers: { authorization: "Bearer k" }, body: fixture("roster.csv") });
-  await app.request("/employers/emp-1/imports", { method: "POST", headers: { authorization: "Bearer k" }, body: fixture("day-1.csv") });
+  const { app, db, login, tokenFromEmail, authed, json } = await setup();
+  const k = (await createApiKey(db, "emp-1", "test", T0)).key;
+  await app.request("/employers/emp-1/roster", { method: "POST", headers: { authorization: `Bearer ${k}` }, body: fixture("roster.csv") });
+  await app.request("/employers/emp-1/imports", { method: "POST", headers: { authorization: `Bearer ${k}` }, body: fixture("day-1.csv") });
   await login(OWNER);
   const api = authed(tokenFromEmail());
   const list = (await (await api("/employers")).json() as { employers: Array<Record<string, unknown>> }).employers;
@@ -68,6 +70,7 @@ test("employer list carries headcount, operator, open gaps, last import", async 
   assert.equal(e["openGaps"], 2);
   assert.equal(e["escalatedOpen"], 0);
   assert.equal(e["operatorEmail"], "operator@example.com");
+  assert.equal(e["activeApiKeys"], 1);
   assert.ok(e["lastImportAt"]);
   void json;
 });

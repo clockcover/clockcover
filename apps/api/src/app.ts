@@ -16,14 +16,13 @@ import { ImportError, hasImportSources, runImportFromUrls } from "./import-run.t
 import type { SendEmail } from "./adapters/email.ts";
 import { LINK_TTL_MS, signLink, signPayroll, verifyLink, verifyPayroll } from "./link.ts";
 import { consoleRoutes } from "./console.ts";
+import { authenticateApiKey } from "./api-keys.ts";
 import { adminRoutes } from "./admin.ts";
 
 export interface Deps {
   db: Db;
   store: Store;
   sendEmail: SendEmail;
-  /** Operator key for the import endpoints. */
-  apiKey: string;
   /** HMAC key for manager digest links (ADR-0004). */
   linkSecret: string;
   /** Origin of the manager digest page (apps/portal on the digest host) — digest links and CORS for /d/*. */
@@ -69,10 +68,14 @@ export function createApp(deps: Deps) {
     return c.json({ ok: true }, 202);
   });
 
-  // ---- Operator endpoints: shared secret. Different audience from managers.
+  // ---- Upload endpoints for scripts and schedulers: a per-employer API key issued in the
+  //      console (api-keys.ts). The key decides the employer; the path must agree with it.
   app.use("/employers/*", async (c, next) => {
-    const auth = c.req.header("authorization") ?? "";
-    if (!deps.apiKey || auth !== `Bearer ${deps.apiKey}`) return c.json({ error: "unauthorized" }, 401);
+    const bearer = (c.req.header("authorization") ?? "").replace(/^Bearer\s+/i, "");
+    const auth = bearer ? await authenticateApiKey(deps.db, bearer, now()) : null;
+    if (!auth) return c.json({ error: "unauthorized" }, 401);
+    const wanted = c.req.path.split("/")[2];
+    if (wanted !== auth.employerId) return c.json({ error: "key belongs to another employer" }, 403);
     await next();
   });
 
@@ -104,7 +107,7 @@ export function createApp(deps: Deps) {
   });
 
   // ---- Operator console (ADR-0005). Bearer token; called from apps/portal.
-  app.use("/console/*", cors({ origin: deps.consoleUrl, allowMethods: ["GET", "POST", "PATCH"], allowHeaders: ["content-type", "authorization"] }));
+  app.use("/console/*", cors({ origin: deps.consoleUrl, allowMethods: ["GET", "POST", "PATCH", "DELETE"], allowHeaders: ["content-type", "authorization"] }));
   app.route("/console", consoleRoutes(deps));
 
   // ---- Owner admin area (ADR-0006). Bearer token, kind=admin.

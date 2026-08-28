@@ -9,6 +9,7 @@ import { renderMagicLink } from "./adapters/email.ts";
 import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts";
 import { isTimezone, listImports, overview, resolutionsBetween, resolutionsCsv } from "./adapters/store-d1/console-queries.ts";
 import { ImportError, hasImportSources, runImportFromUrls, validateSourceUrl } from "./import-run.ts";
+import { createApiKey, listApiKeys, revokeApiKey } from "./api-keys.ts";
 import * as s from "./adapters/store-d1/schema.ts";
 import { OPERATOR_TTL_MS, signOperator, verifyOperator } from "./link.ts";
 import type { OperatorClaims } from "./link.ts";
@@ -119,6 +120,19 @@ export function consoleRoutes(deps: Deps) {
       if (err instanceof ImportError) return c.json({ error: err.message, step: err.step, details: err.details }, 502);
       throw err;
     }
+  });
+
+  // API keys for scripts and schedulers: shown once, hashed, revocable.
+  app.get("/api-keys", async (c) => c.json({ keys: await listApiKeys(deps.db, c.get("employer").id) }));
+  app.post("/api-keys", async (c) => {
+    const body = await c.req.json<{ name?: unknown }>().catch(() => ({} as { name?: unknown }));
+    const name = typeof body.name === "string" ? body.name.trim().slice(0, 80) : "";
+    if (!name) return c.json({ error: "name required — what will use this key?" }, 400);
+    return c.json(await createApiKey(deps.db, c.get("employer").id, name, now()), 201);
+  });
+  app.delete("/api-keys/:id", async (c) => {
+    const ok = await revokeApiKey(deps.db, c.get("employer").id, c.req.param("id"), now());
+    return ok ? c.json({ revoked: true }) : c.json({ error: "no such active key" }, 404);
   });
 
   // Corrections made by people, for payroll to carry into the attendance/payroll system.

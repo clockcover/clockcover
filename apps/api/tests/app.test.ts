@@ -8,10 +8,10 @@ import type { Deps } from "../src/app.ts";
 import { SqlStore } from "../src/adapters/store-d1/store.ts";
 import type { Email } from "../src/adapters/email.ts";
 import { signLink } from "../src/link.ts";
+import { createApiKey } from "../src/api-keys.ts";
 import * as s from "../src/adapters/store-d1/schema.ts";
 
 const fixture = (name: string) => readFileSync(new URL(`../fixtures/${name}`, import.meta.url).pathname, "utf8");
-const KEY = "test-api-key";
 const SECRET = "test-link-secret";
 const WEB = "https://digest.example.com";
 const T0 = new Date("2026-03-02T18:00:00Z");
@@ -22,8 +22,9 @@ async function setup() {
   await db.insert(s.employers).values({ id: "emp-1", name: "Example Logistics", payrollEmail: "payroll@example.com", operatorEmail: "operator@example.com" });
   const emails: Email[] = [];
   let now = T0;
+  const KEY = (await createApiKey(db, "emp-1", "tests", T0)).key;
   const deps: Deps = {
-    db, store: new SqlStore(db), apiKey: KEY, linkSecret: SECRET, webUrl: WEB, consoleUrl: "https://app.example.com", adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48,
+    db, store: new SqlStore(db), linkSecret: SECRET, webUrl: WEB, consoleUrl: "https://app.example.com", adminUrl: "https://admin.example.com", adminEmail: "owner@example.com", siteUrls: ["https://site.example.com"], contactEmail: "hello@example.com", slaHours: 48,
     sendEmail: async (e) => { emails.push(e); },
     now: () => now,
   };
@@ -41,15 +42,19 @@ test("GET /health is open", async () => {
   assert.equal((await app.request("/health")).status, 200);
 });
 
-test("import endpoints require the API key", async () => {
-  const { post } = await setup();
+test("upload endpoints need a live per-employer key; the key decides the employer", async () => {
+  const { post, deps } = await setup();
   assert.equal((await post("/employers/emp-1/roster", fixture("roster.csv"), "wrong")).status, 401);
   assert.equal((await post("/employers/emp-1/roster", fixture("roster.csv"), "")).status, 401);
+  await deps.db.insert(s.employers).values({ id: "emp-2", name: "Other", payrollEmail: "p2@example.com", operatorEmail: "o2@example.com" });
+  const other = (await createApiKey(deps.db, "emp-2", "other", T0)).key;
+  assert.equal((await post("/employers/emp-1/roster", fixture("roster.csv"), other)).status, 403, "another employer's key");
+  assert.equal((await post("/employers/emp-2/roster", fixture("roster.csv"), other)).status, 200);
 });
 
-test("unknown employer → 404; bad csv → 400 with details", async () => {
+test("path/key mismatch → 403; bad csv → 400 with details", async () => {
   const { post } = await setup();
-  assert.equal((await post("/employers/nope/roster", fixture("roster.csv"))).status, 404);
+  assert.equal((await post("/employers/nope/roster", fixture("roster.csv"))).status, 403, "the key names emp-1, the path does not");
   const bad = await post("/employers/emp-1/imports", "employee_id,date\nE-001,yesterday");
   assert.equal(bad.status, 400);
   assert.deepEqual((await bad.json() as { details: string[] }).details, ["line 2: date must be YYYY-MM-DD"]);

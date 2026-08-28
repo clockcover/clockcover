@@ -9,6 +9,7 @@ import SignIn from "./SignIn.vue";
 import Overview from "./Overview.vue";
 import Imports from "./Imports.vue";
 import Settings from "./Settings.vue";
+import ApiKeys from "./ApiKeys.vue";
 
 const route = ref<ConsoleRoute>(consoleRoute(window.location.pathname, window.location.hostname) ?? { page: "signin" });
 const employer = ref<EmployerSettings | null>(null);
@@ -62,7 +63,10 @@ const tabs = [["overview", "c.tab.overview"], ["imports", "c.tab.imports"], ["se
         </nav>
         <Overview v-if="route.page === 'overview'" :employer="employer" />
         <Imports v-else-if="route.page === 'imports'" />
-        <Settings v-else-if="route.page === 'settings'" :employer="employer" @saved="onSaved" />
+        <div v-else-if="route.page === 'settings'" class="flex flex-col gap-5">
+          <Settings :employer="employer" @saved="onSaved" />
+          <ApiKeys />
+        </div>
       </template>
       <footer class="mt-auto border-t border-line pt-4 flex justify-between items-baseline font-mono text-[11.5px] text-fainter">
         <span dir="ltr">© 2026 ClockCover</span>

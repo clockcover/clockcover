@@ -32,9 +32,10 @@ them into the conversation at all". Enforced in `.claude/settings.json`:
   the (gitignored) place real employee exports go if we ever get them.
   `.dev.vars`, `.wrangler/` and `data/real/` are also gitignored;
   `apps/api/.dev.vars.example` holds placeholders only. Worker secrets
-  are `API_KEY`, `LINK_SECRET` (signs manager links, ADR-0004) and
-  `RESEND_API_KEY`; rotating `LINK_SECRET` invalidates every digest
-  link at once. They are uploaded with `wrangler secret bulk .dev.vars`,
+  are `LINK_SECRET` (signs manager, payroll, operator and admin links)
+  and `RESEND_API_KEY`; rotating `LINK_SECRET` invalidates every link at
+  once. Upload API keys are per employer, issued in the console, stored
+  only as SHA-256 hashes in D1 and shown to the operator once. They are uploaded with `wrangler secret bulk .dev.vars`,
   so values move from the local file to Cloudflare without passing
   through a terminal or a transcript.
 - The `no-secrets` guard on `Bash` denies commands that would read those

@@ -104,10 +104,11 @@ in every package; `pnpm test` runs `turbo run test` then the guard tests.
   `src/console-api.ts`) with node:test. The `.vue` templates are checked by `pnpm build` (Vite),
   which CI runs; there is no vue-tsc because it does not support
   TypeScript 7 yet.
-- `apps/web` has no tests or build: static files — five pages in
-  English (`/`, `/help/`, `/integrations/`, `/about/`, `/contact/`) and
-  the same under `/he/` (RTL), kept in step by hand; `contact.js` is
-  the only script.
+- `apps/web`: static files — five pages in English (`/`, `/help/`,
+  `/integrations/`, `/about/`, `/contact/`) and the same under `/he/`
+  (RTL), kept in step by hand; `contact.js` is the only page script. One
+  Worker function (`src/index.ts`) redirects Hebrew browsers from `/` to
+  `/he/`; its language pick is unit-tested (`tests/language.test.ts`).
 - Copy for emails is in `apps/api/src/i18n.ts`, for pages in
   `apps/portal/src/i18n.ts`; both are `en`/`he` dictionaries with the same
   keys. New user-facing text goes there, never inline.
@@ -122,7 +123,8 @@ does not persist in this WSL setup.
 
 - `apps/api`: `pnpm db:migrate:remote`, then `pnpm deploy`. Secrets come
   from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
-  (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `CONSOLE_URL`, `EMAIL_FROM`
+  (`LINK_SECRET`, `RESEND_API_KEY`; upload keys are per employer and
+  live in D1, see architecture); `WEB_URL`, `CONSOLE_URL`, `EMAIL_FROM`
   and `SLA_HOURS` (default for new employers; each employer's own value
   lives in `employers.sla_hours`), `ADMIN_URL` and `ADMIN_EMAIL` (the one
   address that may sign in to the admin area), `SITE_URLS` and
@@ -134,7 +136,8 @@ does not persist in this WSL setup.
 - New employers are created in the admin area (ADR-0006), which emails
   the operator their console invite; the operator then does everything
   else in the browser (ADR-0005), including pointing the daily job at an
-  export URL. `scripts/upload.ts` remains for automation
+  export URL. `scripts/upload.ts` remains for automation with a key from
+  Settings → API keys in `API_KEY`
   (`node --env-file=.dev.vars scripts/upload.ts roster|imports <employerId> <file>`).
 
 Current deployment (Workers custom domains on the `clockcover.com`

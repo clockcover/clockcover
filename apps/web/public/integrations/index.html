@@ -33,7 +33,7 @@
           <tbody>
             <tr><td><strong>CSV upload</strong> in the console</td><td>in</td><td>The two files described in <a href="/help/">Help</a>. Nothing else.</td></tr>
             <tr><td><strong>Scheduled fetch over https</strong></td><td>in</td><td>A fixed https address where your system publishes the export (and optionally the roster). The address is the credential — use one with a secret in it. We fetch every morning before the digests and email the operator if the fetch or the file fails.</td></tr>
-            <tr><td><strong>Script upload</strong> (API key)</td><td>in</td><td>For your own scheduler or an integrator: <code dir="ltr">POST /employers/:id/imports</code> with the CSV body and a bearer key we issue.</td></tr>
+            <tr><td><strong>Script upload</strong> (API key)</td><td>in</td><td>For your own scheduler or an integrator: <code dir="ltr">POST /employers/:id/imports</code> with the CSV body and a bearer key your operator creates in the console (Settings → API keys). Keys belong to one employer, are shown once, and can be revoked.</td></tr>
             <tr><td><strong>Corrections export</strong></td><td>out</td><td>CSV from the console for any date range: approved hours and reported absences with notes, planned times and planned hours. Carry it into your payroll run.</td></tr>
           </tbody>
         </table>

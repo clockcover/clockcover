@@ -144,7 +144,7 @@ export function resolutionsCsv(rows: ResolutionRow[]): string {
 
 export interface AdminEmployerRow {
   id: Id; name: string; payrollEmail: string; operatorEmail: string | null; timezone: string; slaHours: number;
-  importUrl: string | null; locale: string; activeEmployees: number; managers: number; openGaps: number; escalatedOpen: number; lastImportAt: string | null;
+  importUrl: string | null; locale: string; activeApiKeys: number; activeEmployees: number; managers: number; openGaps: number; escalatedOpen: number; lastImportAt: string | null;
 }
 
 /** Every employer with the numbers the owner needs: billing input (headcount) and health. */
@@ -155,8 +155,10 @@ export async function adminEmployers(db: Db): Promise<AdminEmployerRow[]> {
   const open = await db.select({ id: s.gaps.id, employerId: s.gaps.employerId }).from(s.gaps).where(isNull(s.gaps.resolvedAt));
   const escalated = new Set((await db.select({ gapId: s.escalations.gapId }).from(s.escalations)).map((e) => e.gapId));
   const imports = await db.select({ employerId: s.imports.employerId, importedAt: s.imports.importedAt }).from(s.imports);
+  const keys = await db.select({ employerId: s.apiKeys.employerId }).from(s.apiKeys).where(isNull(s.apiKeys.revokedAt));
   return employers.map((e) => ({
     id: e.id, name: e.name, payrollEmail: e.payrollEmail, operatorEmail: e.operatorEmail, timezone: e.timezone, slaHours: e.slaHours, importUrl: e.importUrl, locale: e.locale,
+    activeApiKeys: keys.filter((k) => k.employerId === e.id).length,
     activeEmployees: employees.filter((x) => x.employerId === e.id && x.active).length,
     managers: managers.filter((m) => m.employerId === e.id).length,
     openGaps: open.filter((g) => g.employerId === e.id).length,

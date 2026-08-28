@@ -31,6 +31,8 @@ export interface ImportOutcome {
   unknownEmployees: string[];
 }
 
+export interface ApiKey { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null; revokedAt: string | null }
+
 export interface ImportRun { id: string; source: string; trigger: string; importedAt: string; rowCount: number }
 
 export interface Overview {
@@ -72,6 +74,9 @@ export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "p
 export const uploadRoster = (csv: string) => call<{ employees: number }>("/roster", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });
 export const uploadImport = (csv: string) => call<ImportOutcome>("/imports", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });
 export const listImports = () => call<{ imports: ImportRun[] }>("/imports");
+export const listApiKeys = () => call<{ keys: ApiKey[] }>("/api-keys");
+export const createApiKey = (name: string) => call<{ id: string; key: string; prefix: string }>("/api-keys", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }) });
+export const revokeApiKey = (id: string) => call<{ revoked: true }>(`/api-keys/${encodeURIComponent(id)}`, { method: "DELETE" });
 export const runImportNow = () => call<ImportSummary>("/imports/run", { method: "POST" });
 
 /** Downloads the corrections CSV for [from, to]; the bearer goes in a header, so this is a fetch + blob, not a link. */
