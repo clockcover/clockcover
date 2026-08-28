@@ -37,7 +37,7 @@ flowchart LR
     route -- "digest per manager_id" --> digest["Digest delivery"]
     route -- "SLA breach" --> payroll["Payroll accountant"]
     digest --> email["Email"]
-    digest --> web["Web view (apps/web)"]
+    digest --> web["Web view (apps/portal)"]
 ```
 
 Schema, matching algorithm, and routing/escalation logic are in
@@ -116,14 +116,14 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
                   tests run it on libsql with a fake mailer.
-apps/web          Vue 3 + Tailwind 4 (Vite). One worker, two hosts:
-                  https://digest.clockcover.com/d/:token — the manager's
-                  digest page (ADR-0004); https://app.clockcover.com —
+apps/portal          Vue 3 + Tailwind 4 (Vite). One worker, two hosts:
+                  https://portal.clockcover.com/d/:token — the manager's
+                  digest page (ADR-0004); https://console.clockcover.com —
                   the operator console (ADR-0005): sign-in, overview,
                   imports, settings. View logic in src/*.ts, API clients
                   in src/api.ts and src/console-api.ts; VITE_API_URL →
                   https://api.clockcover.com, VITE_CONSOLE_URL → the app host.
-apps/marketing    Marketing website: one static HTML page + CSS served
+apps/web    Marketing website: one static HTML page + CSS served
                   as Worker assets. No framework, no build, no data,
                   no dependency on core — a one-page site does not
                   justify one.
@@ -132,7 +132,7 @@ apps/marketing    Marketing website: one static HTML page + CSS served
 The visual design of the emails, the digest page and the site is the
 "ClockCover notification system" project in Claude Design; the code
 mirrors its artboards (fonts Schibsted Grotesk / Fragment Mono, the
-oklch palette in `apps/web/src/style.css` and `apps/marketing/public/styles.css`,
+oklch palette in `apps/portal/src/style.css` and `apps/web/public/styles.css`,
 hex equivalents in the email templates).
 
 Adapters are not separate packages until a second implementation of

@@ -12,7 +12,7 @@ const BANNED: Array<{ re: RegExp; why: string }> = [
   { re: /^cloudflare:/, why: "core must not know about Cloudflare (ADR-0001)" },
   { re: /^hono(?:\/|$)/, why: "core must not import the web framework (ADR-0003)" },
   { re: /^drizzle-orm(?:\/|$)/, why: "data access goes through the Store port (ADR-0003)" },
-  { re: /(?:^|\/)apps\/|^@clockcover\/(?:api|web)(?:\/|$)/, why: "core must not depend on apps (ADR-0003)" },
+  { re: /(?:^|\/)apps\/|^@clockcover\/(?:api|web|portal)(?:\/|$)/, why: "core must not depend on apps (ADR-0003)" },
   { re: /^node:/, why: "core is plain TypeScript; no Node built-ins (ADR-0001)" },
 ];
 
@@ -38,7 +38,7 @@ test("packages/core/src imports nothing vendor-, infra- or app-specific", () => 
 });
 
 test("the boundary check itself catches a banned specifier", () => {
-  for (const spec of ["cloudflare:workers", "hono", "hono/cors", "drizzle-orm/d1", "../../apps/api/x", "@clockcover/api", "node:fs"]) {
+  for (const spec of ["cloudflare:workers", "hono", "hono/cors", "drizzle-orm/d1", "../../apps/api/x", "@clockcover/api", "@clockcover/portal", "node:fs"]) {
     assert.ok(BANNED.some((b) => b.re.test(spec)), spec);
   }
   for (const spec of ["./types.ts", "./store.ts"]) {

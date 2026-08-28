@@ -37,9 +37,9 @@ Last confirmed: 2026-08-28. Docs, ADR-0001..0005, the repo harness
 12 acceptance scenarios green), `apps/api` (Hono; D1 `Store` via
 Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
 daily cron for digests and escalations, HTML+text emails via Resend),
-`apps/web` (Vue 3 + Tailwind 4 digest page at `/d/:token`) and
-`apps/marketing` (static marketing page) exist and are **deployed on
-Cloudflare** — clockcover.com (site), digest.clockcover.com (web),
+`apps/portal` (Vue 3 + Tailwind 4 digest page at `/d/:token`) and
+`apps/web` (static marketing page) exist and are **deployed on
+Cloudflare** — clockcover.com (site), portal.clockcover.com (web),
 api.clockcover.com (api); D1 `clockcover`, secrets set — with the
 synthetic fixtures loaded; `clockcover.com` is verified in Resend and
 digests send from `digest@clockcover.com` — the first real digest and
@@ -47,8 +47,8 @@ its signed link have been received end to end. The domain expert's
 answers (2026-08-28) are in `docs/open-questions.md` and applied:
 employer timezone, 48 h calendar SLA, `record_arrived` does not count,
 no split shifts. The **operator console** (ADR-0005: magic-link
-sign-in, imports, settings, overview) lives at app.clockcover.com;
-managers keep digest.clockcover.com. Every resolution is either
+sign-in, imports, settings, overview) lives at console.clockcover.com;
+managers keep portal.clockcover.com. Every resolution is either
 "approve the hours" (present) or "report an absence" (absent); payroll
 can close an escalated gap from the escalation email (`/e/<token>`).
 The daily job can fetch the export and roster from https URLs set in

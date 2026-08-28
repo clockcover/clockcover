@@ -22,8 +22,8 @@
   ],
   "vars": {
     "EMAIL_FROM": "ClockCover <digest@clockcover.com>",
-    "WEB_URL": "https://digest.clockcover.com",
-    "CONSOLE_URL": "https://app.clockcover.com",
+    "WEB_URL": "https://portal.clockcover.com",
+    "CONSOLE_URL": "https://console.clockcover.com",
     "SLA_HOURS": "48"
   }
 }

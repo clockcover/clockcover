@@ -31,10 +31,10 @@ and escalate to payroll only if that manager doesn't act within an SLA.
 - Work **independently of the specific vendor** attendance system —
   because the pain is role-based, not vendor-based (confirmed by the
   domain expert: "it doesn't matter which system we use").
-- A public **marketing website** (`apps/marketing`): what the product does,
+- A public **marketing website** (`apps/web`): what the product does,
   for whom, and a way to get in touch. Static; no accounts, no product
   data.
-- An **operator console** (`apps/web/console`, ADR-0005) for the person
+- An **operator console** (`apps/portal/console`, ADR-0005) for the person
   who runs ClockCover at an employer: sign in by emailed link, upload
   the roster and the exports, edit employer settings (timezone, SLA,
   emails), read the "manager acted within SLA" metric.
