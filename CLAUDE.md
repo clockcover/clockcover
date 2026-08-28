@@ -47,8 +47,9 @@ its signed link have been received end to end. The domain expert's
 answers (2026-08-28) are in `docs/open-questions.md` and applied:
 employer timezone, 48 h calendar SLA, `record_arrived` does not count,
 no split shifts. The **operator console** (ADR-0005: magic-link
-sign-in, imports, settings, overview) exists at `/console`. Next: the
-first real employer's export layout. Synthetic data only.
+sign-in, imports, settings, overview) lives at app.clockcover.com;
+managers keep digest.clockcover.com. Next: the first real employer's
+export layout. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

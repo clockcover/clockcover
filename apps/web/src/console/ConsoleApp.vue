@@ -8,7 +8,7 @@ import Overview from "./Overview.vue";
 import Imports from "./Imports.vue";
 import Settings from "./Settings.vue";
 
-const route = ref<ConsoleRoute>(consoleRoute(window.location.pathname) ?? { page: "signin" });
+const route = ref<ConsoleRoute>(consoleRoute(window.location.pathname, window.location.hostname) ?? { page: "signin" });
 const employer = ref<EmployerSettings | null>(null);
 const notice = ref<string | null>(null);
 

@@ -16,7 +16,7 @@ type Vars = { claims: OperatorClaims; employer: typeof s.employers.$inferSelect 
 
 export function consoleRoutes(deps: Deps) {
   const now = deps.now ?? (() => new Date());
-  const web = deps.webUrl.replace(/\/$/, "");
+  const web = deps.consoleUrl.replace(/\/$/, "");
   const app = new Hono<{ Variables: Vars }>();
 
   // Same answer whether or not the address is known — no account enumeration.

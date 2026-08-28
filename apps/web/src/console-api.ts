@@ -70,8 +70,12 @@ export type ConsoleRoute =
   | { page: "landing"; token: string }
   | { page: "overview" | "imports" | "settings" };
 
-/** `/console`, `/console/<token>`, `/console/overview|imports|settings`. Anything else → null. */
-export function consoleRoute(pathname: string): ConsoleRoute | null {
+/** The console lives on its own host (app.…); the digest page on digest.…  Same worker, two doors. */
+export const isConsoleHost = (hostname: string) => /^app\./.test(hostname);
+
+/** `/console`, `/console/<token>`, `/console/overview|imports|settings`; on the console host `/` is the sign-in too. */
+export function consoleRoute(pathname: string, hostname = ""): ConsoleRoute | null {
+  if (isConsoleHost(hostname) && (pathname === "/" || pathname === "")) return { page: "signin" };
   const m = /^\/console(?:\/([^/]+))?\/?$/.exec(pathname);
   if (!m) return null;
   const seg = m[1] ? decodeURIComponent(m[1]) : "";

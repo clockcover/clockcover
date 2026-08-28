@@ -10,6 +10,8 @@ test("console routes", () => {
   assert.deepEqual(consoleRoute("/console/settings"), { page: "settings" });
   assert.deepEqual(consoleRoute("/console/abc.def"), { page: "landing", token: "abc.def" });
   assert.equal(consoleRoute("/d/abc"), null);
+  assert.deepEqual(consoleRoute("/", "app.clockcover.com"), { page: "signin" }, "console host: root is the sign-in");
+  assert.equal(consoleRoute("/", "digest.clockcover.com"), null, "digest host: root is not the console");
   assert.equal(consoleRoute("/console/a/b"), null);
 });
 

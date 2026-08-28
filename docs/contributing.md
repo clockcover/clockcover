@@ -104,11 +104,11 @@ does not persist in this WSL setup.
 
 - `apps/api`: `pnpm db:migrate:remote`, then `pnpm deploy`. Secrets come
   from the gitignored `.dev.vars` via `wrangler secret bulk .dev.vars`
-  (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `EMAIL_FROM`
+  (`API_KEY`, `LINK_SECRET`, `RESEND_API_KEY`); `WEB_URL`, `CONSOLE_URL`, `EMAIL_FROM`
   and `SLA_HOURS` (default for new employers; each employer's own value
   lives in `employers.sla_hours`) are plain vars in `wrangler.jsonc`.
-- `apps/web`: `VITE_API_URL=<api origin> pnpm build && pnpm exec wrangler deploy`
-  (static assets, SPA fallback so `/d/<token>` resolves).
+- `apps/web`: `VITE_API_URL=<api origin> VITE_CONSOLE_URL=<app origin> pnpm build && pnpm exec wrangler deploy`
+  (static assets, SPA fallback so `/d/<token>` and `/console/…` resolve).
 - `apps/site`: `pnpm deploy`.
 - Seeding an employer is a one-off `wrangler d1 execute … INSERT INTO
   employers (id, name, payroll_email, operator_email, timezone)`. From
@@ -118,8 +118,9 @@ does not persist in this WSL setup.
 
 Current deployment (Workers custom domains on the `clockcover.com`
 zone, declared as `routes` in each `wrangler.jsonc`):
-`clockcover.com` + `www` → `clockcover-site`, `digest.clockcover.com` →
-`clockcover-web`, `api.clockcover.com` → `clockcover-api`; D1
+`clockcover.com` + `www` → `clockcover-site`, `digest.clockcover.com`
+and `app.clockcover.com` → `clockcover-web` (managers / operators),
+`api.clockcover.com` → `clockcover-api`; D1
 `clockcover` (WEUR). Declaring routes turns the `*.workers.dev` URLs off,
 so the custom domains are the only entry points. Synthetic fixtures only.
 
