@@ -1,4 +1,6 @@
 // Static marketing site served as Worker assets — no code, no data, no bindings.
+// The Worker keeps its original name: the custom domains are attached to it, and
+// renaming would mean re-attaching them in the dashboard.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "clockcover-site",

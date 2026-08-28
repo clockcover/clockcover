@@ -123,7 +123,7 @@ apps/web          Vue 3 + Tailwind 4 (Vite). One worker, two hosts:
                   imports, settings. View logic in src/*.ts, API clients
                   in src/api.ts and src/console-api.ts; VITE_API_URL →
                   https://api.clockcover.com, VITE_CONSOLE_URL → the app host.
-apps/site         Marketing website: one static HTML page + CSS served
+apps/marketing    Marketing website: one static HTML page + CSS served
                   as Worker assets. No framework, no build, no data,
                   no dependency on core — a one-page site does not
                   justify one.
@@ -132,7 +132,7 @@ apps/site         Marketing website: one static HTML page + CSS served
 The visual design of the emails, the digest page and the site is the
 "ClockCover notification system" project in Claude Design; the code
 mirrors its artboards (fonts Schibsted Grotesk / Fragment Mono, the
-oklch palette in `apps/web/src/style.css` and `apps/site/public/styles.css`,
+oklch palette in `apps/web/src/style.css` and `apps/marketing/public/styles.css`,
 hex equivalents in the email templates).
 
 Adapters are not separate packages until a second implementation of

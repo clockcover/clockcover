@@ -38,7 +38,7 @@ Last confirmed: 2026-08-28. Docs, ADR-0001..0005, the repo harness
 Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
 daily cron for digests and escalations, HTML+text emails via Resend),
 `apps/web` (Vue 3 + Tailwind 4 digest page at `/d/:token`) and
-`apps/site` (static marketing page) exist and are **deployed on
+`apps/marketing` (static marketing page) exist and are **deployed on
 Cloudflare** — clockcover.com (site), digest.clockcover.com (web),
 api.clockcover.com (api); D1 `clockcover`, secrets set — with the
 synthetic fixtures loaded; `clockcover.com` is verified in Resend and
