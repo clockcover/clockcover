@@ -15,7 +15,8 @@
       "Read(~/.aws/**)",
       "Read(~/.config/gh/**)",
       "Read(~/.netrc)",
-      "Read(./data/real/**)"
+      "Read(./data/real/**)",
+      "Read(./.claude/settings.local.json)"
     ]
   },
   "hooks": {
@@ -46,7 +47,7 @@
         ]
       },
       {
-        "matcher": "Write|Edit",
+        "matcher": "Write|Edit|NotebookEdit|MultiEdit",
         "hooks": [
           {
             "type": "command",

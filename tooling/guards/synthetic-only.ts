@@ -22,7 +22,7 @@ export function check(text: string): string[] {
   }
   for (const m of text.match(PHONE) ?? []) {
     const digits = m.replace(/\D/g, "");
-    if (digits.length >= 9 && digits.length <= 15) out.push(`phone-like number: ${m.trim()}`);
+    if (digits.length >= 9 && digits.length <= 15) out.push(`phone/ID-like number: ${m.trim()}`);
   }
   return out;
 }

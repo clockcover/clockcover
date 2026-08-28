@@ -59,6 +59,24 @@ test("no-secrets flags a key in a config file and skips test files", () => {
   assert.doesNotMatch(stderr, /x\.test\.ts/);
 });
 
+test("--staged checks the index blob, not the working tree", () => {
+  const repo = mkdtempSync(join(tmpdir(), "guards-repo-"));
+  const git = (...a: string[]) => spawnSync("git", a, { cwd: repo, encoding: "utf8" });
+  git("init", "-q");
+  git("config", "user.email", "t@example.com");
+  git("config", "user.name", "t");
+  writeFileSync(join(repo, "wrangler.toml"), 'api_key = "abcd1234efgh5678ijkl9012mnop"\n');
+  git("add", "wrangler.toml");
+  writeFileSync(join(repo, "wrangler.toml"), "api_key = process.env.API_KEY\n"); // clean on disk, secret in the index
+  const staged = spawnSync(process.execPath, [ENTRY, "--staged", "no-secrets", "wrangler.toml"], { cwd: repo, encoding: "utf8" });
+  assert.equal(staged.status, 1);
+  assert.match(staged.stderr, /wrangler\.toml: assigned secret/);
+  const workTree = spawnSync(process.execPath, [ENTRY, "no-secrets", "wrangler.toml"], { cwd: repo, encoding: "utf8" });
+  assert.equal(workTree.status, 0, "without --staged the working tree is read");
+  git("add", "wrangler.toml");
+  assert.equal(spawnSync(process.execPath, [ENTRY, "--staged", "no-secrets", "wrangler.toml"], { cwd: repo, encoding: "utf8" }).status, 0);
+});
+
 test("unknown guard exits 1 and lists known guards", () => {
   const { code, stderr } = run("bogus", "x");
   assert.equal(code, 1);
