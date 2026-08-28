@@ -48,8 +48,9 @@ and escalate to payroll only if that manager doesn't act within an SLA.
   — for carrying into the attendance or payroll system.
 - **Money** (ADR-0006): one subscription per employer, tiered by the
   number of active employees on the roster; managers, digests and gaps
-  unlimited; 30 days free on the employer's own files; access by
-  request. The site shows the tiers and prices.
+  unlimited; 30 days free (90 in early access, plus an integration
+  adapter built by us within two weeks); access by request. The site
+  shows the tiers, prices and early-access terms.
 - **Two languages, Hebrew and English.** Every email and every page a
   person sees follows the employer's language (`employers.locale`, set
   by the owner at creation and by the operator in Settings); Hebrew is
