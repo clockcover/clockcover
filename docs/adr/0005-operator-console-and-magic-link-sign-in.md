@@ -15,7 +15,8 @@ superseded_by:
 
 Until now the operator — the payroll accountant who runs ClockCover for
 an employer — configured and fed the system from a terminal: CSV uploads
-through `scripts/upload.ts` with a shared API key, employer settings by
+through `scripts/upload.ts` with a shared API key (since replaced by
+per-employer keys, ADR-0007), employer settings by
 SQL against D1, the SLA and sender address in `wrangler.jsonc`. The
 first operator asked three times where to "configure the system, import
 data, find my account". The terminal model is wrong for the person the
@@ -99,18 +100,44 @@ rows.
   (migration); `POST /console/login`; bearer-authenticated
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
   `POST /console/imports`, `GET /console/imports`, `GET /console/overview`.
-  The API-key endpoints stay for scripts.
-- `apps/portal`: on the console host, `/` and `/console` (sign-in),
-  `/console/<token>` (landing, stores the token, redirects),
-  `/console/{overview,imports,settings}`. `CONSOLE_URL` (api) and
-  `VITE_CONSOLE_URL` (web) name that host; `WEB_URL` stays the digest host.
+  The API-key endpoints stay for scripts (*superseded 2026-08-28 by
+  ADR-0007:* they now take per-employer keys issued in the console, not
+  the shared `API_KEY`).
+- `apps/portal`: on the console host, `/` (sign-in; `/#<link token>`
+  is the landing that exchanges the token, stores the session and
+  redirects), `/overview`, `/imports`, `/settings`. The `/console/...`
+  forms of the same paths survive only as a fallback on other hosts.
+  `CONSOLE_URL` (api) and `VITE_CONSOLE_URL` (web) name that host;
+  `WEB_URL` stays the digest host.
 - `packages/core`: `Employer` gains `operatorEmail` and `slaHours`;
   `runEscalations` keeps taking the SLA as an argument. No other change.
 - Email adapter: a magic-link template.
 
+*Amended 2026-08-28 — link token and session token are two things.*
+The emailed link no longer carries the 7-day token itself. It carries a
+**link token** (`kind: "console_link"`, or `"admin_link"` for the admin
+area of ADR-0006): valid **15 minutes**, **single use** — its hash is
+recorded in D1 `used_link_tokens` when redeemed — and placed in the URL
+**fragment**, so it never reaches a server log or a `Referer` header.
+The page exchanges it at `POST /console/exchange` (`POST
+/admin/exchange`) for the **session token** (`kind: "operator"` /
+`"admin"`, 7 days) that `sessionStorage` keeps and the bearer header
+sends, as before. A forwarded, previewed or archived sign-in email is
+therefore dead within a quarter of an hour, or as soon as it was
+clicked once. The login endpoints (`POST /console/login`, `POST
+/admin/login`) have a **60-second per-address cooldown** and still
+answer the same way for known and unknown addresses; `POST /contact`
+has a per-IP hourly cap; a Cloudflare WAF rate rule is the second layer
+behind both. The console and the admin area are served at the **root
+of their hosts** (`console.clockcover.com/`, `admin.clockcover.com/`);
+the `/console/...` paths remain only as a fallback on other hosts. The
+"rounded `exp`" rate limit above is replaced by the cooldown.
+
 **Reversibility:** the sign-in pattern is a one-way door for the
 operator's habits; the screens are two-way. The `kind` field keeps the
-token format extensible without another migration of trust.
+token format extensible without another migration of trust. The
+exchange step is two-way for the operator (the click is the same) and
+adds one small table.
 
 **Revisit when:** a second operator per employer is needed (roles), an
 employer requires SSO, or the console gains an action that can change

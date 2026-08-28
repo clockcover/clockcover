@@ -32,37 +32,45 @@ its contents here. Non-trivial, hard-to-reverse decisions get an ADR in
 
 ## Status
 
-Last confirmed: 2026-08-28. Docs, ADR-0001..0006, the repo harness
+Last confirmed: 2026-08-28. Docs, ADR-0001..0008, the repo harness
 (guards, hooks, CI — see `docs/contributing.md`), `packages/core` (all
-12 acceptance scenarios green), `apps/api` (Hono; D1 `Store` via
+16 acceptance scenarios green), `apps/api` (Hono; D1 `Store` via
 Drizzle, CSV roster/import endpoints, signed-link digest endpoints,
 daily cron for digests and escalations, HTML+text emails via Resend),
 `apps/portal` (Vue 3 + Tailwind 4 digest page at `/d/:token`) and
 `apps/web` (static marketing page) exist and are **deployed on
-Cloudflare** — clockcover.com (site), portal.clockcover.com (web),
-api.clockcover.com (api); D1 `clockcover`, secrets set — with the
-synthetic fixtures loaded; `clockcover.com` is verified in Resend and
-digests send from `digest@clockcover.com` — the first real digest and
-its signed link have been received end to end. The domain expert's
-answers (2026-08-28) are in `docs/open-questions.md` and applied:
-employer timezone, 48 h calendar SLA, `record_arrived` does not count,
-no split shifts. The **operator console** (ADR-0005: magic-link
-sign-in, imports, settings, overview) lives at console.clockcover.com;
-managers keep portal.clockcover.com. Every resolution is either
-"approve the hours" (present) or "report an absence" (absent); payroll
-can close an escalated gap from the escalation email (`/e/<token>`).
-The daily job can fetch the export and roster from https URLs set in
-the console and emails the operator on failure; corrections export as
-CSV. ADR-0006 fixes the money model (per employer, by headcount, free
-month, access by request; prices $20/$50/$100 published; early access:
-90 days free and an integration built by us within two weeks), the site
-says so,
-and the owner onboards employers from admin.clockcover.com (list,
-create + invite operator, change operator). Everything a person reads
-— emails, pages, site — exists in English and Hebrew (RTL), chosen per
-employer; the site has Help, Integrations, About and a contact form
-(`POST /contact`). Upload API keys are per employer, issued in the console. PDF is not an import format for now. Open:
-export target, the first real employer's file location and layoutSynthetic data only.
+Cloudflare** on five hosts — clockcover.com (site),
+portal.clockcover.com (portal), api.clockcover.com (api),
+console.clockcover.com (console), admin.clockcover.com (admin); D1
+`clockcover`, secrets set — with the synthetic fixtures loaded;
+`clockcover.com` is verified in Resend and digests send from
+`digest@clockcover.com` — the first real digest and its signed link have
+been received end to end. The domain expert's answers (2026-08-28) are
+in `docs/open-questions.md` and applied: employer timezone, 48 h
+calendar SLA, `record_arrived` does not count, no split shifts. The
+**operator console** (ADR-0005: magic-link sign-in, imports, settings,
+overview) and the owner's **admin area** are served at the root of
+their hosts; managers keep portal.clockcover.com. Sign-in links carry a
+15-minute single-use link token that the page exchanges for a 7-day
+session token (ADR-0005, amended); login endpoints have a per-address
+cooldown. Every resolution is either "approve the hours" (present) or
+"report an absence" (absent); the payroll accountant can close an
+escalated gap from the escalation email (`/e/<token>`). Escalations are
+recorded only after the email is sent (at-least-once). The daily job
+can fetch the export and roster from https URLs set in the console
+(ADR-0007: the URL is the credential) and emails the operator on
+failure; corrections export as CSV. ADR-0006 fixes the money model (per
+employer, by headcount, free month, access by request; prices
+$20/$50/$100 published; early access: 90 days free and an integration
+built by us within two weeks), the site says so, and the owner onboards
+employers from the admin area (list, create + invite operator, change
+operator). Everything a person reads — emails, pages, site — exists in
+English and Hebrew (RTL), chosen per employer (ADR-0008); the site has
+Help, Integrations, About and a contact form (`POST /contact`). Upload
+API keys are per employer, issued in the console, hashed at rest
+(ADR-0007). PDF is not an import format for now. Open: export target,
+the first real employer's file location and layout. Synthetic data
+only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

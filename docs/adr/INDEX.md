@@ -8,5 +8,7 @@
 | [0004](0004-digest-access-by-signed-link.md)                  | Managers reach their digest through a signed, expiring link — no accounts        | accepted |
 | [0005](0005-operator-console-and-magic-link-sign-in.md)       | An operator console in apps/portal, signed in by emailed magic link                 | accepted |
 | [0006](0006-pricing-and-onboarding.md)                        | Per-employer subscription by headcount; onboarding by request, not self-serve    | accepted |
+| [0007](0007-how-data-gets-in.md)                              | How data gets in — import URLs as credentials, per-employer upload API keys      | accepted |
+| [0008](0008-per-employer-locale.md)                           | One language per employer — a locale column, two dictionaries, RTL for Hebrew    | accepted |
 
 New ADR: copy `template.md`, number it the next integer, add a row here.

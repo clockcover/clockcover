@@ -63,16 +63,25 @@ The core (matching + routing) never depends on the vendor.
 - **Roster:** employees and their managers come from a second CSV
   (`employee_id,employee_name,manager_id,manager_name,manager_email`),
   upserted by external id. Re-uploading it is how a reassignment is
-  recorded; gaps already detected keep their manager snapshot.
+  recorded; gaps already detected keep their manager snapshot, and the
+  open gaps of an employee missing from the new file stay open. A gap
+  whose type changes on a later import (`no_record_at_all` →
+  `no_clockout`, say) stays the same gap with the same SLA timer.
 - **Endpoints** (`apps/api`): upload endpoints for scripts and
   schedulers — `POST /employers/:id/roster`, `POST /employers/:id/imports`
   (runs detection for the dates in the file) — behind a **per-employer
-  API key** the operator issues in the console (Settings → API keys:
-  shown once, stored as a SHA-256 hash, revocable, last use recorded;
-  the key decides the employer and must match the path); and
-  `GET /health`. The cron
-  trigger (08:00 UTC) runs, per employer: scheduled import from the
-  configured URLs, digests, then escalations.
+  API key** the operator issues in the console (ADR-0007; Settings →
+  API keys: shown once, stored as a SHA-256 hash, revocable, last use
+  recorded; the key decides the employer and must match the path); and
+  `GET /health`. The cron trigger (08:00 UTC) runs, per employer:
+  scheduled import from the configured URLs (https only, no redirects,
+  no literal-IP or localhost hosts, 10 MB cap — ADR-0007), digests
+  (send, mark notified, save the digest — in that order), then
+  escalations (recorded after the email sends, so at-least-once).
+- **Email** goes out through `SendEmail`, a plain function in
+  `src/adapters/email.ts` whose only implementation today calls Resend
+  (`RESEND_API_KEY`). Two-way door: another provider is a second
+  implementation of the same function.
 - **Manager access** (ADR-0004): the digest email carries a signed,
   expiring link scoped to that manager (`<WEB_URL>/d/<token>`).
   `GET /d/:token` returns that manager's open gaps with employee names,
@@ -85,15 +94,19 @@ The core (matching + routing) never depends on the vendor.
 - **Contact form**: `POST /contact` from the site (`SITE_URLS` origins
   only) — validated, honeypot field, size-capped — emails
   `CONTACT_EMAIL` with the sender as reply address. No auth, no storage.
-- **Payroll access** (ADR-0004 § extended): each escalation email links
-  to `/e/<token>` (one gap, `kind: "payroll"`, 14 days); `GET /e/:token`
+- **Payroll accountant's access** (ADR-0004 § extended): each
+  escalation email links to `/e/<token>` (one gap, `kind: "payroll"`,
+  14 days); `GET /e/:token`
   shows it, `POST /e/:token/handle` closes it with `outcome` + `note`
   (`resolution = payroll_action`). CORS as for `/d/*`.
-- **Operator console** (ADR-0005): `POST /console/login` emails a
-  7-day operator token to `employers.operator_email` as a link on
-  `CONSOLE_URL`; CORS on `/console/*` is open to that origin only. The
-  browser keeps
-  it in `sessionStorage` and sends it as a bearer to
+- **Operator console** (ADR-0005, amended): `POST /console/login`
+  (60 s per-address cooldown) emails a 15-minute single-use link token
+  to `employers.operator_email`, in the URL fragment of a link on
+  `CONSOLE_URL`; the page exchanges it at `POST /console/exchange` for
+  a 7-day session token (used link tokens are recorded in
+  `used_link_tokens`). CORS on `/console/*` is open to that origin only.
+  The browser keeps the session token in `sessionStorage` and sends it
+  as a bearer to
   `GET /console/me`, `PATCH /console/employer`, `POST /console/roster`,
   `POST /console/imports`, `GET /console/imports`,
   `POST /console/imports/run` (fetch the configured URLs now),
@@ -103,16 +116,19 @@ The core (matching + routing) never depends on the vendor.
   Tokens carry `kind: "operator"`, so a manager's digest token is never
   accepted there and vice versa.
 - **Owner admin area** (ADR-0006, `admin.clockcover.com`, `ADMIN_URL`):
-  `POST /admin/login` emails a 7-day `kind: "admin"` token to
-  `ADMIN_EMAIL` only; bearer to `GET /admin/me`, `GET /admin/employers`
+  `POST /admin/login` emails a link token to `ADMIN_EMAIL` only, which
+  `POST /admin/exchange` turns into a 7-day `kind: "admin"` session
+  token, as for the console; bearer to `GET /admin/me`, `GET /admin/employers`
   (headcount, managers, operator, open/escalated gaps, last import),
   `POST /admin/employers` (create + email the operator a console invite),
   `PATCH /admin/employers/:id` (re-invites when the operator changes),
   `POST /admin/employers/:id/invite`. CORS to `ADMIN_URL` only.
 - **When a new employer is known** — write a specific adapter for
   whatever they actually provide (Excel/API/etc.), without touching
-  the rest of the code; add its format to `imports.source` then.
-  Adapters get added as the need for them shows up, not ahead of time.
+  the rest of the code; add its format to `imports.source` then. The
+  enum already reserves `excel`; no Excel adapter exists yet, and every
+  import today is `csv`. Adapters get added as the need for them shows
+  up, not ahead of time.
 
 ## Repo layout
 
@@ -129,13 +145,21 @@ apps/api          Hono: routes, cron entry point, and all adapters
                   (src/adapters/{store-d1, csv, email}). src/index.ts
                   is the only file that knows about Workers bindings;
                   src/app.ts takes every dependency as an argument so
-                  tests run it on libsql with a fake mailer.
+                  tests run it on libsql with a fake mailer. Routes by
+                  audience: src/console.ts (operator), src/admin.ts
+                  (owner), src/api-keys.ts (per-employer upload keys);
+                  src/link.ts signs and verifies every token kind;
+                  src/import-run.ts fetches and imports from the
+                  configured URLs; src/i18n.ts is the email dictionary.
 apps/portal       Vue 3 + Tailwind 4 (Vite). One worker, three hosts:
                   https://portal.clockcover.com — /d/:token the manager's
-                  digest page (ADR-0004), /e/:token the payroll page;
-                  https://console.clockcover.com — the operator console
-                  (ADR-0005); https://admin.clockcover.com — the owner's
-                  employer list and onboarding (ADR-0006). View logic in
+                  digest page (ADR-0004), /e/:token the payroll
+                  accountant's page; https://console.clockcover.com —
+                  the operator console at the host root (ADR-0005);
+                  https://admin.clockcover.com — the owner's employer
+                  list and onboarding, also at the root (ADR-0006).
+                  /console/... paths are only a fallback on other
+                  hosts. View logic in
                   src/*.ts, API clients in src/*-api.ts; VITE_API_URL →
                   https://api.clockcover.com, VITE_CONSOLE_URL → console.
 apps/web          Marketing website: static HTML + CSS served as
@@ -148,7 +172,7 @@ apps/web          Marketing website: static HTML + CSS served as
                   core.
 ```
 
-**Languages.** Copy lives in two dictionaries — `apps/api/src/i18n.ts`
+**Languages** (ADR-0008). Copy lives in two dictionaries — `apps/api/src/i18n.ts`
 (emails, dates) and `apps/portal/src/i18n.ts` (pages) — keyed the same
 way in `en` and `he`; the employer's `locale` selects one, `he` renders
 right-to-left (`dir="rtl"` on emails and `<html>`), and the Heebo face
@@ -156,9 +180,10 @@ supplies Hebrew glyphs next to Schibsted Grotesk. The site is static pages
 under `/` and `/he/`, cross-linked with `hreflang`; a one-function Worker
 in front of the assets sends a browser whose `Accept-Language` prefers
 Hebrew from the bare `/` to `/he/` (302, `Vary: Accept-Language`;
-`/?lang=en` opts out). The language link itself lives in the footer. Dates are formatted
-by hand in both languages (weekday, day, month) so emails and pages
-agree. Adding a language is a third column in the two dictionaries.
+`/?lang=en` opts out). The language link itself lives in the footer.
+Dates are formatted by hand in both languages (weekday, day, month) so
+emails and pages agree. Adding a language is a third column in the two
+dictionaries.
 
 The visual design of the emails, the digest page and the site is the
 "ClockCover notification system" project in Claude Design; the code

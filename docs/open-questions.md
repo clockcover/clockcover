@@ -21,8 +21,11 @@ the behaviour itself is specified in `core-design.md`.
   MVP: one shift and one attendance record per employee per day. An
   export with two rows for the same employee and day is rejected with a
   line-numbered error, never merged or silently overwritten.
-- **Schedule source.** An export file (CSV today, Excel next) from the
-  attendance or rostering system, uploaded by the operator.
+- **Schedule source.** An export file from the attendance or rostering
+  system, uploaded by the operator or fetched from a URL. CSV today;
+  Excel is still open (see below) — the `imports.source` enum reserves
+  the value, no adapter exists.
+- **Cadence.** Daily only for now; a weekly digest is open.
 - **Roster source.** An HR/payroll export uploaded as CSV; re-uploading
   records reassignments, detected gaps keep their manager snapshot.
 - **Employee types.** No per-type logic. Everyone in the roster is
@@ -30,9 +33,10 @@ the behaviour itself is specified in `core-design.md`.
   roster.
 - **Sign-up and pricing** (2026-08-28, ADR-0006). Per-employer
   subscription tiered by active headcount — $20 (≤50), $50 (≤200),
-  $100 (≤500), larger by agreement; 30 days free; onboarding by request
-  from the owner's admin area, no self-serve until the second paying
-  employer. Prices published on the site the same day.
+  $100 (≤500), larger by agreement; 30 days free (90 days in early
+  access); onboarding by request from the owner's admin area, no
+  self-serve until the second paying employer. Prices published on the
+  site the same day.
 - **Channel.** Email only for now. WhatsApp remains a non-goal at launch
   (`scope.md`); a second channel is the ADR-0003 trigger for extracting a
   notification interface.
@@ -41,6 +45,10 @@ the behaviour itself is specified in `core-design.md`.
 
 - Send hour per employer (today: 08:00 UTC for everyone).
 - Excel adapter: which export layout the first real employer produces.
+  `imports.source` already reserves `excel`; the adapter is written
+  when the layout is known.
+- Weekly digest cadence: whether any employer wants it (daily only
+  today).
 - **Where the export file lives** at a real employer: an https URL the
   system publishes (supported), a shared folder / SFTP (not reachable
   from Workers — the operator's scheduler would run `scripts/upload.ts`),
@@ -48,3 +56,8 @@ the behaviour itself is specified in `core-design.md`.
   built). Decides whether the daily fetch is enough.
 - **Where corrections go**: which attendance or payroll system, and
   whether it has an import API. Until known, corrections leave as CSV.
+- **Night shifts across midnight**: does the first real employer's export
+  date a clock-out after midnight by the shift's start day or by the
+  calendar day? Matching is by shift date (`core-design.md` § Midnight-
+  crossing shifts); if the export uses the calendar day, the adapter must
+  fold it back.

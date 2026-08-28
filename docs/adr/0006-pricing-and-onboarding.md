@@ -22,8 +22,8 @@ published, anchors every later conversation.
 What we know about the buyer:
 
 - The person who feels the pain and signs is the payroll accountant (or
-  whoever owns payroll). They buy for the whole employer, not per seat
-  of their own.
+  whoever owns payroll calculation). They buy for the whole employer,
+  not per seat of their own.
 - The value scales with the number of tracked employees: more people
   clocking → more gaps → more accountant time saved and more managers
   routed. It does *not* scale with the number of managers, and charging
@@ -86,8 +86,12 @@ terms. The list prices above apply after the free period.
 ### Onboarding: by request, not self-serve
 
 - The site offers **Request access**: name, work email, employer, rough
-  headcount, which attendance system. Today this is a `mailto:` to
-  `hello@clockcover.com`; a form that emails us is a small follow-up.
+  headcount, which attendance system. The **Request access** buttons
+  are `mailto:` links to `hello@clockcover.com` — by choice: a prospect
+  who opens their own mail client writes in their own words and we get
+  a reply-able thread, not a form record. The separate **Get in touch**
+  page (`/contact`) does have a form, posting to the API's
+  `POST /contact`, for people who prefer one.
 - The owner creates the employer in the **admin area**
   (`admin.clockcover.com`, same worker as the portal and the console):
   name, payroll email, operator email, timezone. Creating it emails the

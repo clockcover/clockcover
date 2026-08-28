@@ -2,7 +2,7 @@
 title: "ADR-0004: Managers reach their digest through a signed, expiring link — no accounts"
 type: adr
 status: accepted
-updated: 2026-08-27
+updated: 2026-08-28
 tags: [security, frontend, backend]
 superseded_by:
 ---
@@ -85,7 +85,13 @@ issued tokens.
   one `Store` implementation.
 - **Import endpoints keep the operator API key** (`API_KEY`, bearer
   header). Different audience, different secret; they are never linked
-  from an email.
+  from an email. *Superseded 2026-08-28 by ADR-0007:* the shared
+  `API_KEY` is replaced by per-employer keys issued in the console; the
+  audience separation stands.
+- **Manager and payroll-accountant links are the session** — the 14-day
+  token in the path is enough for a one-gap decision. Operator and admin
+  links are different since 2026-08-28: a 15-minute single-use link
+  token exchanged for a 7-day session (ADR-0005, amendment).
 
 ### Consequences for the code
 
@@ -108,9 +114,9 @@ becomes a session instead of an email link.
 *Extended 2026-08-28:* the same mechanism serves the payroll accountant.
 Each escalation email carries a link `/e/<token>` signed with
 `kind: "payroll"` for **one gap**, bound to `employers.payroll_email`,
-14 days; it shows the gap and lets payroll close it with an outcome and
-a required note (`POST /e/<token>/handle`). Manager, operator and payroll
-tokens are mutually exclusive by `kind`.
+14 days; it shows the gap and lets the payroll accountant close it with
+an outcome and a required note (`POST /e/<token>/handle`). Manager,
+operator and payroll-accountant tokens are mutually exclusive by `kind`.
 
 **Revisit when:** a second employer shares one deployment (a manager
 with teams at two employers), an employer requires SSO, or the page

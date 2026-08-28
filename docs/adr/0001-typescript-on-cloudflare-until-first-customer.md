@@ -2,7 +2,7 @@
 title: "ADR-0001: TypeScript on Cloudflare (Workers + D1) until first customer, then self-host"
 type: adr
 status: accepted
-updated: 2026-08-27
+updated: 2026-08-28
 tags: [backend, deploy, database]
 superseded_by:
 ---
@@ -55,8 +55,16 @@ structured from the start so only two thin layers change:
    no knowledge of what invoked it. A Cloudflare Cron Trigger calls it
    now; a cron/systemd timer on Hetzner calls it later.
 
+**Reversibility:** one-way door. The language choice shapes every
+package and every hire; leaving TypeScript would be a rewrite. The
+hosting choice is two-way by construction — the `Store` port, Drizzle
+and the plain job function exist so that the Cloudflare → self-hosted
+move is a bounded migration, not a redesign.
+
 **Revisit when:** first paying customer, or first real (non-synthetic)
-employee data being onboarded — whichever comes first.
+employee data being onboarded — whichever comes first. Either reopens
+the hosting half of this decision (start the self-hosting ADR); neither
+reopens the language.
 
 ## Consequences
 

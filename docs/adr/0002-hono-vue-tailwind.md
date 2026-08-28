@@ -2,7 +2,7 @@
 title: "ADR-0002: Hono for the backend, Vue 3 + Tailwind 4 for the frontend, kept as separate apps"
 type: adr
 status: accepted
-updated: 2026-08-27
+updated: 2026-08-28
 tags: [backend, frontend]
 superseded_by:
 ---
@@ -42,6 +42,17 @@ imports. A thin router (Hono) sitting in its own app makes that
 boundary a real, physical one (a separate app the core logic doesn't
 live in) rather than a matter of discipline not to reach into Nuxt/Nitro
 conventions (`server/` directory, auto-imports) from business logic.
+
+**Reversibility:** one-way door in practice. Every route, page and
+component is written against these frameworks; swapping either is a
+rewrite of that app, even though the core (ADR-0001, ADR-0003) would
+not notice. The two-app split is the cheaper half to undo.
+
+**Revisit when:** the stack moves off Cloudflare (ADR-0001's trigger:
+first paying customer or first real employee data) and Hono's Workers
+fit stops mattering; the digest page needs server-side rendering; or a
+second frontend (WhatsApp, a mobile shell) makes the portal's framework
+the wrong centre of gravity.
 
 ## Consequences
 
