@@ -32,7 +32,7 @@ for (const rel of en) {
   test(`${url(rel)} ↔ ${url(rel ? `he/${rel}` : "he")}`, () => {
     assert.deepEqual(all(heHtml, /\bid="([^"]+)"/g), all(enHtml, /\bid="([^"]+)"/g), "same anchors");
     for (const token of ["$20", "$50", "$100", "90"]) {
-      const re = new RegExp(`(?<![\\d$])${token.replace(/\$/g, "\\$")}(?!\\d)`, "g");
+      const re = new RegExp(`(?<![\\d$])${token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?!\\d)`, "g");
       assert.equal(all(heHtml, re).length, all(enHtml, re).length, `same number of "${token}"`);
     }
     assert.ok(enHtml.includes(`hreflang="he" href="${url(rel ? `he/${rel}` : "he")}"`), "EN points at HE");
