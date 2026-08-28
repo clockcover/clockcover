@@ -1,13 +1,13 @@
 // Read models for the operator console (ADR-0005). apps/api only.
-import { and, desc, eq, gte, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNotNull, isNull, lte } from "drizzle-orm";
 import type { Id } from "@clockcover/core";
 import type { Db } from "./store.ts";
 import * as s from "./schema.ts";
 
-export interface ImportRun { id: Id; source: string; importedAt: string; rowCount: number }
+export interface ImportRun { id: Id; source: string; trigger: string; importedAt: string; rowCount: number }
 
 export async function listImports(db: Db, employerId: Id, limit = 50): Promise<ImportRun[]> {
-  return db.select({ id: s.imports.id, source: s.imports.source, importedAt: s.imports.importedAt, rowCount: s.imports.rowCount })
+  return db.select({ id: s.imports.id, source: s.imports.source, trigger: s.imports.trigger, importedAt: s.imports.importedAt, rowCount: s.imports.rowCount })
     .from(s.imports).where(eq(s.imports.employerId, employerId)).orderBy(desc(s.imports.importedAt)).limit(limit);
 }
 
@@ -75,4 +75,69 @@ export function isTimezone(tz: string): boolean {
   } catch {
     return false;
   }
+}
+
+export interface ResolutionRow {
+  date: string; employeeId: string; employeeName: string; managerName: string; gapType: string;
+  outcome: string; resolution: string; resolvedBy: string; resolvedAt: string; note: string;
+  plannedStart: string; plannedEnd: string; plannedHours: string; clockIn: string; clockOut: string;
+}
+
+/**
+ * Gaps closed by a person (manager or payroll) with resolved_at in [from, to] — the
+ * corrections payroll has to carry into the attendance or payroll system. Records that
+ * arrived by import are not corrections and are left out.
+ */
+export async function resolutionsBetween(db: Db, employerId: Id, from: string, to: string): Promise<ResolutionRow[]> {
+  const gaps = await db.select().from(s.gaps).where(and(
+    eq(s.gaps.employerId, employerId), isNotNull(s.gaps.resolvedAt),
+    gte(s.gaps.resolvedAt, `${from}T00:00:00.000Z`), lte(s.gaps.resolvedAt, `${to}T23:59:59.999Z`),
+    inArray(s.gaps.resolution, ["manager_action", "payroll_action"]),
+  ));
+  if (gaps.length === 0) return [];
+  const employees = new Map((await db.select().from(s.employees).where(eq(s.employees.employerId, employerId))).map((e) => [e.id, e]));
+  const managers = new Map((await db.select().from(s.managers).where(eq(s.managers.employerId, employerId))).map((m) => [m.id, m.fullName]));
+  const dates = [...new Set(gaps.map((g) => g.gapDate))];
+  const shifts = await db.select().from(s.scheduledShifts).where(and(eq(s.scheduledShifts.employerId, employerId), inArray(s.scheduledShifts.shiftDate, dates)));
+  const records = await db.select().from(s.attendanceRecords).where(and(eq(s.attendanceRecords.employerId, employerId), inArray(s.attendanceRecords.recordDate, dates)));
+  const key = (e: string, d: string) => `${e}|${d}`;
+  const shiftBy = new Map(shifts.map((x) => [key(x.employeeId, x.shiftDate), x]));
+  const recordBy = new Map(records.map((x) => [key(x.employeeId, x.recordDate), x]));
+  const hours = (a: string, b: string) => {
+    const [ah, am] = a.split(":").map(Number), [bh, bm] = b.split(":").map(Number);
+    let mins = (bh! * 60 + bm!) - (ah! * 60 + am!);
+    if (mins < 0) mins += 24 * 60; // overnight shift
+    return (mins / 60).toFixed(2);
+  };
+  return gaps
+    .map((g) => {
+      const e = employees.get(g.employeeId);
+      const sh = shiftBy.get(key(g.employeeId, g.gapDate));
+      const rec = recordBy.get(key(g.employeeId, g.gapDate));
+      return {
+        date: g.gapDate, employeeId: e?.externalId ?? g.employeeId, employeeName: e?.fullName ?? "",
+        managerName: managers.get(g.managerId) ?? "", gapType: g.gapType,
+        outcome: g.outcome ?? "", resolution: g.resolution ?? "",
+        resolvedBy: g.resolution === "payroll_action" ? "payroll" : "manager",
+        resolvedAt: g.resolvedAt ?? "", note: g.resolutionNote ?? "",
+        plannedStart: sh?.plannedStart ?? "", plannedEnd: sh?.plannedEnd ?? "",
+        plannedHours: sh && g.outcome === "present" ? hours(sh.plannedStart, sh.plannedEnd) : "",
+        clockIn: rec?.clockIn ?? "", clockOut: rec?.clockOut ?? "",
+      };
+    })
+    .sort((a, b) => a.date.localeCompare(b.date) || a.employeeId.localeCompare(b.employeeId));
+}
+
+const CSV_COLUMNS: Array<[keyof ResolutionRow, string]> = [
+  ["date", "date"], ["employeeId", "employee_id"], ["employeeName", "employee_name"], ["managerName", "manager_name"],
+  ["gapType", "gap_type"], ["outcome", "outcome"], ["resolution", "resolution"], ["resolvedBy", "resolved_by"],
+  ["resolvedAt", "resolved_at"], ["note", "note"], ["plannedStart", "planned_start"], ["plannedEnd", "planned_end"],
+  ["plannedHours", "planned_hours"], ["clockIn", "clock_in"], ["clockOut", "clock_out"],
+];
+
+export function resolutionsCsv(rows: ResolutionRow[]): string {
+  const cell = (v: string) => (/[",\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);
+  const lines = [CSV_COLUMNS.map(([, h]) => h).join(",")];
+  for (const r of rows) lines.push(CSV_COLUMNS.map(([k]) => cell(r[k])).join(","));
+  return lines.join("\r\n") + "\r\n";
 }

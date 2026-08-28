@@ -11,7 +11,8 @@ import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts
 import { gapViews, unscheduledFor } from "./adapters/store-d1/views.ts";
 import * as s from "./adapters/store-d1/schema.ts";
 import { parseCsv, parseRoster } from "./adapters/csv.ts";
-import { renderDigest, renderEscalation } from "./adapters/email.ts";
+import { renderDigest, renderEscalation, renderImportFailure } from "./adapters/email.ts";
+import { ImportError, hasImportSources, runImportFromUrls } from "./import-run.ts";
 import type { SendEmail } from "./adapters/email.ts";
 import { LINK_TTL_MS, signLink, signPayroll, verifyLink, verifyPayroll } from "./link.ts";
 import { consoleRoutes } from "./console.ts";
@@ -31,6 +32,8 @@ export interface Deps {
   /** Default SLA for employers that have not set their own (employers.sla_hours). */
   slaHours: number;
   now?: () => Date;
+  /** Outbound HTTP for scheduled imports; injected in tests. */
+  fetch?: typeof fetch;
 }
 
 const HOUR = 3_600_000;
@@ -185,12 +188,28 @@ export function createApp(deps: Deps) {
 }
 
 /** The daily job: digests, then escalations, for every employer. Invoked by the Cron Trigger. */
-export async function runScheduled(deps: Deps): Promise<{ digests: number; escalations: number }> {
+export async function runScheduled(deps: Deps): Promise<{ imports: number; importFailures: number; digests: number; escalations: number }> {
   const t = (deps.now ?? (() => new Date()))();
   const employers = await deps.db.select().from(s.employers);
-  let digests = 0, escalations = 0;
+  let imports = 0, importFailures = 0, digests = 0, escalations = 0;
 
   for (const employer of employers) {
+    // 1. Fetch today's files first, so the digest reflects them. A failure is reported to the
+    //    operator and does not stop the digest — yesterday's data is better than silence.
+    if (hasImportSources(employer)) {
+      try {
+        await runImportFromUrls(deps.db, deps.store, employer, t, deps.fetch ?? fetch);
+        imports++;
+      } catch (err) {
+        importFailures++;
+        const e = err instanceof ImportError ? err : new ImportError("import", err instanceof Error ? err.message : String(err));
+        console.error(JSON.stringify({ job: "import", employerId: employer.id, step: e.step, message: e.message }));
+        if (employer.operatorEmail) {
+          await deps.sendEmail(renderImportFailure({ to: employer.operatorEmail, employerName: employer.name, step: e.step, message: e.message, details: e.details, consoleUrl: deps.consoleUrl.replace(/\/$/, "") }));
+        }
+      }
+    }
+
     const send = async (m: DigestMessage) => {
       const exp = t.getTime() + LINK_TTL_MS;
       const token = await signLink({ employerId: employer.id, managerId: m.manager.id, exp }, deps.linkSecret);
@@ -223,5 +242,5 @@ export async function runScheduled(deps: Deps): Promise<{ digests: number; escal
     }
     escalations += escalated.length;
   }
-  return { digests, escalations };
+  return { imports, importFailures, digests, escalations };
 }

@@ -69,7 +69,7 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   const { deps, emails, seed, advance } = await setup();
   await seed();
 
-  assert.deepEqual(await runScheduled(deps), { digests: 1, escalations: 0 });
+  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 1, escalations: 0 });
   const digest = emails[0]!;
   assert.equal(digest.to, "north@example.com");
   assert.equal(digest.subject, "2 clock gaps on your team — Mon 2 Mar");
@@ -83,7 +83,7 @@ test("scheduled job: digest email carries the signed link and the design's copy;
   assert.match(digest.text, /expires 16 Mar 2026/);
 
   advance(new Date(T0.getTime() + 3 * H));
-  assert.deepEqual(await runScheduled(deps), { digests: 0, escalations: 0 }, "same day: nothing new");
+  assert.deepEqual(await runScheduled(deps), { imports: 0, importFailures: 0, digests: 0, escalations: 0 }, "same day: nothing new");
 
   advance(new Date("2026-03-05T08:00:00Z"));
   assert.equal((await runScheduled(deps)).escalations, 2);

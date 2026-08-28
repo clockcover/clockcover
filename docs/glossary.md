@@ -120,9 +120,15 @@ _Avoid_: putting vendor-specific logic anywhere outside an adapter — the Match
 Routing never know which vendor the data came from.
 
 **Import**:
-One run of an Adapter over one export file, recorded as an `imports` row. The raw file is deleted
-after parsing (`docs/privacy.md`); Scheduled Shifts and Attendance Records keep only the
-`import_id`, so a corrected Import stays traceable.
+One run of an Adapter over one export file, recorded as an `imports` row with how it started
+(`upload` by a person or script, `url` fetched by the daily job). The raw file is deleted after
+parsing (`docs/privacy.md`); Scheduled Shifts and Attendance Records keep only the `import_id`,
+so a corrected Import stays traceable.
+
+**Corrections export**:
+The CSV the Operator downloads from the Console: Gaps closed by a Manager or by Payroll in a
+period, with Outcome, note, planned hours and clock times — what has to be carried into the
+attendance or payroll system.
 _Defined in_: `docs/core-design.md` (`imports` table)
 
 **Attendance System**:

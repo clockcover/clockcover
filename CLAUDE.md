@@ -51,7 +51,10 @@ sign-in, imports, settings, overview) lives at app.clockcover.com;
 managers keep digest.clockcover.com. Every resolution is either
 "approve the hours" (present) or "report an absence" (absent); payroll
 can close an escalated gap from the escalation email (`/e/<token>`).
-Next: the first real employer's export layout. Synthetic data only.
+The daily job can fetch the export and roster from https URLs set in
+the console and emails the operator on failure; corrections export as
+CSV. Open: sign-up and pricing, export target, the first real
+employer's file location and layout. Synthetic data only.
 
 Update this block — and its date — in the same commit as any milestone.
 A test fails when the date is older than 90 days.

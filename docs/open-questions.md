@@ -36,3 +36,14 @@ the behaviour itself is specified in `core-design.md`.
 
 - Send hour per employer (today: 08:00 UTC for everyone).
 - Excel adapter: which export layout the first real employer produces.
+- **Where the export file lives** at a real employer: an https URL the
+  system publishes (supported), a shared folder / SFTP (not reachable
+  from Workers — the operator's scheduler would run `scripts/upload.ts`),
+  or an email attachment (possible via Cloudflare Email Routing; not
+  built). Decides whether the daily fetch is enough.
+- **Where corrections go**: which attendance or payroll system, and
+  whether it has an import API. Until known, corrections leave as CSV.
+- **Sign-up and pricing** (one decision, one-way door): who may create
+  an employer, whether self-serve, and what is charged. Today one
+  employer per deployment, seeded by hand. A proposal is in the chat
+  log of 2026-08-28; it needs the owner's decision and an ADR.

@@ -7,7 +7,8 @@ import type { Deps } from "./app.ts";
 import { parseCsv, parseRoster } from "./adapters/csv.ts";
 import { renderMagicLink } from "./adapters/email.ts";
 import { periodOf, saveImport, saveRoster } from "./adapters/store-d1/imports.ts";
-import { isTimezone, listImports, overview } from "./adapters/store-d1/console-queries.ts";
+import { isTimezone, listImports, overview, resolutionsBetween, resolutionsCsv } from "./adapters/store-d1/console-queries.ts";
+import { ImportError, hasImportSources, runImportFromUrls, validateSourceUrl } from "./import-run.ts";
 import * as s from "./adapters/store-d1/schema.ts";
 import { OPERATOR_TTL_MS, signOperator, verifyOperator } from "./link.ts";
 import type { OperatorClaims } from "./link.ts";
@@ -49,6 +50,7 @@ export function consoleRoutes(deps: Deps) {
 
   const employerView = (e: typeof s.employers.$inferSelect, exp: number) => ({
     id: e.id, name: e.name, payrollEmail: e.payrollEmail, operatorEmail: e.operatorEmail, timezone: e.timezone, slaHours: e.slaHours,
+    importUrl: e.importUrl, rosterUrl: e.rosterUrl,
     sessionExpires: new Date(exp).toISOString(),
   });
 
@@ -65,6 +67,13 @@ export function consoleRoutes(deps: Deps) {
       const v = str(k); if (v !== undefined) { if (v.includes("@")) patch[k] = v.toLowerCase(); else errors.push(`${k} is not an email`); }
     }
     const tz = str("timezone"); if (tz !== undefined) { if (isTimezone(tz)) patch.timezone = tz; else errors.push("timezone is not an IANA zone name"); }
+    for (const k of ["importUrl", "rosterUrl"] as const) {
+      const v = str(k);
+      if (v !== undefined) {
+        const r = validateSourceUrl(v);
+        if ("error" in r) errors.push(`${k} ${r.error}`); else patch[k] = r.url;
+      }
+    }
     if (body["slaHours"] !== undefined) {
       const n = Number(body["slaHours"]);
       if (Number.isInteger(n) && n >= 1 && n <= 24 * 14) patch.slaHours = n; else errors.push("slaHours must be a whole number of hours, 1–336");
@@ -98,6 +107,30 @@ export function consoleRoutes(deps: Deps) {
   });
 
   app.get("/imports", async (c) => c.json({ imports: await listImports(deps.db, c.get("employer").id) }));
+
+  // "Run import now": fetch the configured URLs on demand.
+  app.post("/imports/run", async (c) => {
+    const e = c.get("employer");
+    if (!hasImportSources(e)) return c.json({ error: "no import URL configured — set one in Settings or upload a file" }, 400);
+    try {
+      return c.json(await runImportFromUrls(deps.db, deps.store, e, now(), deps.fetch ?? fetch));
+    } catch (err) {
+      if (err instanceof ImportError) return c.json({ error: err.message, step: err.step, details: err.details }, 502);
+      throw err;
+    }
+  });
+
+  // Corrections made by people, for payroll to carry into the attendance/payroll system.
+  app.get("/resolutions.csv", async (c) => {
+    const e = c.get("employer");
+    const from = c.req.query("from") ?? "", to = c.req.query("to") ?? "";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to) || from > to) return c.json({ error: "from and to must be YYYY-MM-DD, from ≤ to" }, 400);
+    const rows = await resolutionsBetween(deps.db, e.id, from, to);
+    return c.body(resolutionsCsv(rows), 200, {
+      "content-type": "text/csv; charset=utf-8",
+      "content-disposition": `attachment; filename="clockcover-corrections-${from}-${to}.csv"`,
+    });
+  });
 
   app.get("/overview", async (c) => {
     const e = c.get("employer");

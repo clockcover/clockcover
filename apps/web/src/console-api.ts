@@ -9,7 +9,15 @@ export interface EmployerSettings {
   operatorEmail: string | null;
   timezone: string;
   slaHours: number;
+  /** Daily fetch sources (https CSV); null = uploads only. */
+  importUrl: string | null;
+  rosterUrl: string | null;
   sessionExpires: string;
+}
+
+export interface ImportSummary {
+  roster: { employees: number } | null;
+  import: ImportOutcome | null;
 }
 
 export interface ImportOutcome {
@@ -22,7 +30,7 @@ export interface ImportOutcome {
   unknownEmployees: string[];
 }
 
-export interface ImportRun { id: string; source: string; importedAt: string; rowCount: number }
+export interface ImportRun { id: string; source: string; trigger: string; importedAt: string; rowCount: number }
 
 export interface Overview {
   openGaps: number;
@@ -58,11 +66,38 @@ async function call<T>(path: string, init: RequestInit = {}, auth = true): Promi
 export const requestLink = (email: string) =>
   call<{ ok: true; message: string }>("/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email }) }, false);
 export const me = () => call<EmployerSettings>("/me");
-export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "payrollEmail" | "operatorEmail" | "timezone" | "slaHours">>) =>
+export const updateEmployer = (patch: Partial<Pick<EmployerSettings, "name" | "payrollEmail" | "operatorEmail" | "timezone" | "slaHours" | "importUrl" | "rosterUrl">>) =>
   call<EmployerSettings>("/employer", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch) });
 export const uploadRoster = (csv: string) => call<{ employees: number }>("/roster", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });
 export const uploadImport = (csv: string) => call<ImportOutcome>("/imports", { method: "POST", headers: { "content-type": "text/csv" }, body: csv });
 export const listImports = () => call<{ imports: ImportRun[] }>("/imports");
+export const runImportNow = () => call<ImportSummary>("/imports/run", { method: "POST" });
+
+/** Downloads the corrections CSV for [from, to]; the bearer goes in a header, so this is a fetch + blob, not a link. */
+export async function downloadCorrections(from: string, to: string): Promise<void> {
+  const token = session.get();
+  if (!token) throw new ApiError(401, "sign in required");
+  const res = await fetch(`${base}/console/resolutions.csv?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`, { headers: { authorization: `Bearer ${token}` } });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(res.status, body.error ?? res.statusText);
+  }
+  const blob = await res.blob();
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `clockcover-corrections-${from}-${to}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
+/** Default export range: the last 30 days up to today (UTC). */
+export function defaultRange(now: Date): { from: string; to: string } {
+  const to = now.toISOString().slice(0, 10);
+  const from = new Date(now.getTime() - 30 * 86_400_000).toISOString().slice(0, 10);
+  return { from, to };
+}
 export const overview = () => call<Overview>("/overview");
 
 export type ConsoleRoute =

@@ -15,7 +15,8 @@ employers
   id, name, payroll_email,         -- where escalations go; one accountant per employer
   operator_email,                  -- who may sign in to the console (ADR-0005)
   timezone,                        -- IANA name; defines "today" for digests and the SLA
-  sla_hours                        -- 48 by default; the console edits it
+  sla_hours,                       -- 48 by default; the console edits it
+  import_url, roster_url           -- nullable https URLs the daily job fetches CSVs from
 
 employees
   id, employer_id, external_id, full_name, manager_id (FK → managers), active
@@ -25,7 +26,7 @@ managers
   whatsapp_number (nullable, until WhatsApp delivery is built)
 
 imports
-  id, employer_id, source (csv|excel|pdf), imported_at, row_count
+  id, employer_id, source (csv|excel|pdf), trigger (upload|url), imported_at, row_count
                                    -- one row per import run; the raw file itself is deleted
                                    -- after parsing (privacy.md). `source` grows with adapters.
 
@@ -136,6 +137,19 @@ finds the same gap already open appends nothing.
 twice for the same period is a no-op the second time. If a re-run finds
 that a previously detected gap now has its record (e.g. a corrected
 import), the gap is resolved with `resolution = record_arrived`.
+
+## Scheduled import
+
+Before the digest, the daily job fetches `employers.roster_url` (if set)
+and `employers.import_url` (if set) over https, parses them exactly as
+an upload, saves the import with `trigger = url` and runs detection. Any
+failure — unreachable URL, non-2xx, a file with row errors — is emailed
+to `operator_email` with the reason and the row errors, and the digest
+still goes out from the data already present: yesterday's data beats
+silence. The same routine runs on demand from the console ("Run import
+now"). The URL is the credential: employers publish the export at a
+secret address; header-based auth is a follow-up when a real system
+needs it.
 
 ## Routing & Escalation
 
