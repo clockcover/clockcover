@@ -29,8 +29,8 @@ the behaviour itself is specified in `core-design.md`.
   expected to clock; staff who should not be tracked are left out of the
   roster.
 - **Sign-up and pricing** (2026-08-28, ADR-0006). Per-employer
-  subscription tiered by active headcount — $49 (≤50), $149 (≤200),
-  $349 (≤500), larger by agreement; 30 days free; onboarding by request
+  subscription tiered by active headcount — $20 (≤50), $50 (≤200),
+  $100 (≤500), larger by agreement; 30 days free; onboarding by request
   from the owner's admin area, no self-serve until the second paying
   employer. Prices published on the site the same day.
 - **Channel.** Email only for now. WhatsApp remains a non-goal at launch
